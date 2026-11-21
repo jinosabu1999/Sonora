@@ -289,14 +289,13 @@ kbd {
 .workspace-tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 #saveStatus { font-size: 11px; color: var(--txt-3); margin-left: auto; }
 
-/* Unified Glass Stage Deck — pinned sticky so Waveform & Spectrogram stay visible while scrolling */
+/* Unified Glass Stage Deck */
 .stage-deck {
-  position: sticky; top: calc(var(--topbar-h, 54px) + 4px); z-index: 30;
   display: flex; flex-direction: column; gap: 9px; padding: 11px;
   border-radius: var(--r-lg);
-  background: var(--glass-grad), rgba(14, 15, 22, .84);
-  backdrop-filter: blur(38px) saturate(210%); -webkit-backdrop-filter: blur(38px) saturate(210%);
-  border: 1px solid var(--rim); box-shadow: var(--spec), 0 20px 44px -22px rgba(0, 0, 0, .92);
+  background: var(--glass-grad), var(--glass);
+  backdrop-filter: blur(36px) saturate(200%); -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border: 1px solid var(--rim); box-shadow: var(--spec), 0 20px 44px -22px rgba(0, 0, 0, .86);
 }
 .filebar { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .filebar .tag {
@@ -326,12 +325,8 @@ kbd {
 }
 #wave { display: block; width: 100%; height: clamp(185px, 27dvh, 305px); touch-action: none; cursor: crosshair; transition: height .18s ease; }
 body.has-multitrack #wave { height: clamp(238px, 34dvh, 368px); }
-@media (max-height: 760px) {
-  #wave { height: clamp(142px, 22dvh, 215px); }
-  body.has-multitrack #wave { height: clamp(178px, 27dvh, 255px); }
-}
 .wave-meta-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
   padding: 2px 2px 0;
 }
 .wave-chip {
@@ -600,14 +595,6 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 }
 .chapter-out { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--txt-2); }
 .skip-note { color: #ffd60a !important; font-weight: 550; }
-.spec-brush-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 7px; flex-wrap: wrap;
-  padding: 7px 10px; border-radius: 14px; margin-top: 4px;
-  background: rgba(191, 90, 242, .11); border: 1px solid rgba(191, 90, 242, .34);
-}
-.spec-brush-bar[hidden] { display: none; }
-.spec-brush-bar b { font: 600 11px/1.2 ui-monospace, monospace; color: #f0d0ff; }
-.btn.is-spec-on { background: rgba(191, 90, 242, .25); border-color: rgba(191, 90, 242, .62); color: #f4dcff; }
 .rec-metro-row {
   display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 8px 10px;
   border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid var(--rim);
@@ -889,25 +876,48 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .rec-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 .merge-panel { display: flex; flex-direction: column; gap: 12px; }
-.merge-list { display: flex; flex-direction: column; gap: 7px; max-height: 240px; overflow-y: auto; }
+.merge-mode-seg {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px;
+  border-radius: var(--r-pill); background: rgba(0, 0, 0, .35); border: 1px solid var(--rim);
+}
+.merge-mode-seg button {
+  height: 31px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600;
+  color: var(--txt-2); transition: background var(--fast), color var(--fast);
+}
+.merge-mode-seg button[aria-pressed="true"] {
+  background: rgba(100, 210, 255, .20); color: #e8f9ff; border: 1px solid rgba(100, 210, 255, .42);
+}
+.merge-list { display: flex; flex-direction: column; gap: 7px; max-height: 250px; overflow-y: auto; }
 .merge-empty { padding: 20px 14px; text-align: center; border: 1px dashed var(--rim-2); border-radius: var(--r-md); color: var(--txt-2); font-size: 12.5px; background: var(--well); }
-.merge-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: var(--r-sm); background: rgba(255, 255, 255, .045); border: 1px solid var(--rim); }
+.merge-item { display: flex; flex-direction: column; gap: 7px; padding: 9px 10px; border-radius: var(--r-sm); background: rgba(255, 255, 255, .045); border: 1px solid var(--rim); }
+.merge-item-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .merge-num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; flex: none; background: rgba(100, 210, 255, .15); color: var(--acc); font: 600 11px/1 ui-monospace, monospace; }
 .merge-meta { flex: 1; min-width: 0; }
 .merge-meta b { display: block; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .merge-meta span { font-size: 11px; color: var(--txt-3); font-family: ui-monospace, monospace; }
 .merge-act { display: flex; gap: 4px; flex: none; }
 .merge-act .btn.icon.sm { width: 30px; min-width: 30px; height: 30px; min-height: 30px; }
+.merge-item-place { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding-top: 2px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.merge-place-btn {
+  height: 26px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 600;
+  background: rgba(255, 255, 255, .07); border: 1px solid var(--rim); color: var(--txt-2);
+}
+.merge-place-btn.is-ovl { background: rgba(48, 209, 88, .16); border-color: rgba(48, 209, 88, .42); color: #8af5a8; }
+.merge-offset-wrap { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 11px; color: var(--txt-2); }
+.merge-offset-in {
+  width: 62px !important; height: 26px !important; padding: 2px 6px !important; text-align: center;
+  border-radius: 8px; font: 600 11px ui-monospace, monospace;
+}
 
 /* ------------------------------------------- iOS 27 Floating Pill Navbar */
 .dock {
   position: fixed; left: 50%; bottom: calc(10px + var(--sab)); transform: translateX(-50%);
   z-index: 55; display: none;
   width: min(calc(100% - 16px), 420px); padding: 5px; border-radius: var(--r-pill);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, .04) 48%, rgba(255, 255, 255, .09) 100%), rgba(16, 18, 26, .20);
-  backdrop-filter: blur(44px) saturate(240%) brightness(1.08); -webkit-backdrop-filter: blur(44px) saturate(240%) brightness(1.08);
-  border: 1px solid rgba(255, 255, 255, .28);
-  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .42), inset 0 -1px 0 rgba(255, 255, 255, .10), 0 18px 42px -14px rgba(0, 0, 0, .65);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .09) 0%, rgba(255, 255, 255, .01) 55%, rgba(255, 255, 255, .035) 100%), rgba(10, 12, 18, .05);
+  backdrop-filter: blur(16px) saturate(175%); -webkit-backdrop-filter: blur(16px) saturate(175%);
+  border: 1px solid rgba(255, 255, 255, .20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30), inset 0 -1px 0 rgba(255, 255, 255, .06), 0 12px 28px -14px rgba(0, 0, 0, .45);
 }
 .dock.on { display: block; }
 .dock .row1 { display: none; }
@@ -915,16 +925,17 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .dockact {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   height: 48px; padding: 4px 2px; border-radius: var(--r-pill);
-  font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, .80);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+  font-size: 10.5px; font-weight: 600; color: rgba(255, 255, 255, .86);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .60);
   transition: background var(--fast), color var(--fast), transform var(--fast);
 }
 .dockact svg { width: 18px; height: 18px; }
 .dockact:active { transform: scale(.92); }
 .dockact.is-active {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, .12) 100%);
+  background: rgba(255, 255, 255, .14);
   color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 4px 12px -4px rgba(0, 0, 0, .35);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32);
 }
 
 /* ------------------------------------------- Glass Sheets, Modals, Toasts */
@@ -1460,25 +1471,10 @@ body.overlay-open { overflow: hidden; }
         </div>
 
         <div class="wave-meta-bar">
-          <div class="wave-chip" id="waveChips">
-            <span class="chip mono" id="chipSel">no selection</span>
-            <span class="chip mono hide-xs" id="chipInfo">—</span>
-            <span class="chip mono" id="specFreqChip" hidden>— Hz</span>
-            <button type="button" class="btn sm" id="btnSpecBrush" hidden style="min-height:26px;height:26px;padding:0 9px;font-size:11px;border-radius:999px">Band Notch</button>
-          </div>
           <div class="zoom-pill">
             <button class="btn icon" id="mZoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
             <button class="btn icon" id="mZoomFit" title="Zoom to fit" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
             <button class="btn icon" id="mZoomIn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-          </div>
-        </div>
-        <div class="spec-brush-bar" id="specBrushBar" hidden>
-          <b id="specBrushReadout">Drag on spectrogram to select a frequency band</b>
-          <div class="btn-row" style="flex:none">
-            <button type="button" class="btn sm primary" id="btnSpecNotch" disabled>Notch −24 dB</button>
-            <button type="button" class="btn sm" id="btnSpecDip" disabled>Dip −9 dB</button>
-            <button type="button" class="btn sm" id="btnSpecIsolate" disabled>Isolate</button>
-            <button type="button" class="btn icon sm ghost" id="btnSpecClear" aria-label="Clear frequency band" style="width:28px;height:28px;min-height:28px">×</button>
           </div>
         </div>
 
@@ -1826,7 +1822,11 @@ body.overlay-open { overflow: hidden; }
 
 <div id="mergeHost" hidden>
   <div class="merge-panel" id="mergePanel">
-    <p class="panel-intro">Pick 2 or more audio files, arrange their order, and stitch them with a smooth crossfade.</p>
+    <p class="panel-intro">Pick 2 or more tracks, then choose whether each plays <b>after</b> the previous track or <b>overlaps</b> (mixes together).</p>
+    <div class="merge-mode-seg" id="mergeModeSeg" role="group" aria-label="Track placement mode">
+      <button type="button" data-mmode="after" aria-pressed="true">→ Play after previous</button>
+      <button type="button" data-mmode="overlap" aria-pressed="false">∥ Overlap / Mix together</button>
+    </div>
     <div class="btn-row">
       <button type="button" class="btn primary sm" id="btnMergeAddFiles">＋ Choose 2+ audio files</button>
       <button type="button" class="btn sm" id="btnMergeAddCurrent" hidden>＋ Add current track</button>
@@ -1837,12 +1837,12 @@ body.overlay-open { overflow: hidden; }
     </div>
     <div class="grid-2" style="align-items:end">
       <div>
-        <div class="range-row"><label for="mergeXfade">Crossfade</label><output id="mergeXfadeOut">0.5 s</output></div>
+        <div class="range-row"><label for="mergeXfade">Crossfade (after)</label><output id="mergeXfadeOut">0.5 s</output></div>
         <input type="range" id="mergeXfade" min="0" max="5" step="0.1" value="0.5">
       </div>
       <div class="chip mono" id="mergeEstDur" style="justify-self:end;padding:8px 11px">Total: 0:00</div>
     </div>
-    <label class="checkrow"><input type="checkbox" id="mergeNorm" checked><span>Match clip peak levels (-1.5 dB) before stitching</span></label>
+    <label class="checkrow"><input type="checkbox" id="mergeNorm" checked><span>Match clip peak levels (-1.5 dB) before merging</span></label>
     <button type="button" class="btn primary wide" id="btnDoMerge" disabled>Merge &amp; open in editor</button>
   </div>
 </div>
@@ -20869,58 +20869,11 @@ self.onmessage = function (e) {
     } catch (e) { toast('Spectrogram unavailable: ' + e.message, 'err'); P.waveMode = 'wave'; }
     finally { specPending = false; }
   }
-  const SpecBrush = { enabled: false, box: null };
-  function yToSpecHz(y, top, mainH) {
-    const frac = clamp(1 - (y - top) / Math.max(1, mainH), 0, 1);
-    return clamp(Math.pow(frac, 1.55) * ((S.rate || 44100) * 0.5), 25, (S.rate || 44100) * 0.48);
-  }
-  function specHzToY(hz, top, mainH) {
-    const nyq = (S.rate || 44100) * 0.5;
-    const frac = Math.pow(clamp(hz / nyq, 0, 1), 1 / 1.55);
-    return top + (1 - frac) * mainH;
-  }
-  function syncSpecBrushUI() {
-    const isSpec = P.waveMode === 'spec' || P.waveMode === 'mix';
-    if ($('#btnSpecBrush')) {
-      $('#btnSpecBrush').hidden = !isSpec;
-      $('#btnSpecBrush').classList.toggle('is-spec-on', SpecBrush.enabled);
-    }
-    if ($('#specFreqChip')) $('#specFreqChip').hidden = !isSpec;
-    if ($('#specBrushBar')) $('#specBrushBar').hidden = !(isSpec && (SpecBrush.enabled || SpecBrush.box));
-    const hasBox = !!(SpecBrush.box && SpecBrush.box.t1 - SpecBrush.box.t0 > 0.02);
-    if ($('#btnSpecNotch')) $('#btnSpecNotch').disabled = !hasBox;
-    if ($('#btnSpecDip')) $('#btnSpecDip').disabled = !hasBox;
-    if ($('#btnSpecIsolate')) $('#btnSpecIsolate').disabled = !hasBox;
-    if ($('#specBrushReadout')) {
-      if (hasBox) {
-        const b = SpecBrush.box;
-        $('#specBrushReadout').textContent = `${fmtHz(b.fLo)} – ${fmtHz(b.fHi)} · ${fmtTime(b.t0, true)}–${fmtTime(b.t1, true)}`;
-      } else {
-        $('#specBrushReadout').textContent = 'Drag on spectrogram to select a frequency band';
-      }
-    }
-  }
-  async function applySpecBand(mode) {
-    if (!hasAudio || !SpecBrush.box) return;
-    const b = SpecBrush.box;
-    const s0 = clamp(Math.round(b.t0 * S.rate), 0, S.data[0].length);
-    const s1 = clamp(Math.round(b.t1 * S.rate), s0 + 16, S.data[0].length);
-    const lbl = mode === 'notch' ? `Spectral Notch (${fmtHz((b.fLo + b.fHi) / 2)})`
-      : mode === 'dip' ? `Spectral Dip (${fmtHz((b.fLo + b.fHi) / 2)})`
-      : `Isolate Band (${fmtHz(b.fLo)}–${fmtHz(b.fHi)})`;
-    await edit(lbl, async () => {
-      S.data = D.spectralBandOp(S.data, [s0, s1], S.rate, b.fLo, b.fHi, mode);
-    });
-    SpecBrush.box = null;
-    syncSpecBrushUI();
-    fxDirty = true;
-  }
   function setWaveMode(mode) {
     if (mode === 'stereo' && (!S.data || S.data.length < 2)) mode = 'wave';
     P.waveMode = mode;
     $$('#waveModeSeg [data-wmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wmode === mode));
     if ((mode === 'spec' || mode === 'mix') && !S.spec) ensureSpectrogram();
-    syncSpecBrushUI();
     baseDirty = fxDirty = true;
   }
   function pickTick() {
@@ -21380,31 +21333,6 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // Spectral Brush Time x Frequency selection box
-    if ((P.waveMode === 'spec' || P.waveMode === 'mix') && SpecBrush.box) {
-      const sb = SpecBrush.box;
-      const sx0 = tToX(sb.t0), sx1 = tToX(sb.t1);
-      const syTop = specHzToY(sb.fHi, top, lanesFx.mainH);
-      const syBot = specHzToY(sb.fLo, top, lanesFx.mainH);
-      const rw = Math.max(4, sx1 - sx0), rh = Math.max(6, syBot - syTop);
-      c.save();
-      c.fillStyle = 'rgba(191, 90, 242, .24)';
-      c.fillRect(sx0, syTop, rw, rh);
-      c.setLineDash([4, 3]);
-      c.strokeStyle = '#e5baff';
-      c.lineWidth = 1.5;
-      c.strokeRect(sx0 + 0.5, syTop + 0.5, rw - 1, rh - 1);
-      c.setLineDash([]);
-      c.fillStyle = 'rgba(12, 10, 18, .86)';
-      roundRect(c, sx0 + 4, Math.max(top + 2, syTop - 16), Math.min(180, Math.max(88, rw)), 15, 5);
-      c.fill();
-      c.fillStyle = '#f2d9ff';
-      c.font = '600 9.5px ui-monospace, monospace';
-      c.textBaseline = 'middle';
-      c.fillText(`${fmtHz(sb.fLo)}–${fmtHz(sb.fHi)}`, sx0 + 8, Math.max(top + 9.5, syTop - 8.5));
-      c.restore();
-    }
-
     // Color-coded markers + cue labels
     for (let i = 0; i < Markers.list.length; i++) {
       const m = Markers.list[i];
@@ -21647,14 +21575,6 @@ self.onmessage = function (e) {
       }
     }
     closeMarkerPop();
-    const lanesPtr = getTimelineLanes();
-    if (SpecBrush.enabled && (P.waveMode === 'spec' || P.waveMode === 'mix') && p.y > 24 && p.y <= 24 + lanesPtr.mainH) {
-      const tStart = clamp(xToT(p.x), 0, dur());
-      const fStart = yToSpecHz(p.y, 24, lanesPtr.mainH);
-      SpecBrush.box = { t0: tStart, t1: tStart, fLo: fStart, fHi: fStart };
-      drag = { mode: 'specbox', id: e.pointerId, sx: p.x, sy: p.y, tStart, fStart, moved: true };
-      haptic(6); syncSpecBrushUI(); fxDirty = true; return;
-    }
     const mode = hitTest(p.x, p.y);
     const [a, b] = selRange();
     drag = { mode, id: e.pointerId, sx: p.x, a, b, t0: xToT(p.x), moved: false, lastCoincide: null };
@@ -21667,12 +21587,6 @@ self.onmessage = function (e) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
         baseCv.style.cursor = hitTest(p.x, p.y) === 'scrub' ? 'crosshair' : 'ew-resize';
-        if ((P.waveMode === 'spec' || P.waveMode === 'mix') && $('#specFreqChip')) {
-          const lanesHov = getTimelineLanes();
-          if (p.y >= lanesHov.top && p.y <= lanesHov.top + lanesHov.mainH) {
-            $('#specFreqChip').textContent = fmtHz(yToSpecHz(p.y, lanesHov.top, lanesHov.mainH));
-          }
-        }
       }
       return;
     }
@@ -21693,19 +21607,7 @@ self.onmessage = function (e) {
     const p = canvasXY(e);
     if (Math.abs(p.x - drag.sx) > 2) drag.moved = true;
     const t = xToT(p.x);
-    if (drag.mode === 'specbox') {
-      const lanesB = getTimelineLanes();
-      const tCur = clamp(t, 0, dur());
-      const fCur = yToSpecHz(p.y, lanesB.top, lanesB.mainH);
-      SpecBrush.box = {
-        t0: Math.min(drag.tStart, tCur),
-        t1: Math.max(drag.tStart, tCur),
-        fLo: Math.min(drag.fStart, fCur),
-        fHi: Math.max(drag.fStart, fCur),
-      };
-      if ($('#specFreqChip')) $('#specFreqChip').textContent = fmtHz(fCur);
-      syncSpecBrushUI(); fxDirty = true; return;
-    } else if (drag.mode === 'marker') {
+    if (drag.mode === 'marker') {
       const m = Markers.list[drag.markerIdx];
       if (m && drag.moved) {
         m.t = clamp(t, 0, dur());
@@ -21787,10 +21689,7 @@ self.onmessage = function (e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
     if (drag && drag.id === e.pointerId) {
-      if (drag.mode === 'specbox') {
-        if (SpecBrush.box && SpecBrush.box.t1 - SpecBrush.box.t0 < 0.02) SpecBrush.box = null;
-        syncSpecBrushUI(); fxDirty = true;
-      } else if (drag.mode === 'marker') {
+      if (drag.mode === 'marker') {
         const mRef = Markers.list[drag.markerIdx];
         if (!drag.moved && e.type !== 'pointercancel' && mRef) {
           openMarkerPop(drag.markerIdx, drag.sx);
@@ -21863,8 +21762,6 @@ self.onmessage = function (e) {
     if (!isStart) $('#inStart').value = fmtTime(a / S.rate);
     if (!isEnd) $('#inEnd').value = fmtTime(b / S.rate);
     const selDurTxt = (b - a) < 2 ? 'no selection' : fmtTime((b - a) / S.rate, true);
-    $('#chipSel').textContent = (b - a) < 2 ? 'no selection' : 'sel ' + selDurTxt;
-    $('#chipSel').classList.toggle('acc', (b - a) >= 2);
     if ($('#selQuickDur')) $('#selQuickDur').textContent = selDurTxt;
     drawOverview();
     syncSelectPanel();
@@ -21878,7 +21775,6 @@ self.onmessage = function (e) {
     $('#stPeak').textContent = st.peakDb.toFixed(1);
     $('#stRms').textContent = st.rmsDb.toFixed(1);
     $('#stSize').textContent = fmtBytes(st.duration * S.rate * S.data.length * 2);
-    $('#chipInfo').textContent = (S.rate / 1000).toFixed(1) + 'kHz · ' + (S.data.length === 1 ? 'mono' : 'stereo');
     const lufs = D.measureLufs(S.data, [0, S.data[0].length], S.rate);
     MeterState.intLufs = lufs;
     MeterState.lraDb = Math.max(0, st.peakDb - st.rmsDb);
@@ -23083,7 +22979,7 @@ self.onmessage = function (e) {
       id: Stems.nextId++,
       name: name || ('Stem ' + (Stems.clips.length + 1)),
       data: d, buffer: b, rate: S.rate,
-      offsetSec: clamp(offsetSec == null ? P.t : offsetSec, 0, Math.max(0, dur() + 30)),
+      offsetSec: Math.max(0, offsetSec == null ? P.t : offsetSec),
       gainDb: 0, pan: 0, fadeInMs: 15, fadeOutMs: 25, mute: false,
     });
     renderStemList(); renderLayersUI(); baseDirty = fxDirty = true;
@@ -23103,15 +22999,18 @@ self.onmessage = function (e) {
       const card = document.createElement('div');
       card.className = 'stem-card';
       const durS = st.data[0].length / st.rate;
+      const maxOff = Math.max(10, Math.ceil(Math.max(dur(), st.offsetSec + durS) + 10));
       card.innerHTML = `
         <div class="stem-card-h">
           <b></b>
           <span>${fmtTime(durS, true)}</span>
+          <button type="button" class="btn sm" data-sact="start0" data-idx="${idx}" title="Overlap from 0:00">Overlap</button>
+          <button type="button" class="btn sm" data-sact="after" data-idx="${idx}" title="Place right after previous track">After prev</button>
           <button type="button" class="btn sm" data-sact="cue" data-idx="${idx}" title="Move start to playhead">@ Playhead</button>
           <button type="button" class="btn icon sm ghost" data-sact="del" data-idx="${idx}" aria-label="Remove">×</button>
         </div>
         <div class="stem-grid">
-          <div><div class="range-row"><label>Start</label><output>${st.offsetSec.toFixed(2)} s</output></div><input type="range" data-sfld="offsetSec" data-idx="${idx}" min="0" max="${Math.max(10, Math.ceil(dur() + 5))}" step="0.05" value="${st.offsetSec.toFixed(2)}"></div>
+          <div><div class="range-row"><label>Start</label><output>${st.offsetSec.toFixed(2)} s</output></div><input type="range" data-sfld="offsetSec" data-idx="${idx}" min="0" max="${maxOff}" step="0.05" value="${st.offsetSec.toFixed(2)}"></div>
           <div><div class="range-row"><label>Gain</label><output>${st.gainDb > 0 ? '+' : ''}${st.gainDb.toFixed(1)} dB</output></div><input type="range" data-sfld="gainDb" data-idx="${idx}" min="-36" max="9" step="0.5" value="${st.gainDb}"></div>
         </div>
         <div class="stem-grid">
@@ -23437,9 +23336,16 @@ self.onmessage = function (e) {
         const idx = Number(b.dataset.idx);
         const st = Stems.clips[idx];
         if (!st) return;
-        if (b.dataset.sact === 'del') { Stems.clips.splice(idx, 1); renderStemList(); renderLayersUI(); fxDirty = true; }
-        else if (b.dataset.sact === 'cue') {
-          st.offsetSec = clamp(P.t, 0, dur() + 30);
+        if (b.dataset.sact === 'del') { Stems.clips.splice(idx, 1); renderStemList(); renderLayersUI(); fxDirty = true; haptic(6); }
+        else if (b.dataset.sact === 'start0') {
+          st.offsetSec = 0;
+          renderStemList(); fxDirty = true; haptic(6);
+        } else if (b.dataset.sact === 'after') {
+          const prev = idx > 0 ? Stems.clips[idx - 1] : null;
+          st.offsetSec = prev ? (prev.offsetSec + prev.data[0].length / prev.rate) : dur();
+          renderStemList(); fxDirty = true; haptic(6);
+        } else if (b.dataset.sact === 'cue') {
+          st.offsetSec = clamp(P.t, 0, Math.max(dur() + 30, st.offsetSec));
           renderStemList(); fxDirty = true; haptic(5);
         }
       });
@@ -25706,13 +25612,38 @@ self.onmessage = function (e) {
   }
 
   /* ------------------------------------------------- merge multiple clips */
-  const Merge = { clips: [] };
+  const Merge = { clips: [], defaultMode: 'after' };
+  function computeMergePlacements() {
+    const xfade = parseFloat($('#mergeXfade')?.value) || 0;
+    const placements = [];
+    let prevStart = 0, prevEnd = 0, total = 0;
+    Merge.clips.forEach((clip, idx) => {
+      const durSec = clip.data[0].length / clip.rate;
+      let startSec = 0;
+      if (idx > 0) {
+        const mode = clip.mode || Merge.defaultMode || 'after';
+        if (mode === 'overlap') {
+          startSec = Math.max(0, prevStart + (parseFloat(clip.offsetSec) || 0));
+        } else {
+          startSec = Math.max(0, prevEnd - Math.min(xfade, durSec * 0.5, (prevEnd - prevStart) * 0.5));
+        }
+      }
+      const endSec = startSec + durSec;
+      placements.push({ startSec, endSec, durSec });
+      prevStart = startSec;
+      prevEnd = endSec;
+      if (endSec > total) total = endSec;
+    });
+    return { placements, total };
+  }
   function renderMergeList() {
     const list = $('#mergeList');
     if (!list) return;
     $('#btnMergeAddCurrent').hidden = !hasAudio;
     $('#btnMergeClear').hidden = Merge.clips.length === 0;
-    const xfade = parseFloat($('#mergeXfade').value) || 0;
+    $$('#mergeModeSeg [data-mmode]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.mmode === Merge.defaultMode));
+    });
     if (!Merge.clips.length) {
       list.innerHTML = '<div class="merge-empty">No clips added yet. Tap <b>Choose 2+ audio files</b> to load tracks.</div>';
       $('#mergeEstDur').textContent = 'Total: 0:00';
@@ -25720,24 +25651,31 @@ self.onmessage = function (e) {
       return;
     }
     list.innerHTML = '';
-    let totalSec = 0;
+    const { placements, total } = computeMergePlacements();
     Merge.clips.forEach((clip, idx) => {
-      const durSec = clip.data[0].length / clip.rate;
-      totalSec += durSec;
-      if (idx > 0) totalSec -= Math.min(xfade, durSec);
+      const pl = placements[idx];
+      const mode = clip.mode || Merge.defaultMode || 'after';
+      const isOvl = idx > 0 && mode === 'overlap';
       const row = document.createElement('div');
       row.className = 'merge-item';
-      row.innerHTML = `<span class="merge-num">${idx + 1}</span>
-        <div class="merge-meta"><b></b><span>${fmtTime(durSec, true)} · ${(clip.rate / 1000).toFixed(1)}kHz · ${clip.data.length}ch</span></div>
-        <div class="merge-act">
-          <button type="button" class="btn icon sm" data-mact="up" data-idx="${idx}" title="Move up" ${idx === 0 ? 'disabled' : ''}>↑</button>
-          <button type="button" class="btn icon sm" data-mact="dn" data-idx="${idx}" title="Move down" ${idx === Merge.clips.length - 1 ? 'disabled' : ''}>↓</button>
-          <button type="button" class="btn icon sm danger" data-mact="del" data-idx="${idx}" title="Remove">✕</button>
-        </div>`;
+      row.innerHTML = `
+        <div class="merge-item-top">
+          <span class="merge-num">${idx + 1}</span>
+          <div class="merge-meta"><b></b><span>@${fmtTime(pl.startSec, true)} · ${fmtTime(pl.durSec, true)} · ${(clip.rate / 1000).toFixed(1)}kHz · ${clip.data.length}ch</span></div>
+          <div class="merge-act">
+            <button type="button" class="btn icon sm" data-mact="up" data-idx="${idx}" title="Move up" ${idx === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="btn icon sm" data-mact="dn" data-idx="${idx}" title="Move down" ${idx === Merge.clips.length - 1 ? 'disabled' : ''}>↓</button>
+            <button type="button" class="btn icon sm danger" data-mact="del" data-idx="${idx}" title="Remove">✕</button>
+          </div>
+        </div>
+        ${idx > 0 ? `<div class="merge-item-place">
+          <button type="button" class="merge-place-btn${isOvl ? ' is-ovl' : ''}" data-mact="mode" data-idx="${idx}" title="Toggle Overlap vs After previous">${isOvl ? '∥ Overlap with prev' : '→ After previous'}</button>
+          ${isOvl ? `<label class="merge-offset-wrap">Delay <input type="number" class="merge-offset-in" data-mact="off" data-idx="${idx}" min="0" max="600" step="0.1" value="${(parseFloat(clip.offsetSec) || 0).toFixed(1)}"> s</label>` : ''}
+        </div>` : ''}`;
       row.querySelector('b').textContent = clip.name;
       list.appendChild(row);
     });
-    $('#mergeEstDur').textContent = 'Total: ' + fmtTime(Math.max(0, totalSec), true);
+    $('#mergeEstDur').textContent = 'Total: ' + fmtTime(Math.max(0, total), true);
     $('#btnDoMerge').disabled = Merge.clips.length < 2;
   }
   function openMergeStudio() {
@@ -25769,7 +25707,7 @@ self.onmessage = function (e) {
         try {
           const ab = await arr[i].arrayBuffer();
           const r = await decodeToData(ab, arr[i].name);
-          Merge.clips.push({ name: arr[i].name.replace(/\.[^.]+$/, ''), data: r.data, rate: r.rate });
+          Merge.clips.push({ name: arr[i].name.replace(/\.[^.]+$/, ''), data: r.data, rate: r.rate, mode: Merge.defaultMode, offsetSec: 0 });
         } catch (e) {
           toast(`Skipped ${arr[i].name}: ${e.message}`, 'err', 3500);
         }
@@ -25789,27 +25727,84 @@ self.onmessage = function (e) {
     busy(true, 'Merging clips');
     await yieldUI();
     try {
-      let acc = null;
+      const prepared = [];
+      let maxCh = 1;
       for (let i = 0; i < Merge.clips.length; i++) {
-        busy(true, `Stitching clip ${i + 1}/${Merge.clips.length}`);
+        busy(true, `Preparing clip ${i + 1}/${Merge.clips.length}`);
         const item = Merge.clips[i];
         let d = cloneData(item.data);
         if (item.rate !== targetRate) {
           d = await runTask({ act: 'resample', data: d, rate: item.rate, to: targetRate });
         }
         if (norm) D.normalize(d, [0, d[0].length], { targetDb: -1.5, mode: 'peak' });
-        if (!acc) acc = d;
-        else acc = xfade > 0.01 ? D.crossfade(acc, d, xfade, targetRate) : D.concat(acc, d);
+        maxCh = Math.max(maxCh, d.length);
+        prepared.push({ data: d, mode: item.mode || Merge.defaultMode || 'after', offsetSec: parseFloat(item.offsetSec) || 0 });
+      }
+      // Compute sample-exact start positions supporting both sequential and overlap modes
+      let prevStart = 0, prevEnd = 0, totalLen = 0;
+      const placed = prepared.map((p, idx) => {
+        const len = p.data[0].length;
+        let start = 0;
+        let seqXfade = 0;
+        if (idx > 0) {
+          if (p.mode === 'overlap') {
+            start = Math.max(0, prevStart + Math.round(p.offsetSec * targetRate));
+          } else {
+            seqXfade = Math.min(Math.round(xfade * targetRate), Math.floor(len * 0.5), Math.floor((prevEnd - prevStart) * 0.5));
+            start = Math.max(0, prevEnd - seqXfade);
+          }
+        }
+        const end = start + len;
+        prevStart = start; prevEnd = end;
+        if (end > totalLen) totalLen = end;
+        return { data: p.data, start, end, len, seqXfade, prevIdx: idx > 0 ? idx - 1 : -1 };
+      });
+      const out = Array.from({ length: maxCh }, () => new Float32Array(Math.max(1, totalLen)));
+      for (let idx = 0; idx < placed.length; idx++) {
+        const cur = placed[idx];
+        const xf = cur.seqXfade;
+        if (xf > 1 && idx > 0) {
+          const prev = placed[idx - 1];
+          // Fade out tail of previous sequential track across [cur.start, cur.start + xf]
+          for (let c = 0; c < maxCh; c++) {
+            const dst = out[c];
+            for (let k = 0; k < xf; k++) {
+              const gOut = 0.5 * (1 + Math.cos(Math.PI * (k / xf)));
+              if (cur.start + k < prev.end) dst[cur.start + k] *= gOut;
+            }
+          }
+        }
+        for (let c = 0; c < maxCh; c++) {
+          const src = cur.data[c % cur.data.length];
+          const dst = out[c];
+          for (let i = 0; i < cur.len; i++) {
+            const gIn = (xf > 1 && i < xf) ? 0.5 * (1 - Math.cos(Math.PI * (i / xf))) : 1;
+            dst[cur.start + i] += src[i] * gIn;
+          }
+        }
+      }
+      // Soft peak guard when overlapping tracks sum above 0.98
+      let peak = 0;
+      for (let c = 0; c < maxCh; c++) {
+        for (let i = 0; i < out[c].length; i++) {
+          const a = Math.abs(out[c][i]);
+          if (a > peak) peak = a;
+        }
+      }
+      if (peak > 0.98) {
+        const sc = 0.96 / peak;
+        for (let c = 0; c < maxCh; c++) for (let i = 0; i < out[c].length; i++) out[c][i] *= sc;
       }
       if (!hasAudio) {
-        await loadAudio(acc, targetRate, mergedName, { title: mergedName });
+        await loadAudio(out, targetRate, mergedName, { title: mergedName });
       } else {
         await edit('Merge clips', async () => {
-          S.data = acc; S.rate = targetRate;
-          Sel.a = 0; Sel.b = acc[0].length; P.t = 0;
+          S.data = out; S.rate = targetRate;
+          Sel.a = 0; Sel.b = out[0].length; P.t = 0;
         });
       }
       Merge.clips.length = 0;
+      haptic(10);
     } catch (e) {
       toast('Merge failed: ' + e.message, 'err', 4200);
     } finally {
@@ -25912,7 +25907,6 @@ self.onmessage = function (e) {
     { t: 'Manage Batch Macros & Chains', cat: 'Macros', sub: 'Create & run multi-step workflow macros', run: openMacrosModal },
     { t: 'Toggle Metronome Click Track', cat: 'Smart', sub: 'Start/stop BPM click track', run: toggleMetronome },
     { t: 'Tap Tempo', cat: 'Smart', sub: 'Tap repeatedly to set metronome BPM', run: triggerTapTempo },
-    { t: 'Toggle Spectrogram Band Notch tool', cat: 'Effects', sub: 'Draw time × frequency box on spectrogram', run: () => { setWaveMode('spec'); SpecBrush.enabled = !SpecBrush.enabled; syncSpecBrushUI(); } },
     { t: 'Preferences & Haptics', cat: 'Playback', sub: 'Haptic feedback, magnetic snap, default export', run: showPrefsModal },
     { t: 'Export selection', cat: 'Track', sub: 'Export only the IN/OUT range', run: exportSelection },
     { t: 'Open audio file', cat: 'Track', sub: 'Import audio from device', k: 'Ctrl+O', run: () => $('#fileInput').click() },
@@ -26772,15 +26766,6 @@ self.onmessage = function (e) {
     if ($('#btnOpenMacros')) $('#btnOpenMacros').addEventListener('click', openMacrosModal);
     if ($('#btnSmartAudiogram')) $('#btnSmartAudiogram').addEventListener('click', openAudiogramModal);
     renderMacroQuickRow();
-    $('#btnSpecBrush').addEventListener('click', () => {
-      SpecBrush.enabled = !SpecBrush.enabled;
-      if (!SpecBrush.enabled) SpecBrush.box = null;
-      syncSpecBrushUI(); fxDirty = true;
-    });
-    $('#btnSpecNotch').addEventListener('click', () => { haptic(7); applySpecBand('notch'); });
-    $('#btnSpecDip').addEventListener('click', () => { haptic(7); applySpecBand('dip'); });
-    $('#btnSpecIsolate').addEventListener('click', () => { haptic(7); applySpecBand('isolate'); });
-    $('#btnSpecClear').addEventListener('click', () => { SpecBrush.box = null; syncSpecBrushUI(); fxDirty = true; haptic(5); });
     $('#btnSmartTapTempo').addEventListener('click', () => { haptic(6); triggerTapTempo(); });
     $('#btnRecTapTempo').addEventListener('click', () => { haptic(6); triggerTapTempo(); });
     $('#smartMetroBpm').addEventListener('change', (e) => setMetroBpm(e.target.value));
@@ -26864,10 +26849,21 @@ self.onmessage = function (e) {
     $('#mergeInput').addEventListener('change', (e) => { addMergeFiles(e.target.files); e.target.value = ''; });
     $('#btnMergeAddCurrent').addEventListener('click', () => {
       if (!hasAudio) return;
-      Merge.clips.push({ name: S.name || 'Current track', data: cloneData(S.data), rate: S.rate });
+      Merge.clips.push({ name: S.name || 'Current track', data: cloneData(S.data), rate: S.rate, mode: Merge.defaultMode, offsetSec: 0 });
+      haptic(6);
       renderMergeList();
     });
-    $('#btnMergeClear').addEventListener('click', () => { Merge.clips.length = 0; renderMergeList(); });
+    if ($('#mergeModeSeg')) {
+      $('#mergeModeSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-mmode]');
+        if (!b) return;
+        Merge.defaultMode = b.dataset.mmode;
+        Merge.clips.forEach((c, idx) => { if (idx > 0) c.mode = Merge.defaultMode; });
+        haptic(6);
+        renderMergeList();
+      });
+    }
+    $('#btnMergeClear').addEventListener('click', () => { Merge.clips.length = 0; haptic(5); renderMergeList(); });
     $('#mergeXfade').addEventListener('input', (e) => {
       $('#mergeXfadeOut').textContent = parseFloat(e.target.value).toFixed(1) + ' s';
       renderMergeList();
@@ -26876,10 +26872,27 @@ self.onmessage = function (e) {
       const b = e.target.closest('[data-mact]');
       if (!b) return;
       const i = Number(b.dataset.idx), act = b.dataset.mact;
-      if (act === 'del') Merge.clips.splice(i, 1);
-      else if (act === 'up' && i > 0) [Merge.clips[i - 1], Merge.clips[i]] = [Merge.clips[i], Merge.clips[i - 1]];
-      else if (act === 'dn' && i < Merge.clips.length - 1) [Merge.clips[i], Merge.clips[i + 1]] = [Merge.clips[i + 1], Merge.clips[i]];
+      if (act === 'del') { Merge.clips.splice(i, 1); haptic(6); }
+      else if (act === 'up' && i > 0) { [Merge.clips[i - 1], Merge.clips[i]] = [Merge.clips[i], Merge.clips[i - 1]]; haptic(5); }
+      else if (act === 'dn' && i < Merge.clips.length - 1) { [Merge.clips[i], Merge.clips[i + 1]] = [Merge.clips[i + 1], Merge.clips[i]]; haptic(5); }
+      else if (act === 'mode' && Merge.clips[i]) {
+        const cur = Merge.clips[i].mode || Merge.defaultMode || 'after';
+        Merge.clips[i].mode = cur === 'overlap' ? 'after' : 'overlap';
+        haptic(6);
+      } else return;
       renderMergeList();
+    });
+    $('#mergeList').addEventListener('input', (e) => {
+      const inp = e.target.closest('[data-mact="off"]');
+      if (!inp) return;
+      const clip = Merge.clips[Number(inp.dataset.idx)];
+      if (!clip) return;
+      clip.offsetSec = Math.max(0, parseFloat(inp.value) || 0);
+      const { placements, total } = computeMergePlacements();
+      const pl = placements[Number(inp.dataset.idx)];
+      const metaSpan = inp.closest('.merge-item')?.querySelector('.merge-meta span');
+      if (metaSpan && pl) metaSpan.textContent = `@${fmtTime(pl.startSec, true)} · ${fmtTime(pl.durSec, true)} · ${(clip.rate / 1000).toFixed(1)}kHz · ${clip.data.length}ch`;
+      if ($('#mergeEstDur')) $('#mergeEstDur').textContent = 'Total: ' + fmtTime(Math.max(0, total), true);
     });
     $('#btnDoMerge').addEventListener('click', executeMerge);
     $('#recMainBtn').addEventListener('click', startRecording);
@@ -27756,5 +27769,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e08186fb060758',t:'MTc5NTI3MjYxOA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e08186fb060758',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
