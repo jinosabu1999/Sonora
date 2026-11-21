@@ -375,12 +375,13 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 
 /* ----------------------------------------------------- Transport Capsule */
 .transport {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: var(--r-lg);
   background: var(--glass-grad), var(--glass);
   backdrop-filter: blur(36px) saturate(200%); -webkit-backdrop-filter: blur(36px) saturate(200%);
   border: 1px solid var(--rim); box-shadow: var(--spec);
 }
+.transport-row { display: contents; }
 .tgroup { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .tbtn {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none;
@@ -398,20 +399,36 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .tbtn.main:hover { background: #ffffff; }
 .tbtn.main svg { width: 19px; height: 19px; }
 .tbtn.on { color: #d0f4ff; border-color: rgba(100, 210, 255, .56); background: rgba(100, 210, 255, .2); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
-.timecode { display: flex; align-items: baseline; gap: 5px; margin-left: auto; white-space: nowrap; }
-.timecode b { font: 600 15.5px/1 ui-monospace, monospace; letter-spacing: -.4px; }
+.tc-cluster { display: flex; align-items: center; gap: 8px; margin-left: auto; min-width: 0; }
+.timecode { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.timecode b { font: 640 16px/1 ui-monospace, monospace; letter-spacing: -.45px; color: var(--txt); }
 .timecode span { font: 500 11.5px/1 ui-monospace, monospace; color: var(--txt-3); }
 .transport > .spacer { display: none; }
-.meter { display: flex; align-items: flex-end; gap: 2.5px; height: 22px; }
-.meter i { width: 3px; background: var(--acc); border-radius: 2px; height: 10%; transition: height 60ms linear; }
+.meter {
+  display: inline-flex; align-items: flex-end; gap: 2.5px; height: 24px; padding: 4px 7px;
+  border-radius: var(--r-pill); background: rgba(0, 0, 0, .28); border: 1px solid rgba(255, 255, 255, .08);
+  flex: none;
+}
+.meter i {
+  width: 2.5px; min-height: 3px; height: 18%; border-radius: 2px;
+  background: linear-gradient(180deg, #8be4ff 0%, var(--acc-2) 100%);
+  opacity: .78; transition: height 60ms linear;
+}
 .volwrap { display: flex; align-items: center; gap: 6px; }
 .volwrap input[type=range] { width: 82px; }
-.speed-pill {
-  height: 30px; padding: 0 11px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600;
-  background: var(--glass-grad), var(--glass-2); border: 1px solid var(--rim); color: var(--txt); box-shadow: var(--spec);
-  display: inline-flex; align-items: center; gap: 4px;
+.transport-pills {
+  display: inline-flex; align-items: center; gap: 3px; padding: 3px;
+  border-radius: var(--r-pill); background: rgba(0, 0, 0, .32); border: 1px solid rgba(255, 255, 255, .1);
+  flex: 0 0 auto;
 }
-.speed-pill.on { border-color: var(--acc); color: #dcf6ff; background: rgba(100, 210, 255, .18); }
+.speed-pill {
+  height: 28px; padding: 0 10px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 600;
+  background: transparent; border: 1px solid transparent; color: var(--txt-2);
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  transition: background var(--fast), color var(--fast), border-color var(--fast);
+}
+.speed-pill:hover { color: var(--txt); background: rgba(255, 255, 255, .07); }
+.speed-pill.on { border-color: rgba(100, 210, 255, .45); color: #dcf6ff; background: rgba(100, 210, 255, .2); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
 
 .sel-quick { display: none; gap: 7px; align-items: center; overflow-x: auto; padding: 2px 0; scrollbar-width: none; }
 .sel-quick::-webkit-scrollbar { display: none; }
@@ -788,17 +805,43 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .env-bar b { font-size: 12px; color: #dcf6ff; }
 
 /* Export & History */
-#exportHost { display: flex; flex-direction: column; gap: 9px; }
-.export-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-.export-presets button { min-height: 30px; padding: 0 6px; border-radius: 10px; font-size: 10.5px; line-height: 1.15; }
-.ex-checks { display: flex; gap: 6px; flex-wrap: wrap; }
-.ex-checks .checkrow { flex: 1 1 140px; padding: 6px 9px; min-height: 32px; font-size: 11px; border-radius: 10px; }
-.ex-est-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 10px; background: var(--well); border: 1px solid var(--rim); font-size: 11px; color: var(--txt-2); }
-.ex-est-bar b { color: var(--acc); font-weight: 640; }
-.ex-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ex-meta-acc .acc-h { padding: 8px 11px; font-size: 11.5px; }
-.ex-meta-acc .inner { padding: 0 11px 10px; gap: 8px; }
-@media (max-width: 420px) { .export-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#exportHost { display: flex; flex-direction: column; gap: 14px; padding-bottom: 6px; }
+.ex-hero-card {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  padding: 14px 15px; border-radius: 18px;
+  background: linear-gradient(145deg, rgba(100, 210, 255, .14) 0%, rgba(255, 255, 255, .04) 100%);
+  border: 1px solid rgba(100, 210, 255, .30);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+.ex-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ex-hero-top .eyebrow { color: #9de4ff; white-space: nowrap; }
+.ex-hero-top b { font-size: 13.5px; font-weight: 660; color: #fff; font-family: ui-monospace, monospace; letter-spacing: -.2px; white-space: nowrap; }
+.ex-hero-est {
+  text-align: center; font: 600 12px/1.35 ui-monospace, monospace; color: #d8f4ff;
+  padding: 8px 12px; border-radius: 12px; background: rgba(0, 0, 0, .34); border: 1px solid rgba(100, 210, 255, .24);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ex-card {
+  display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 18px;
+  background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10);
+}
+.export-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.export-presets button {
+  min-height: 52px; padding: 9px 12px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px;
+  text-align: left;
+}
+.export-presets button b { font-size: 12.5px; font-weight: 650; color: var(--txt); line-height: 1.15; }
+.export-presets button span { font-size: 10.5px; font-weight: 500; color: var(--txt-3); line-height: 1.15; }
+.export-presets button[aria-pressed="true"] b { color: #ffffff; }
+.export-presets button[aria-pressed="true"] span { color: #bfefff; }
+.ex-checks { display: flex; flex-direction: column; gap: 8px; }
+.ex-checks .checkrow { padding: 11px 13px; min-height: 46px; font-size: 12.5px; border-radius: 14px; }
+.ex-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ex-actions .btn.primary { min-height: 50px; font-size: 14.5px; font-weight: 660; }
+.ex-actions-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.ex-actions-sub .btn { min-height: 44px; font-size: 12.5px; }
 .prog { height: 5px; border-radius: 99px; background: var(--well); overflow: hidden; display: none; }
 .prog.on { display: block; }
 .prog i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--acc-2), var(--acc)); border-radius: 99px; transition: width 160ms linear; }
@@ -1010,6 +1053,7 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   display: flex; flex-direction: column; padding-bottom: var(--sab);
 }
 .sheet.on { transform: translateY(0); }
+.sheet.is-tall { min-height: min(86dvh, 720px); max-height: 92dvh; }
 .sheet:not(.on), .modal:not(.on), .cmdk:not(.on) { visibility: hidden; }
 .sheet.on, .modal.on, .cmdk.on { visibility: visible; }
 .sheet-grip { width: 40px; height: 4.5px; border-radius: 99px; background: rgba(255,255,255,.28); margin: 9px auto 4px; flex: none; }
@@ -1215,13 +1259,13 @@ body.overlay-open { overflow: hidden; }
   .editor { padding: 8px 10px calc(var(--dock-h) + 20px + var(--sab)); gap: 10px; }
   .workspace-tools .btn { min-height: 31px; padding: 0 11px; font-size: 11.5px; }
   .stage-deck { padding: 9px; gap: 8px; }
-  .transport { justify-content: space-between; padding: 9px 11px; gap: 8px; }
-  .transport .tgroup:nth-child(1) { order: 1; gap: 5px; }
-  .transport .timecode { order: 2; flex: 1 1 120px; justify-content: flex-end; }
-  .transport .tgroup:nth-child(2) { order: 3; flex: 0 0 auto; gap: 5px; }
-  .transport #btnJogPill { order: 4; margin-left: auto; }
-  .transport #btnMetersPill { order: 5; }
-  .transport #btnSpeedPill { order: 6; }
+  .transport { flex-direction: column; align-items: stretch; padding: 10px 11px; gap: 9px; }
+  .transport-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+  .transport-row.row-tools { padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .07); }
+  .transport .tgroup { gap: 5px; }
+  .transport-row.row-tools .tbtn { width: 32px; height: 32px; }
+  .transport-row.row-tools .tbtn svg { width: 15px; height: 15px; }
+  .tc-cluster { flex: 1 1 auto; justify-content: flex-end; gap: 7px; }
   #presetRow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
   #presetRow::-webkit-scrollbar { display: none; }
   #presetRow .btn { flex: 0 0 auto; }
@@ -1230,6 +1274,8 @@ body.overlay-open { overflow: hidden; }
 @media (max-width: 380px) {
   .tbtn { width: 32px; height: 32px; }
   .tbtn.main { width: 40px; height: 40px; }
+  .transport-row.row-tools .tbtn { width: 30px; height: 30px; }
+  .speed-pill { height: 26px; padding: 0 8px; font-size: 11px; }
   .timecode b { font-size: 14.5px; }
   .wavemode-seg button { padding: 0 7px; font-size: 11px; }
   .launch-card { padding: 13px; border-radius: 20px; }
@@ -1545,23 +1591,30 @@ body.overlay-open { overflow: hidden; }
       </div>
 
       <div class="transport">
-        <div class="tgroup">
-          <button class="tbtn sm" id="btnBack" title="Start (Home)" aria-label="Start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M19 5 9 12l10 7z"/></svg></button>
-          <button class="tbtn main" id="btnPlay" title="Play / pause (Space)" aria-label="Play or pause"><svg id="icPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg><svg id="icPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="7" y="5" width="3.6" height="14" rx="1.3"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.3"/></svg></button>
-          <button class="tbtn sm" id="btnFwd" title="End" aria-label="End"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5v14M5 5l10 7-10 7z"/></svg></button>
+        <div class="transport-row row-main">
+          <div class="tgroup">
+            <button class="tbtn sm" id="btnBack" title="Start (Home)" aria-label="Start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14M19 5 9 12l10 7z"/></svg></button>
+            <button class="tbtn main" id="btnPlay" title="Play / pause (Space)" aria-label="Play or pause"><svg id="icPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg><svg id="icPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="7" y="5" width="3.6" height="14" rx="1.3"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.3"/></svg></button>
+            <button class="tbtn sm" id="btnFwd" title="End" aria-label="End"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5v14M5 5l10 7-10 7z"/></svg></button>
+          </div>
+          <div class="tc-cluster">
+            <div class="timecode"><b class="mono" id="tcNow">0:00.000</b><span class="mono" id="tcDur">/ 0:00.000</span></div>
+            <div class="meter hide-xs" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
         </div>
-        <div class="tgroup">
-          <button class="tbtn sm" id="btnLoop" title="Loop selection (L)" aria-label="Loop selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3 3 3-3 3"/><path d="M20 6H8a4 4 0 0 0-4 4v1"/><path d="m7 21-3-3 3-3"/><path d="M4 18h12a4 4 0 0 0 4-4v-1"/></svg></button>
-          <button class="tbtn sm" id="btnSnap" title="Snap handles to zero crossings" aria-label="Snap to zero crossings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M12 5v14"/></svg></button>
-          <button class="tbtn sm" id="btnMarker" title="Add marker at playhead" aria-label="Add marker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M9 12h7M9 16h5"/></svg></button>
+        <div class="transport-row row-tools">
+          <div class="tgroup">
+            <button class="tbtn sm" id="btnLoop" title="Loop selection (L)" aria-label="Loop selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3 3 3-3 3"/><path d="M20 6H8a4 4 0 0 0-4 4v1"/><path d="m7 21-3-3 3-3"/><path d="M4 18h12a4 4 0 0 0 4-4v-1"/></svg></button>
+            <button class="tbtn sm" id="btnSnap" title="Snap handles to zero crossings" aria-label="Snap to zero crossings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M12 5v14"/></svg></button>
+            <button class="tbtn sm" id="btnMarker" title="Add marker at playhead" aria-label="Add marker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M9 12h7M9 16h5"/></svg></button>
+            <button type="button" class="tbtn sm" id="btnTransportPip" title="Pop out Picture-in-Picture mini player" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
+          </div>
+          <div class="transport-pills">
+            <button type="button" class="speed-pill" id="btnJogPill" title="Touch scrub jog wheel" aria-expanded="false">Scrub</button>
+            <button type="button" class="speed-pill" id="btnMetersPill" title="Loudness &amp; phase meters" aria-expanded="false">Meters</button>
+            <button type="button" class="speed-pill" id="btnSpeedPill" title="Playback preview speed" aria-expanded="false">1.00×</button>
+          </div>
         </div>
-        <div class="spacer"></div>
-        <div class="timecode"><b class="mono" id="tcNow">0:00.000</b><span class="mono" id="tcDur">/ 0:00.000</span></div>
-        <button type="button" class="speed-pill" id="btnJogPill" title="Touch scrub jog wheel" aria-expanded="false">Scrub</button>
-        <button type="button" class="speed-pill" id="btnMetersPill" title="Loudness &amp; phase meters" aria-expanded="false">Meters</button>
-        <button type="button" class="speed-pill" id="btnSpeedPill" title="Playback preview speed" aria-expanded="false">1.00×</button>
-        <button type="button" class="tbtn sm" id="btnTransportPip" title="Pop out Picture-in-Picture mini player" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
-        <div class="meter hide-xs" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="volwrap desktop-only">
           <button class="tbtn sm" id="btnMute" title="Mute (M)" aria-label="Mute"><svg id="icVol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l4 3.5v-15L7 10z"/><path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a7.5 7.5 0 0 1 0 10"/></svg><svg id="icMute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M4 10v4h3l4 3.5v-15L7 10z"/><path d="m16 10 4 4M20 10l-4 4"/></svg></button>
           <input type="range" id="vol" min="0" max="100" step="1" value="100" aria-label="Volume">
@@ -21174,9 +21227,9 @@ self.onmessage = function (e) {
     $('#sidebar').classList.add('on');
     $('#tagFile').textContent = S.name; $('#tagFile').title = S.name;
     document.title = S.name + ' — Sonora';
-    $('#exTitle').value = S.meta.title || S.name;
-    $('#exArtist').value = S.meta.artist || '';
-    S.meta.title = $('#exTitle').value;
+    S.meta.title = S.meta.title || S.name;
+    if ($('#exTitle')) $('#exTitle').value = S.meta.title;
+    if ($('#exArtist')) $('#exArtist').value = S.meta.artist || '';
     $('#exName').value = sanitizeName(S.name);
     estimateSize();
     resizeCanvases(); fitView(); syncTransport();
@@ -22772,70 +22825,52 @@ self.onmessage = function (e) {
   </div>`;
 
   const EXPORT_HTML = `
+  <div class="ex-hero-card">
+    <div class="ex-hero-top">
+      <span class="eyebrow">Selected Section</span>
+      <b id="exRangeTxt">0:00.00 – 0:00.00</b>
+    </div>
+    <div class="ex-hero-est" id="exEst">—</div>
+  </div>
   <div class="export-presets" role="group" aria-label="Export presets">
-    <button type="button" data-export-preset="quality">WAV</button>
-    <button type="button" data-export-preset="podcast">Pod 192k</button>
-    <button type="button" data-export-preset="social">Reels 256k</button>
-    <button type="button" data-export-preset="voice">Voice 128k</button>
+    <button type="button" data-export-preset="quality"><b>Lossless WAV</b><span>24-bit · Original Hz</span></button>
+    <button type="button" data-export-preset="podcast"><b>Podcast MP3</b><span>192 kbps · 44.1 kHz</span></button>
+    <button type="button" data-export-preset="social"><b>Social / Reels</b><span>256 kbps · 48 kHz</span></button>
+    <button type="button" data-export-preset="voice"><b>Voice Note</b><span>128 kbps · 32 kHz</span></button>
   </div>
-  <div class="grid-2">
-    <div class="field"><label for="exFormat">Format</label><select id="exFormat">
-      <option value="wav">WAV — lossless</option>
-      <option value="mp3">MP3 — compressed</option>
-      <option value="opus">Opus (.ogg / .webm)</option>
-      <option value="m4a">AAC (.m4a)</option>
-      <option value="m4r">Ringtone (.m4r)</option>
-    </select></div>
-    <div class="field"><label for="exBits" id="exBitsLbl">Bit depth</label><select id="exBits">
-      <option value="16">16-bit</option><option value="24">24-bit</option><option value="32">32-bit float</option>
-    </select></div>
-    <div class="field" id="exBrWrap" hidden><label for="exBr">Bitrate</label><select id="exBr">
-      <option value="64">64 kbps</option><option value="96">96 kbps</option><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
-    </select></div>
-  </div>
-  <div class="grid-2">
-    <div class="field"><label for="exRate">Sample rate</label><select id="exRate">
-      <option value="0">Keep original</option><option value="48000">48 kHz</option><option value="44100">44.1 kHz</option>
-      <option value="32000">32 kHz</option><option value="22050">22.05 kHz</option><option value="16000">16 kHz</option><option value="8000">8 kHz</option>
-    </select></div>
-    <div class="field"><label for="exName">File name</label><input type="text" id="exName" placeholder="my-track"></div>
+  <div class="ex-card">
+    <div class="grid-2">
+      <div class="field"><label for="exFormat">Format</label><select id="exFormat">
+        <option value="wav">WAV — lossless</option>
+        <option value="mp3">MP3 — compressed</option>
+        <option value="opus">Opus (.ogg / .webm)</option>
+        <option value="m4a">AAC (.m4a)</option>
+        <option value="m4r">Ringtone (.m4r)</option>
+      </select></div>
+      <div class="field"><label for="exBits" id="exBitsLbl">Bit depth</label><select id="exBits">
+        <option value="16">16-bit</option><option value="24">24-bit</option><option value="32">32-bit float</option>
+      </select></div>
+      <div class="field" id="exBrWrap" hidden><label for="exBr">Bitrate</label><select id="exBr">
+        <option value="64">64 kbps</option><option value="96">96 kbps</option><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
+      </select></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label for="exRate">Sample rate</label><select id="exRate">
+        <option value="0">Keep original</option><option value="48000">48 kHz</option><option value="44100">44.1 kHz</option>
+        <option value="32000">32 kHz</option><option value="22050">22.05 kHz</option><option value="16000">16 kHz</option><option value="8000">8 kHz</option>
+      </select></div>
+      <div class="field"><label for="exName">File name</label><input type="text" id="exName" placeholder="my-track"></div>
+    </div>
   </div>
   <div class="ex-checks">
-    <label class="checkrow"><input type="checkbox" id="exFade"><span>120 ms fade</span></label>
-    <label class="checkrow" id="exStudioWrap" hidden><input type="checkbox" id="exIncludeStudio" checked><span>Include Track 2 &amp; FX</span></label>
-  </div>
-  <div class="acc ex-meta-acc" data-acc>
-    <button class="acc-h" type="button"><span class="dot"></span>Metadata &amp; Cover Art (ID3v2 / WAV)<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
-    <div class="acc-b"><div><div class="inner">
-      <div class="cover-row">
-        <div class="cover-thumb" id="exCoverThumb"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
-        <div class="cover-meta"><b>Cover art (MP3 ID3v2)</b><span id="exCoverName">No image selected</span></div>
-        <button type="button" class="btn sm" id="exCoverBtn">Choose</button>
-        <button type="button" class="btn sm ghost" id="exCoverClear" hidden>×</button>
-      </div>
-      <div class="grid-2">
-        <div class="field"><label for="exTitle">Title</label><input type="text" id="exTitle" placeholder="Track title"></div>
-        <div class="field"><label for="exArtist">Artist</label><input type="text" id="exArtist" placeholder="Artist"></div>
-      </div>
-      <div class="grid-2">
-        <div class="field"><label for="exAlbum">Album / Show</label><input type="text" id="exAlbum" placeholder="Sonora"></div>
-        <div class="field"><label for="exGenre">Genre</label><input type="text" id="exGenre" placeholder="Podcast / Pop"></div>
-      </div>
-      <div class="grid-2">
-        <div class="field"><label for="exTrack">Track #</label><input type="text" id="exTrack" placeholder="1"></div>
-        <div class="field"><label for="exYear">Year</label><input type="text" id="exYear" placeholder="2026" maxlength="4"></div>
-      </div>
-    </div></div></div>
-  </div>
-  <div class="ex-est-bar">
-    <span>Selected section</span>
-    <span id="exEst">—</span>
+    <label class="checkrow"><input type="checkbox" id="exFade"><span>Smooth 120 ms fade-in &amp; fade-out</span></label>
+    <label class="checkrow" id="exStudioWrap" hidden><input type="checkbox" id="exIncludeStudio" checked><span>Include Track 2 mix &amp; live FX rack</span></label>
   </div>
   <div class="prog" id="exProg"><i></i></div>
   <div class="ex-actions">
-    <button class="btn primary wide" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg>Export selected section</button>
+    <button class="btn primary wide" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg>Export Selected Audio</button>
     <div class="ex-actions-sub">
-      <button class="btn sm" id="btnExportStemsZip">Stems (.zip)</button>
+      <button class="btn sm" id="btnExportStemsZip">Stems Bundle (.zip)</button>
       <button class="btn sm accent" id="btnOpenAudiogram">Audiogram Video…</button>
     </div>
   </div>`;
@@ -22995,13 +23030,14 @@ self.onmessage = function (e) {
   }
 
   function currentExportMeta() {
+    const m = S.meta || {};
     return {
-      title: ($('#exTitle') && $('#exTitle').value) || '',
-      artist: ($('#exArtist') && $('#exArtist').value) || '',
-      album: ($('#exAlbum') && $('#exAlbum').value) || 'Sonora',
-      track: ($('#exTrack') && $('#exTrack').value) || '',
-      year: ($('#exYear') && $('#exYear').value) || '',
-      genre: ($('#exGenre') && $('#exGenre').value) || '',
+      title: ($('#exTitle') && $('#exTitle').value) || m.title || S.name || '',
+      artist: ($('#exArtist') && $('#exArtist').value) || m.artist || '',
+      album: ($('#exAlbum') && $('#exAlbum').value) || m.album || 'Sonora',
+      track: ($('#exTrack') && $('#exTrack').value) || m.track || '',
+      year: ($('#exYear') && $('#exYear').value) || m.year || '',
+      genre: ($('#exGenre') && $('#exGenre').value) || m.genre || '',
     };
   }
 
@@ -24609,6 +24645,7 @@ self.onmessage = function (e) {
     const {rate, br, channels} = exportSettings();
     const [a, b] = selRange();
     const secs = (b - a) / S.rate;
+    if ($('#exRangeTxt')) $('#exRangeTxt').textContent = fmtTime(a / S.rate, true) + ' – ' + fmtTime(b / S.rate, true);
     let bytes;
     if (fmt !== 'wav') bytes = (br * 1000 / 8) * secs;
     else bytes = secs * rate * S.data.length * (parseInt($('#exBits').value, 10) / 8);
@@ -24919,6 +24956,7 @@ self.onmessage = function (e) {
     $('#sheetBody').append(node);
     $('#sheetTitle').textContent = title;
     $('#sheet').style.transform = '';
+    $('#sheet').classList.toggle('is-tall', !!(opts && opts.tab === 'export'));
     $('#sheet').classList.add('on'); $('#sheet').inert = false;
     $('#scrim').classList.add('on'); $('#scrim').style.opacity = '';
     document.body.classList.add('overlay-open');
@@ -24931,6 +24969,7 @@ self.onmessage = function (e) {
     if (panelNode && panelNode.id === 'recordPanel') stopRecMonitorIfIdle();
     if (panelHome && panelNode) { panelHome.replaceWith(panelNode); panelHome = panelNode = null; }
     for (const id of ['sheet', 'cmdk', 'modal']) { $('#' + id).classList.remove('on'); $('#' + id).inert = true; }
+    $('#sheet').classList.remove('is-tall');
     $('#sheet').style.transform = '';
     $('#scrim').classList.remove('on'); $('#scrim').style.opacity = '';
     document.body.classList.remove('overlay-open');
@@ -27554,9 +27593,9 @@ self.onmessage = function (e) {
       const artSrc = (CoverArt && CoverArt.url) ? CoverArt.url : defaultMediaArtUrl();
       const artType = (CoverArt && CoverArt.url && CoverArt.mime) ? CoverArt.mime : 'image/svg+xml';
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: ($('#exTitle') && $('#exTitle').value) || S.name || 'Sonora Track',
-        artist: ($('#exArtist') && $('#exArtist').value) || 'Sonora Studio',
-        album: ($('#exAlbum') && $('#exAlbum').value) || 'Sonora Session',
+        title: ($('#exTitle') && $('#exTitle').value) || S.meta.title || S.name || 'Sonora Track',
+        artist: ($('#exArtist') && $('#exArtist').value) || S.meta.artist || 'Sonora Studio',
+        album: ($('#exAlbum') && $('#exAlbum').value) || S.meta.album || 'Sonora Session',
         artwork: [{ src: artSrc, sizes: '256x256', type: artType }],
       });
       const safeHandle = (action, fn) => { try { navigator.mediaSession.setActionHandler(action, fn); } catch (e) {} };
@@ -28570,7 +28609,7 @@ self.onmessage = function (e) {
         let sum = 0;
         for (let j = 0; j < step; j++) sum += analyserBuf[i * step + j];
         const v = sum / step / 255;
-        bars[i].style.height = Math.max(8, v * 100) + '%';
+        bars[i].style.height = Math.max(18, v * 100) + '%';
       }
       if (analyserL && analyserR && $('#meterDrawer') && $('#meterDrawer').classList.contains('on')) {
         analyserL.getFloatTimeDomainData(timeBufL);
@@ -28605,7 +28644,7 @@ self.onmessage = function (e) {
       }
     } else if (analyser) {
       const bars = $$('#meter i');
-      for (let i = 0; i < bars.length; i++) if (bars[i].style.height !== '8%') bars[i].style.height = '8%';
+      for (let i = 0; i < bars.length; i++) if (bars[i].style.height !== '18%') bars[i].style.height = '18%';
     }
     render(false);
   }
@@ -28629,7 +28668,7 @@ self.onmessage = function (e) {
       pausePlay(); P.t = selRange()[0] / S.rate; previewOnly = true; play(); haptic(6);
     };
     $('#seekBar').addEventListener('input', e => seek(Number(e.target.value) / 10000 * dur(), false));
-    for (const [id,key] of [['exTitle','title'],['exArtist','artist']]) $('#' + id).addEventListener('change', () => { S.meta[key] = $('#' + id).value; scheduleSave(); });
+    for (const [id,key] of [['exTitle','title'],['exArtist','artist']]) { if ($('#' + id)) $('#' + id).addEventListener('change', () => { S.meta[key] = $('#' + id).value; scheduleSave(); }); }
     $$('[data-export-preset]').forEach(b => b.onclick = () => {
       const key = b.dataset.exportPreset;
       $('#exFormat').value = key === 'quality' ? 'wav' : 'mp3';
@@ -28787,5 +28826,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e112728abf2b44',t:'MTc5NTI3ODU1NA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e112728abf2b44',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e141aca9e11431',t:'MTc5NTI4MDQ4OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e141aca9e11431',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
