@@ -420,14 +420,60 @@ body.has-multitrack #wave { height: clamp(238px, 34dvh, 368px); }
 .sel-quick .sel-badge { font-size: 11px; color: var(--txt-2); margin-left: auto; flex: 0 0 auto; }
 
 .speed-drawer {
-  display: none; align-items: center; gap: 10px; padding: 10px 13px;
+  display: none; flex-direction: column; gap: 9px; padding: 11px 13px;
   border-radius: var(--r-md); background: var(--glass-grad), var(--glass); border: 1px solid var(--rim); box-shadow: var(--spec);
   backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
 }
 .speed-drawer.on { display: flex; }
-.speed-drawer .speed-chips { display: flex; gap: 4px; flex: none; }
-.speed-drawer .speed-chips button { height: 27px; padding: 0 9px; border-radius: var(--r-pill); font-size: 11px; font-weight: 560; background: var(--glass-2); border: 1px solid var(--rim); color: var(--txt-2); }
-.speed-drawer .speed-chips button.on { background: rgba(100, 210, 255, .22); color: #fff; border-color: var(--acc); }
+.speed-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.speed-title { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--txt); }
+.speed-tag {
+  font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .08); color: var(--txt-2); border: 1px solid rgba(255, 255, 255, .08);
+}
+.speed-tag.mod { background: rgba(100, 210, 255, .16); color: #bfefff; border-color: rgba(100, 210, 255, .32); }
+.speed-stepper {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px;
+  border-radius: var(--r-pill); background: rgba(0, 0, 0, .32); border: 1px solid var(--rim);
+}
+.speed-stepper button {
+  height: 26px; min-width: 28px; padding: 0 8px; border-radius: var(--r-pill);
+  font-size: 13px; font-weight: 650; color: var(--txt-2); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center; transition: background var(--fast), color var(--fast);
+}
+.speed-stepper button:hover, .speed-stepper button:active { background: rgba(255, 255, 255, .12); color: #fff; }
+.speed-stepper .speed-reset {
+  min-width: 54px; padding: 0 9px; font-size: 12px; font-weight: 650; color: #fff;
+  background: rgba(100, 210, 255, .14); border: 1px solid rgba(100, 210, 255, .28);
+}
+.speed-ruler {
+  position: relative; height: 46px; border-radius: var(--r-sm);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(0, 0, 0, .28));
+  border: 1px solid var(--rim); overflow: hidden; touch-action: none; cursor: ew-resize; user-select: none;
+}
+.speed-fill {
+  position: absolute; top: 0; bottom: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(100, 210, 255, .14), rgba(100, 210, 255, .32));
+}
+.speed-ticks {
+  position: absolute; inset: 0 12px; display: flex; align-items: flex-start; justify-content: space-between;
+  pointer-events: none; padding-top: 6px;
+}
+.speed-tick { position: relative; width: 1px; height: 8px; background: rgba(255, 255, 255, .22); }
+.speed-tick.maj { height: 14px; width: 1.5px; background: rgba(255, 255, 255, .48); }
+.speed-tick.unity { height: 18px; width: 2px; background: var(--acc); box-shadow: 0 0 8px rgba(100, 210, 255, .7); }
+.speed-tick span {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  font-size: 9.5px; font-weight: 600; color: var(--txt-3); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.speed-tick.on span { color: #dcf6ff; }
+.speed-needle {
+  position: absolute; top: 4px; bottom: 4px; width: 4px; margin-left: -2px; border-radius: 99px;
+  background: #fff; box-shadow: 0 0 12px rgba(100, 210, 255, .9), 0 1px 4px rgba(0, 0, 0, .7);
+  pointer-events: none; transition: left 45ms linear;
+}
+.speed-ruler.dragging .speed-needle { transition: none; width: 5px; margin-left: -2.5px; background: #dcf6ff; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* ------------------------------------------- iOS 27 Liquid Sliders & Wells */
 input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; background: transparent; margin: 0; }
@@ -570,6 +616,33 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   display: flex; flex-direction: column; gap: 8px; padding: 11px 12px; border-radius: 16px;
   background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
 }
+.macro-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.macro-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px;
+  background: rgba(100,210,255,.12); border: 1px solid rgba(100,210,255,.32); color: #d8f4ff;
+  font-size: 11.5px; font-weight: 580; cursor: pointer;
+}
+.macro-pill:hover { background: rgba(100,210,255,.22); }
+.macro-list { display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto; }
+.macro-row {
+  display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 14px;
+  background: rgba(255,255,255,.045); border: 1px solid var(--rim);
+}
+.macro-row-info { flex: 1; min-width: 0; }
+.macro-row-info b { display: block; font-size: 12.5px; font-weight: 620; }
+.macro-row-info span { display: block; font-size: 11px; color: var(--txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.macro-steps-box { display: flex; flex-wrap: wrap; gap: 5px; }
+.macro-step-chip {
+  padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 560;
+  background: rgba(255,255,255,.06); border: 1px solid var(--rim); color: var(--txt-2);
+}
+.macro-step-chip[aria-pressed="true"] { background: rgba(48,209,88,.22); border-color: rgba(48,209,88,.55); color: #c8ffd6; }
+.ag-wrap { display: flex; flex-direction: column; gap: 11px; }
+.ag-preview-box {
+  display: flex; justify-content: center; align-items: center; padding: 10px; border-radius: 18px;
+  background: rgba(5, 6, 10, .82); border: 1px solid rgba(255,255,255,.12);
+}
+#agPreviewCanvas { max-width: 100%; max-height: 250px; border-radius: 12px; display: block; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
 
 /* --------------------------------- iOS 27 Grouped Glass Effect & Tool Cards */
 .acc {
@@ -1464,18 +1537,24 @@ body.overlay-open { overflow: hidden; }
         </div>
       </div>
 
-      <div class="speed-drawer" id="speedDrawer">
-        <span class="slbl">Speed</span>
-        <input type="range" id="rateSlider" min="25" max="150" step="1" value="100" aria-label="Preview speed">
-        <output class="mono" id="rateOut">1.00×</output>
-        <div class="speed-chips">
-          <button type="button" data-spd="25">0.25×</button>
-          <button type="button" data-spd="50">0.5×</button>
-          <button type="button" data-spd="75">0.75×</button>
-          <button type="button" data-spd="100" class="on">1×</button>
-          <button type="button" data-spd="125">1.25×</button>
-          <button type="button" data-spd="150">1.5×</button>
+      <div class="speed-drawer" id="speedDrawer" aria-label="Playback speed control">
+        <div class="speed-head">
+          <div class="speed-title">
+            <span>Playback speed</span>
+            <span class="speed-tag" id="speedTag">Normal</span>
+          </div>
+          <div class="speed-stepper">
+            <button type="button" id="btnSpeedDown" title="Slower (-0.05×)" aria-label="Decrease speed">−</button>
+            <button type="button" class="speed-reset mono" id="rateOut" title="Tap to reset to 1.00×">1.00×</button>
+            <button type="button" id="btnSpeedUp" title="Faster (+0.05×)" aria-label="Increase speed">+</button>
+          </div>
         </div>
+        <div class="speed-ruler" id="speedRuler" role="slider" aria-label="Scrub playback speed" aria-valuemin="25" aria-valuemax="200" aria-valuenow="100" tabindex="0">
+          <div class="speed-fill" id="speedFill"></div>
+          <div class="speed-ticks" id="speedTicks"></div>
+          <div class="speed-needle" id="speedNeedle" style="left: calc(12px + (100% - 24px) * 0.4286)"></div>
+        </div>
+        <input type="range" class="sr-only" id="rateSlider" min="25" max="200" step="1" value="100" aria-label="Preview speed">
       </div>
 
       <div class="sel-quick" id="selQuickBar" aria-label="Quick selection actions">
@@ -1541,6 +1620,9 @@ body.overlay-open { overflow: hidden; }
                 <button class="btn sm" id="btnSnapSil">Snap edges to silence</button>
                 <button class="btn sm" id="btnAbLoop">A/B loop from selection</button>
               </div>
+              <div class="divider"></div>
+              <div class="range-row"><label>1-Tap Batch Macros</label><button type="button" class="btn sm ghost" id="btnOpenMacros">Manage / New…</button></div>
+              <div class="macro-pills" id="macroQuickRow"></div>
               <div class="divider"></div>
               <label class="checkrow"><input type="checkbox" id="cutXfadeEnable" checked><span>Auto-crossfade cut splices (prevents clicks)</span></label>
               <div><div class="range-row"><label for="cutXfadeMs">Cut crossfade</label><output id="cutXfadeMsOut">25 ms</output></div><input type="range" id="cutXfadeMs" min="5" max="60" step="5" value="25"></div>
@@ -1647,6 +1729,7 @@ body.overlay-open { overflow: hidden; }
               </div>
               <div class="divider"></div>
               <button class="btn sm wide" id="btnOpenPodcastBuilder">Podcast Intro / Outro Builder…</button>
+              <button class="btn sm accent wide" id="btnSmartAudiogram">Export Audiogram Video (Reels / Shorts)…</button>
             </div></div></div>
           </div>
 
@@ -18749,7 +18832,7 @@ lamejs();
   function writeAscii(view, off, str) {
     for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i) & 0xff);
   }
-  function encodeWav(data, sampleRate, bitDepth, meta) {
+  function encodeWav(data, sampleRate, bitDepth, meta, id3Bytes) {
     const depth = [16,24,32].includes(bitDepth) ? bitDepth : 16;
     const bytes = depth / 8, nch = data.length, frames = data[0].length;
     const fields = [];
@@ -18760,7 +18843,9 @@ lamejs();
     }
     const listSize = 4 + fields.reduce((n,[key,v]) => n + 8 + v.length + v.length % 2, 0);
     const dataSize = frames * nch * bytes;
-    const total = 44 + (fields.length ? 8 + listSize : 0) + dataSize + dataSize % 2;
+    const id3Len = (id3Bytes && id3Bytes.length) ? id3Bytes.length : 0;
+    const id3ChunkSize = id3Len ? (8 + id3Len + (id3Len % 2)) : 0;
+    const total = 44 + (fields.length ? 8 + listSize : 0) + dataSize + dataSize % 2 + id3ChunkSize;
     const buffer = new ArrayBuffer(total), view = new DataView(buffer);
     writeAscii(view,0,'RIFF'); view.setUint32(4,total-8,true); writeAscii(view,8,'WAVE');
     writeAscii(view,12,'fmt '); view.setUint32(16,16,true);
@@ -18785,6 +18870,12 @@ lamejs();
         view.setUint8(offset,n&255); view.setUint8(offset+1,(n>>8)&255); view.setUint8(offset+2,(n>>16)&255);
       } else view.setInt16(offset,Math.round(v*(v<0?32768:32767)),true);
       offset += bytes;
+    }
+    if (id3Len) {
+      offset += dataSize % 2;
+      writeAscii(view, offset, 'id3 ');
+      view.setUint32(offset + 4, id3Len, true);
+      new Uint8Array(buffer, offset + 8, id3Len).set(id3Bytes);
     }
     return new Uint8Array(buffer);
   }
@@ -19130,7 +19221,7 @@ self.onmessage = function (e) {
       case 'profile': r = D.makeNoiseProfile(m.data[0], m.start || 0, m.len || 0, m.fftSize || 2048); break;
       case 'spectrogram': r = D.spectrogram(m.data[0], m.rate, m.opts || {}); break;
       case 'resample': r = D.resample(m.data, m.rate, m.to, 4); break;
-      case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null); break;
+      case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null, m.id3 || null); break;
       default: throw new Error('unknown task ' + m.act);
     }
     self.postMessage({ id: m.id, ok: true, result: r }, r && r.buffer ? [r.buffer] : undefined);
@@ -20289,6 +20380,226 @@ self.onmessage = function (e) {
     });
   }
 
+  /* ---------------------------------------------- cover art & tag parser */
+  function resetCoverArtUI() {
+    CoverArt.bytes = null; CoverArt.mime = ''; CoverArt.name = '';
+    if (CoverArt.url) { URL.revokeObjectURL(CoverArt.url); CoverArt.url = ''; }
+    if ($('#exCoverThumb')) $('#exCoverThumb').innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    if ($('#exCoverName')) $('#exCoverName').textContent = 'No image selected';
+    if ($('#exCoverClear')) $('#exCoverClear').hidden = true;
+  }
+  async function setCoverArtBytes(bytes, mime, name) {
+    let outBytes = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    let outMime = (mime === 'image/jpg' ? 'image/jpeg' : mime) || '';
+    if (!outMime) {
+      if (outBytes[0] === 0x89 && outBytes[1] === 0x50) outMime = 'image/png';
+      else outMime = 'image/jpeg';
+    }
+    // Convert non-JPEG/PNG (e.g. WebP) or oversized images to crisp JPEG for universal MP3/M4A compatibility
+    if ((outMime !== 'image/jpeg' && outMime !== 'image/png') || outBytes.length > 1500 * 1024) {
+      try {
+        const bmp = await createImageBitmap(new Blob([outBytes], { type: outMime }));
+        const maxDim = 800;
+        const sc = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(bmp.width * sc));
+        cv.height = Math.max(1, Math.round(bmp.height * sc));
+        cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+        const jb = await new Promise((res) => cv.toBlob(res, 'image/jpeg', 0.88));
+        if (jb) { outBytes = new Uint8Array(await jb.arrayBuffer()); outMime = 'image/jpeg'; }
+      } catch (e) {}
+    }
+    CoverArt.bytes = outBytes;
+    CoverArt.mime = outMime;
+    CoverArt.name = name || 'cover-art';
+    if (CoverArt.url) URL.revokeObjectURL(CoverArt.url);
+    CoverArt.url = URL.createObjectURL(new Blob([outBytes], { type: outMime }));
+    if ($('#exCoverThumb')) $('#exCoverThumb').innerHTML = `<img src="${CoverArt.url}" alt="Cover">`;
+    if ($('#exCoverName')) $('#exCoverName').textContent = `${CoverArt.name} (${fmtBytes(outBytes.length)})`;
+    if ($('#exCoverClear')) $('#exCoverClear').hidden = false;
+  }
+
+  function decodeId3Text(bytes) {
+    if (!bytes || !bytes.length) return '';
+    const enc = bytes[0];
+    const body = bytes.subarray(1);
+    try {
+      if (enc === 0) return new TextDecoder('latin1').decode(body).replace(/\0+$/, '').trim();
+      if (enc === 3) return new TextDecoder('utf-8').decode(body).replace(/\0+$/, '').trim();
+      if (enc === 1 || enc === 2) {
+        let off = 0, le = (enc === 1);
+        if (body.length >= 2 && body[0] === 0xFF && body[1] === 0xFE) { le = true; off = 2; }
+        else if (body.length >= 2 && body[0] === 0xFE && body[1] === 0xFF) { le = false; off = 2; }
+        return new TextDecoder(le ? 'utf-16le' : 'utf-16be').decode(body.subarray(off)).replace(/\0+$/, '').trim();
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function extractId3FromBytes(u8, startOffset) {
+    const meta = {};
+    let cover = null;
+    if (startOffset + 10 > u8.length) return { meta, cover };
+    if (u8[startOffset] !== 0x49 || u8[startOffset+1] !== 0x44 || u8[startOffset+2] !== 0x33) return { meta, cover };
+    const ver = u8[startOffset + 3];
+    const flags = u8[startOffset + 5];
+    const tagSize = ((u8[startOffset+6]&0x7F)<<21)|((u8[startOffset+7]&0x7F)<<14)|((u8[startOffset+8]&0x7F)<<7)|(u8[startOffset+9]&0x7F);
+    let pos = startOffset + 10;
+    const end = Math.min(u8.length, pos + tagSize);
+    if ((flags & 0x40) && pos + 4 <= end) {
+      const extSz = ver >= 4
+        ? (((u8[pos]&0x7F)<<21)|((u8[pos+1]&0x7F)<<14)|((u8[pos+2]&0x7F)<<7)|(u8[pos+3]&0x7F))
+        : ((u8[pos]<<24)|(u8[pos+1]<<16)|(u8[pos+2]<<8)|u8[pos+3]) >>> 0;
+      pos += ver >= 4 ? extSz : (4 + extSz);
+    }
+    const latDec = new TextDecoder('latin1');
+    while (pos + (ver === 2 ? 6 : 10) <= end) {
+      if (u8[pos] === 0) break;
+      let id, sz, hdrSz, fFlags = 0;
+      if (ver === 2) {
+        id = latDec.decode(u8.subarray(pos, pos + 3));
+        sz = (u8[pos+3]<<16)|(u8[pos+4]<<8)|u8[pos+5];
+        hdrSz = 6;
+      } else {
+        id = latDec.decode(u8.subarray(pos, pos + 4));
+        sz = ver >= 4
+          ? (((u8[pos+4]&0x7F)<<21)|((u8[pos+5]&0x7F)<<14)|((u8[pos+6]&0x7F)<<7)|(u8[pos+7]&0x7F))
+          : (((u8[pos+4]<<24)|(u8[pos+5]<<16)|(u8[pos+6]<<8)|u8[pos+7]) >>> 0);
+        fFlags = (u8[pos+8]<<8)|u8[pos+9];
+        hdrSz = 10;
+      }
+      pos += hdrSz;
+      if (sz <= 0 || pos + sz > end) break;
+      let frame = u8.subarray(pos, pos + sz);
+      pos += sz;
+      if (ver >= 4 && (fFlags & 0x0001) && frame.length > 4) frame = frame.subarray(4);
+      if (id === 'TIT2' || id === 'TT2') meta.title = meta.title || decodeId3Text(frame);
+      else if (id === 'TPE1' || id === 'TP1') meta.artist = meta.artist || decodeId3Text(frame);
+      else if (id === 'TALB' || id === 'TAL') meta.album = meta.album || decodeId3Text(frame);
+      else if (id === 'TCON' || id === 'TCO') meta.genre = meta.genre || decodeId3Text(frame);
+      else if (id === 'TYER' || id === 'TDRC' || id === 'TYE') meta.year = meta.year || decodeId3Text(frame).slice(0, 4);
+      else if (id === 'TRCK' || id === 'TRK') meta.track = meta.track || decodeId3Text(frame);
+      else if ((id === 'APIC' || id === 'PIC') && !cover && frame.length > 8) {
+        const enc = frame[0];
+        let p = 1, mime = 'image/jpeg';
+        if (id === 'PIC') {
+          const fmt3 = latDec.decode(frame.subarray(1, 4)).toLowerCase();
+          mime = fmt3 === 'png' ? 'image/png' : 'image/jpeg';
+          p = 4;
+        } else {
+          const z = frame.indexOf(0, p);
+          if (z > p) mime = latDec.decode(frame.subarray(p, z)).trim().toLowerCase() || 'image/jpeg';
+          p = (z >= 0 ? z + 1 : p);
+        }
+        if (p < frame.length) {
+          p += 1; // picture type byte
+          if (enc === 1 || enc === 2) {
+            while (p + 1 < frame.length && !(frame[p] === 0 && frame[p + 1] === 0)) p += 2;
+            p += 2;
+          } else {
+            const dEnd = frame.indexOf(0, p);
+            p = dEnd >= 0 ? dEnd + 1 : p;
+          }
+          if (p < frame.length) {
+            cover = { bytes: frame.slice(p), mime, name: 'cover-art' };
+          }
+        }
+      }
+    }
+    return { meta, cover };
+  }
+
+  function extractAudioArtAndMeta(ab) {
+    const u8 = ab instanceof Uint8Array ? ab : new Uint8Array(ab);
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const meta = {};
+    let cover = null;
+    try {
+      // 1. MP3 / ID3v2 at start
+      if (u8.length >= 10 && u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) {
+        return extractId3FromBytes(u8, 0);
+      }
+      // 2. WAV RIFF 'id3 ' or 'ID3 ' chunk
+      if (u8.length >= 12 && u8[0] === 0x52 && u8[1] === 0x49 && u8[2] === 0x46 && u8[3] === 0x46) {
+        let p = 12;
+        while (p + 8 <= u8.length) {
+          const tag = String.fromCharCode(u8[p], u8[p+1], u8[p+2], u8[p+3]);
+          const sz = dv.getUint32(p + 4, true);
+          if ((tag === 'id3 ' || tag === 'ID3 ') && p + 8 + sz <= u8.length) {
+            return extractId3FromBytes(u8, p + 8);
+          }
+          p += 8 + sz + (sz % 2);
+        }
+      }
+      // 3. MP4 / M4A ftyp -> moov/udta/meta/ilst
+      if (u8.length >= 12 && u8[4] === 0x66 && u8[5] === 0x74 && u8[6] === 0x79 && u8[7] === 0x70) {
+        const readStr = (s0, e0) => new TextDecoder('utf-8').decode(u8.subarray(s0, e0));
+        const findAtom = (start, end, target) => {
+          let p = start;
+          while (p + 8 <= end) {
+            const sz = dv.getUint32(p, false);
+            const nm = String.fromCharCode(u8[p+4], u8[p+5], u8[p+6], u8[p+7]);
+            const atomEnd = sz === 0 ? end : Math.min(end, p + sz);
+            if (sz < 8) break;
+            if (nm === target) return { start: p + 8, end: atomEnd };
+            p = atomEnd;
+          }
+          return null;
+        };
+        const moov = findAtom(0, u8.length, 'moov');
+        const udta = moov && findAtom(moov.start, moov.end, 'udta');
+        const metaAtom = udta && findAtom(udta.start, udta.end, 'meta');
+        const ilst = metaAtom && findAtom(metaAtom.start + 4, metaAtom.end, 'ilst');
+        if (ilst) {
+          let p = ilst.start;
+          while (p + 8 <= ilst.end) {
+            const sz = dv.getUint32(p, false);
+            if (sz < 8 || p + sz > ilst.end) break;
+            const nm = String.fromCharCode(u8[p+4], u8[p+5], u8[p+6], u8[p+7]);
+            const dataAtom = findAtom(p + 8, p + sz, 'data');
+            if (dataAtom && dataAtom.start + 8 <= dataAtom.end) {
+              const typeFlag = dv.getUint32(dataAtom.start, false) & 0xFFFFFF;
+              const valBytes = u8.subarray(dataAtom.start + 8, dataAtom.end);
+              if (nm === 'covr' && !cover) {
+                cover = { bytes: valBytes.slice(), mime: typeFlag === 14 ? 'image/png' : 'image/jpeg', name: 'cover-art' };
+              } else if (typeFlag === 1) {
+                const txt = readStr(dataAtom.start + 8, dataAtom.end);
+                if (nm === '\xa9nam') meta.title = txt;
+                else if (nm === '\xa9ART') meta.artist = txt;
+                else if (nm === '\xa9alb') meta.album = txt;
+                else if (nm === '\xa9gen') meta.genre = txt;
+                else if (nm === '\xa9day') meta.year = txt.slice(0, 4);
+              }
+            }
+            p += sz;
+          }
+        }
+      }
+      // 4. FLAC fLaC METADATA_BLOCK_PICTURE (type 6)
+      if (u8.length >= 8 && u8[0] === 0x66 && u8[1] === 0x4C && u8[2] === 0x61 && u8[3] === 0x43) {
+        let p = 4, last = false;
+        while (!last && p + 4 <= u8.length) {
+          const hdr = u8[p];
+          last = !!(hdr & 0x80);
+          const bType = hdr & 0x7F;
+          const bLen = (u8[p+1]<<16)|(u8[p+2]<<8)|u8[p+3];
+          p += 4;
+          if (p + bLen > u8.length) break;
+          if (bType === 6 && !cover && bLen > 32) {
+            let q = p + 4;
+            const mimeLen = dv.getUint32(q, false); q += 4;
+            const mime = new TextDecoder('latin1').decode(u8.subarray(q, q + mimeLen)); q += mimeLen;
+            const descLen = dv.getUint32(q, false); q += 4 + descLen + 16;
+            const picLen = dv.getUint32(q, false); q += 4;
+            if (q + picLen <= p + bLen) cover = { bytes: u8.slice(q, q + picLen), mime: mime || 'image/jpeg', name: 'cover-art' };
+          }
+          p += bLen;
+        }
+      }
+    } catch (e) {}
+    return { meta, cover };
+  }
+
   /* ----------------------------------------------------------- file input */
   async function decodeToData(ab, name) {
     const c = AC();
@@ -20368,8 +20679,19 @@ self.onmessage = function (e) {
       if (isZip || /\.sonicforge$/i.test(file.name)) {
         await openSonicForgeBundle(ab, file.name);
       } else {
+        const extracted = extractAudioArtAndMeta(ab);
         const r = await decodeToData(ab, file.name);
-        await loadAudio(r.data, r.rate, file.name.replace(/\.[^.]+$/, ''), {});
+        resetCoverArtUI();
+        await loadAudio(r.data, r.rate, file.name.replace(/\.[^.]+$/, ''), extracted.meta || {});
+        if (extracted.meta) {
+          if ($('#exAlbum') && extracted.meta.album) $('#exAlbum').value = extracted.meta.album;
+          if ($('#exGenre') && extracted.meta.genre) $('#exGenre').value = extracted.meta.genre;
+          if ($('#exYear') && extracted.meta.year) $('#exYear').value = extracted.meta.year;
+          if ($('#exTrack') && extracted.meta.track) $('#exTrack').value = extracted.meta.track;
+        }
+        if (extracted.cover && extracted.cover.bytes && extracted.cover.bytes.length) {
+          await setCoverArtBytes(extracted.cover.bytes, extracted.cover.mime, extracted.cover.name || 'embedded-art');
+        }
       }
     } catch (e) {
       busy(false);
@@ -21908,6 +22230,7 @@ self.onmessage = function (e) {
   <div class="prog" id="exProg"><i></i></div>
   <button class="btn primary wide" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg>Export audio</button>
   <button class="btn sm wide" id="btnExportStemsZip">Export Stems Bundle (.zip)</button>
+  <button class="btn sm accent wide" id="btnOpenAudiogram">Export Audiogram Video (9:16 / 1:1 / 16:9)…</button>
   <p class="hint" id="exEst">—</p>`;
 
 
@@ -21940,7 +22263,7 @@ self.onmessage = function (e) {
       utf16Frame('TCON', meta.genre);
     }
     if (cover && cover.bytes && cover.bytes.length) {
-      const mime = cover.mime || 'image/jpeg';
+      const mime = (cover.mime === 'image/jpg' ? 'image/jpeg' : cover.mime) || 'image/jpeg';
       const payload = new Uint8Array(1 + mime.length + 1 + 1 + 1 + cover.bytes.length);
       let o = 0;
       payload[o++] = 0x00;
@@ -23550,6 +23873,7 @@ self.onmessage = function (e) {
     $('#exRate').addEventListener('change', estimateSize);
     $('#btnExport').addEventListener('click', () => doExport(false));
     if ($('#btnExportStemsZip')) $('#btnExportStemsZip').addEventListener('click', exportStemsZip);
+    if ($('#btnOpenAudiogram')) $('#btnOpenAudiogram').addEventListener('click', openAudiogramModal);
     sync();
   }
   function exportSettings() {
@@ -23586,6 +23910,7 @@ self.onmessage = function (e) {
     const u32 = (n) => new Uint8Array([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]);
     const u16 = (n) => new Uint8Array([(n >>> 8) & 255, n & 255]);
     const str = (t) => new TextEncoder().encode(t);
+    const fourcc = (t) => new Uint8Array([t.charCodeAt(0) & 255, t.charCodeAt(1) & 255, t.charCodeAt(2) & 255, t.charCodeAt(3) & 255]);
     const cat = (...parts) => {
       const len = parts.reduce((n, p) => n + p.length, 0);
       const out = new Uint8Array(len);
@@ -23595,7 +23920,7 @@ self.onmessage = function (e) {
     };
     const box = (type, ...payload) => {
       const body = cat(...payload);
-      return cat(u32(8 + body.length), str(type), body);
+      return cat(u32(8 + body.length), fourcc(type), body);
     };
     const fullBox = (type, ver, flags, ...payload) => {
       return box(type, new Uint8Array([ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255]), ...payload);
@@ -23640,7 +23965,27 @@ self.onmessage = function (e) {
     const trak = box('trak', tkhd, mdia);
     const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(sampleRate), u32(totalSamples), u32(0x00010000), u16(0x0100), new Uint8Array(10),
       u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000), new Uint8Array(24), u32(2));
-    const moov = box('moov', mvhd, trak);
+    const ilstItems = [];
+    const curMeta = (typeof currentExportMeta === 'function') ? currentExportMeta() : {};
+    const addTextAtom = (tag, valStr) => {
+      if (!valStr) return;
+      const tb = new TextEncoder().encode(String(valStr).trim());
+      if (!tb.length) return;
+      ilstItems.push(box(tag, box('data', u32(1), u32(0), tb)));
+    };
+    addTextAtom('\xa9nam', curMeta.title);
+    addTextAtom('\xa9ART', curMeta.artist);
+    addTextAtom('\xa9alb', curMeta.album);
+    addTextAtom('\xa9gen', curMeta.genre);
+    addTextAtom('\xa9day', curMeta.year);
+    if (CoverArt && CoverArt.bytes && CoverArt.bytes.length) {
+      const typeFlag = (CoverArt.mime === 'image/png') ? 14 : 13;
+      ilstItems.push(box('covr', box('data', u32(typeFlag), u32(0), CoverArt.bytes)));
+    }
+    const udta = ilstItems.length
+      ? box('udta', fullBox('meta', 0, 0, fullBox('hdlr', 0, 0, u32(0), str('mdir'), str('appl'), u32(0), u32(0), new Uint8Array([0])), box('ilst', ...ilstItems)))
+      : new Uint8Array(0);
+    const moov = udta.length ? box('moov', mvhd, trak, udta) : box('moov', mvhd, trak);
     const out = cat(ftyp, moov, mdat);
     // Patch stco chunk offset to point right after mdat header (ftyp + moov + 8)
     const mdatDataOffset = ftyp.length + moov.length + 8;
@@ -23835,7 +24180,8 @@ self.onmessage = function (e) {
         bytes = res.bytes; mime = format === 'm4r' ? 'audio/x-m4r' : 'audio/mp4'; ext = format;
       } else {
         const bits = parseInt($('#exBits').value, 10);
-        bytes = await runTask({ act: 'wav', data: cloneData(data), rate, bits, meta });
+        const id3 = encodeId3v2(meta, CoverArt);
+        bytes = await runTask({ act: 'wav', data: cloneData(data), rate, bits, meta, id3: id3.length ? id3 : null });
         mime = 'audio/wav'; ext = 'wav';
       }
       setProg(1);
@@ -25461,6 +25807,7 @@ self.onmessage = function (e) {
     Effects: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
     Smart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
     Track: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg>',
+    Macros: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
     View: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
   };
   const COMMANDS = [
@@ -25544,6 +25891,8 @@ self.onmessage = function (e) {
     { t: 'Merge multiple clips', cat: 'Track', sub: 'Stitch clips with crossfades', run: openMergeStudio },
     { t: 'Export audio', cat: 'Track', sub: 'Render WAV, MP3, Opus, M4A, or M4R ringtone', k: 'Ctrl+E', run: () => doExport(false) },
     { t: 'Export Stems Bundle (.zip)', cat: 'Track', sub: 'Dry main, Track 2, Track 3, and full master WAVs', run: exportStemsZip },
+    { t: 'Export Audiogram Video (Reels / Shorts)', cat: 'Smart', sub: 'Render 9:16, 1:1, or 16:9 animated spectrum video', run: openAudiogramModal },
+    { t: 'Manage Batch Macros & Chains', cat: 'Macros', sub: 'Create & run multi-step workflow macros', run: openMacrosModal },
     { t: 'Toggle Metronome Click Track', cat: 'Smart', sub: 'Start/stop BPM click track', run: toggleMetronome },
     { t: 'Tap Tempo', cat: 'Smart', sub: 'Tap repeatedly to set metronome BPM', run: triggerTapTempo },
     { t: 'Toggle Spectrogram Band Notch tool', cat: 'Effects', sub: 'Draw time × frequency box on spectrogram', run: () => { setWaveMode('spec'); SpecBrush.enabled = !SpecBrush.enabled; syncSpecBrushUI(); } },
@@ -25571,7 +25920,7 @@ self.onmessage = function (e) {
     { t: 'View: Spec + Wave Mix', cat: 'View', sub: 'Combined spectrum & waveform', run: () => setWaveMode('mix') },
     { t: 'Keyboard shortcuts', cat: 'View', sub: 'View all hotkeys', k: '?', run: showHelp },
   ];
-  const CMD_CATS = ['All', 'Smart', 'Edit', 'Effects', 'Playback', 'Track', 'View'];
+  const CMD_CATS = ['All', 'Smart', 'Macros', 'Edit', 'Effects', 'Playback', 'Track', 'View'];
   let cmdSel = 0, cmdList = [], cmdCat = 'All';
   function openCmd() {
     const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
@@ -25636,8 +25985,18 @@ self.onmessage = function (e) {
     if (inMark) out += '</mark>';
     return out;
   }
+  function allCommands() {
+    const macroCmds = UserMacros.map((m) => ({
+      t: 'Macro: ' + m.name,
+      cat: 'Macros',
+      sub: m.steps.map((k) => MACRO_STEPS[k]?.label || k).join(' → '),
+      run: () => runMacroChain(m)
+    }));
+    return COMMANDS.concat(macroCmds);
+  }
   function renderCmd(q) {
-    const pool = cmdCat === 'All' ? COMMANDS : COMMANDS.filter((c) => c.cat === cmdCat);
+    const all = allCommands();
+    const pool = cmdCat === 'All' ? all : all.filter((c) => c.cat === cmdCat);
     const trimmed = q.trim();
     const ranked = [];
     for (const c of pool) {
@@ -25838,6 +26197,376 @@ self.onmessage = function (e) {
     $('#scrim').classList.add('on');
   }
 
+  /* -------------------------------------- keyboard macros & batch chains */
+  const MACROS_KEY = 'sonicforge_macros_v1';
+  const MACRO_STEPS = {
+    hp85:      { label: 'High-pass 85 Hz',    apply: (d, r, sr) => D.eq(d, r, sr, [{ f: 85, gain: 0, q: 0.707, type: 'highpass' }]) },
+    deess:     { label: 'De-ess (-5 dB)',     apply: (d, r, sr) => D.deess(d, r, sr, { freq: 6500, reductionDb: 5 }) },
+    dereverb:  { label: 'De-Reverb 45%',      apply: (d, r, sr) => D.dereverb(d, r, sr, 0.45) },
+    declip:    { label: 'De-clipper repair',  apply: (d, r, sr) => D.declip(d, r, sr, { threshold: 0.97, headroomDb: -1.5 }) },
+    compress:  { label: 'Compress (3:1)',     apply: (d, r, sr) => D.compress(d, r, sr, { thresholdDb: -18, ratio: 3, attackMs: 10, releaseMs: 140, makeupDb: 2.5, ceilingDb: -1 }) },
+    norm16:    { label: 'Normalize -16 LUFS', apply: (d, r, sr) => D.normalize(d, r, { mode: 'lufs', targetDb: -16, ceilingDb: -1 }, sr) },
+    norm14:    { label: 'Normalize -14 LUFS', apply: (d, r, sr) => D.normalize(d, r, { mode: 'lufs', targetDb: -14, ceilingDb: -1 }, sr) },
+    normPeak:  { label: 'Peak -1.0 dBTP',     apply: (d, r, sr) => D.normalize(d, r, { mode: 'peak', targetDb: -1.0 }, sr) },
+    width125:  { label: 'M/S Width 125%',     apply: (d, r, sr) => D.stereoShape(d, r, 125, 0, sr, true) },
+    fadeEdges: { label: 'Fade 120 ms edges',  apply: (d, r, sr) => D.fade(d, sr, r, 120, 'cos', 'both') },
+    removeDC:  { label: 'Remove DC offset',   apply: (d, r, sr) => D.removeDC(d, r) },
+    trimEnds:  { label: 'Trim silence ends',  apply: null }
+  };
+  const DEFAULT_MACROS = [
+    { id: 'm_pod', name: 'Podcast Polish Chain', steps: ['hp85', 'deess', 'compress', 'norm16', 'trimEnds'] },
+    { id: 'm_vox', name: 'Clean Room & De-Reverb', steps: ['hp85', 'dereverb', 'declip', 'norm16'] },
+    { id: 'm_rad', name: 'Radio Punch & Wide', steps: ['removeDC', 'compress', 'width125', 'norm14'] }
+  ];
+  let UserMacros = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(MACROS_KEY) || 'null');
+      return Array.isArray(saved) && saved.length ? saved : DEFAULT_MACROS.map((m) => ({ ...m, steps: m.steps.slice() }));
+    } catch (e) { return DEFAULT_MACROS.map((m) => ({ ...m, steps: m.steps.slice() })); }
+  })();
+  function saveMacros() {
+    try { localStorage.setItem(MACROS_KEY, JSON.stringify(UserMacros)); } catch (e) {}
+    renderMacroQuickRow();
+  }
+  function renderMacroQuickRow() {
+    const host = $('#macroQuickRow');
+    if (!host) return;
+    host.replaceChildren();
+    UserMacros.forEach((m) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'macro-pill';
+      b.textContent = '⚡ ' + m.name;
+      b.title = m.steps.map((k) => MACRO_STEPS[k]?.label || k).join(' → ');
+      b.onclick = () => runMacroChain(m);
+      host.append(b);
+    });
+  }
+  async function runMacroChain(macro) {
+    if (!hasAudio || !macro || !macro.steps?.length) return toast('Open audio first', 'info');
+    await edit('Macro: ' + macro.name, async () => {
+      for (const stepKey of macro.steps) {
+        if (stepKey === 'trimEnds') {
+          const found = findSilences();
+          if (found.length) {
+            const ch = S.data[0];
+            const head = found[0].a < Math.round(0.5 * S.rate) ? found[0].b : 0;
+            const last = found[found.length - 1];
+            const tail = last.b >= ch.length - Math.round(0.5 * S.rate) ? last.a : ch.length;
+            if (tail > head + 64) {
+              S.data = D.trim(S.data, [head, tail]);
+              shiftMarkers(0, head, 0);
+              Sel.a = 0; Sel.b = S.data[0].length; P.t = 0;
+            }
+          }
+          continue;
+        }
+        const def = MACRO_STEPS[stepKey];
+        if (!def || !def.apply) continue;
+        const r = effRange();
+        const res = def.apply(S.data, r, S.rate);
+        if (Array.isArray(res) && res.length && res[0] instanceof Float32Array) S.data = res;
+        await yieldUI();
+      }
+    });
+    toast(`Ran "${macro.name}" (${macro.steps.length} steps)`, 'ok', 2500);
+  }
+  function openMacrosModal() {
+    const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
+    $('#modal').inert = false; $('.app').inert = true; document.body.classList.add('overlay-open');
+    $('#modalTitle').textContent = 'Batch Macros & Chains';
+    let draftSteps = ['hp85', 'deess', 'compress', 'norm16'];
+    const renderBody = () => {
+      $('#modalBody').innerHTML = `
+        <div class="pref-grid">
+          <div class="macro-list" id="macroModalList"></div>
+          <div class="pref-card">
+            <b style="font-size:12.5px">Create New Batch Chain</b>
+            <input type="text" id="newMacroName" placeholder="Chain name (e.g. YouTube Voice)" maxlength="40">
+            <div class="macro-steps-box" id="newMacroSteps"></div>
+            <p class="hint" id="newMacroPreview" style="font-family:ui-monospace,monospace"></p>
+            <button type="button" class="btn sm primary wide" id="btnSaveMacro">Save Batch Chain</button>
+          </div>
+        </div>`;
+      const listEl = $('#macroModalList');
+      UserMacros.forEach((m, idx) => {
+        const row = document.createElement('div'); row.className = 'macro-row';
+        const info = document.createElement('div'); info.className = 'macro-row-info';
+        const b = document.createElement('b'); b.textContent = m.name;
+        const sp = document.createElement('span'); sp.textContent = m.steps.map((k) => MACRO_STEPS[k]?.label || k).join(' → ');
+        info.append(b, sp);
+        const runB = document.createElement('button'); runB.type = 'button'; runB.className = 'btn sm primary'; runB.textContent = 'Run';
+        runB.onclick = () => { closeOverlays(); runMacroChain(m); };
+        const delB = document.createElement('button'); delB.type = 'button'; delB.className = 'btn icon sm ghost'; delB.textContent = '×';
+        delB.onclick = () => { UserMacros.splice(idx, 1); saveMacros(); renderBody(); };
+        row.append(info, runB, delB);
+        listEl.append(row);
+      });
+      const stHost = $('#newMacroSteps');
+      Object.keys(MACRO_STEPS).forEach((k) => {
+        const cb = document.createElement('button'); cb.type = 'button'; cb.className = 'macro-step-chip';
+        cb.textContent = MACRO_STEPS[k].label;
+        cb.setAttribute('aria-pressed', String(draftSteps.includes(k)));
+        cb.onclick = () => {
+          if (draftSteps.includes(k)) draftSteps = draftSteps.filter((x) => x !== k);
+          else draftSteps.push(k);
+          cb.setAttribute('aria-pressed', String(draftSteps.includes(k)));
+          $('#newMacroPreview').textContent = draftSteps.length ? draftSteps.map((x) => MACRO_STEPS[x].label).join(' → ') : 'Pick at least 1 step above';
+        };
+        stHost.append(cb);
+      });
+      $('#newMacroPreview').textContent = draftSteps.map((x) => MACRO_STEPS[x].label).join(' → ');
+      $('#btnSaveMacro').onclick = () => {
+        const nm = ($('#newMacroName').value || '').trim() || ('Custom Chain ' + (UserMacros.length + 1));
+        if (!draftSteps.length) return toast('Select at least 1 step', 'info');
+        UserMacros.push({ id: 'm_' + Date.now(), name: nm, steps: draftSteps.slice() });
+        saveMacros();
+        toast(`Saved macro "${nm}" (available in Ctrl+K)`, 'ok', 2400);
+        renderBody();
+      };
+    };
+    renderBody();
+    $('#modal').classList.add('on'); $('#modalClose').focus();
+    $('#scrim').classList.add('on');
+  }
+
+  /* -------------------------------------- export audio-to-video audiogram */
+  let agAnimRaf = 0, agCoverImg = null;
+  function drawAudiogramFrame(cv, ratio, theme, title, artist, progress, bins, tSec, totalSec) {
+    const dims = ratio === '9:16' ? [720, 1280] : ratio === '1:1' ? [720, 720] : [1280, 720];
+    if (cv.width !== dims[0] || cv.height !== dims[1]) { cv.width = dims[0]; cv.height = dims[1]; }
+    const w = cv.width, h = cv.height, c = cv.getContext('2d');
+    const palettes = {
+      glass:   ['#0b1120', '#16253f', '#64d2ff', '#30d158'],
+      amber:   ['#170d06', '#2e1608', '#ff9f0a', '#ffd60a'],
+      emerald: ['#061610', '#0b2b1e', '#30d158', '#64d2ff'],
+      violet:  ['#130820', '#271042', '#bf5af2', '#64d2ff']
+    };
+    const pal = palettes[theme] || palettes.glass;
+    const bg = c.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
+    c.fillStyle = bg; c.fillRect(0, 0, w, h);
+
+    // Subtle ambient glow
+    const avgEnergy = bins ? bins.reduce((a, b) => a + b, 0) / (bins.length * 255) : 0.28;
+    const rg = c.createRadialGradient(w * 0.5, h * 0.42, 20, w * 0.5, h * 0.42, Math.max(w, h) * 0.55);
+    rg.addColorStop(0, pal[2] + '33'); rg.addColorStop(1, 'transparent');
+    c.fillStyle = rg; c.fillRect(0, 0, w, h);
+
+    const vertical = h > w;
+    const artSize = Math.round(Math.min(w, h) * (vertical ? 0.46 : 0.38));
+    const artX = Math.round((w - artSize) / 2);
+    const artY = vertical ? Math.round(h * 0.16) : Math.round(h * 0.12);
+    const pulse = 1 + avgEnergy * 0.04;
+    c.save();
+    c.translate(w / 2, artY + artSize / 2);
+    c.scale(pulse, pulse);
+    c.translate(-w / 2, -(artY + artSize / 2));
+    c.shadowColor = pal[2] + '66'; c.shadowBlur = 32;
+    roundRect(c, artX, artY, artSize, artSize, 26);
+    c.fillStyle = 'rgba(255,255,255,.08)'; c.fill();
+    c.restore();
+
+    c.save();
+    roundRect(c, artX, artY, artSize, artSize, 26); c.clip();
+    if (agCoverImg) {
+      const sc = Math.max(artSize / agCoverImg.width, artSize / agCoverImg.height);
+      const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
+      c.drawImage(agCoverImg, artX + (artSize - dw) / 2, artY + (artSize - dh) / 2, dw, dh);
+    } else {
+      const cg = c.createLinearGradient(artX, artY, artX + artSize, artY + artSize);
+      cg.addColorStop(0, pal[2] + '44'); cg.addColorStop(1, pal[3] + '33');
+      c.fillStyle = cg; c.fillRect(artX, artY, artSize, artSize);
+      c.fillStyle = '#ffffff';
+      c.font = `700 ${Math.round(artSize * 0.16)}px -apple-system, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('SF', artX + artSize / 2, artY + artSize / 2);
+    }
+    c.restore();
+    c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 2;
+    roundRect(c, artX, artY, artSize, artSize, 26); c.stroke();
+
+    // Title & Artist
+    const textY = artY + artSize + (vertical ? 46 : 30);
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    c.fillStyle = '#ffffff';
+    c.font = `700 ${vertical ? 34 : 28}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    c.fillText((title || S.name || 'SonicForge Track').slice(0, 34), w / 2, textY, w - 72);
+    c.fillStyle = 'rgba(255,255,255,.72)';
+    c.font = `500 ${vertical ? 22 : 18}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    c.fillText((artist || 'SonicForge Studio').slice(0, 40), w / 2, textY + (vertical ? 44 : 36), w - 72);
+
+    // Spectrum Bars
+    const barCount = 44;
+    const barsW = Math.round(w * 0.80), barsX = Math.round((w - barsW) / 2);
+    const barBaseY = h - (vertical ? 190 : 108);
+    const maxBarH = vertical ? 170 : 105;
+    const step = barsW / barCount;
+    const bw = Math.max(4, step * 0.62);
+    const barGrad = c.createLinearGradient(barsX, barBaseY - maxBarH, barsX + barsW, barBaseY);
+    barGrad.addColorStop(0, pal[2]); barGrad.addColorStop(1, pal[3]);
+    c.fillStyle = barGrad;
+    for (let i = 0; i < barCount; i++) {
+      let v = 0.18 + 0.35 * Math.abs(Math.sin(tSec * 4.2 + i * 0.35));
+      if (bins && bins.length) {
+        const bi = clamp(Math.floor((i / barCount) * (bins.length * 0.65)), 0, bins.length - 1);
+        v = Math.max(0.08, bins[bi] / 255);
+      }
+      const bh = Math.max(8, v * maxBarH);
+      roundRect(c, barsX + i * step, barBaseY - bh, bw, bh, bw / 2);
+      c.fill();
+    }
+
+    // Progress Bar & Time
+    const pw = barsW, px = barsX, py = h - (vertical ? 120 : 62);
+    c.fillStyle = 'rgba(255,255,255,.18)';
+    roundRect(c, px, py, pw, 7, 3.5); c.fill();
+    c.fillStyle = pal[2];
+    roundRect(c, px, py, Math.max(7, pw * clamp(progress, 0, 1)), 7, 3.5); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.72)';
+    c.font = '600 16px ui-monospace, monospace';
+    c.textAlign = 'left'; c.fillText(fmtTime(tSec, true), px, py + 16);
+    c.textAlign = 'right'; c.fillText(fmtTime(totalSec, true), px + pw, py + 16);
+    c.textAlign = 'left';
+  }
+
+  async function openAudiogramModal() {
+    if (!hasAudio) return toast('Open an audio file first', 'info');
+    if (typeof HTMLCanvasElement === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
+      return toast('Canvas video capture is not supported in this browser', 'err', 3600);
+    }
+    const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
+    $('#modal').inert = false; $('.app').inert = true; document.body.classList.add('overlay-open');
+    $('#modalTitle').textContent = 'Export Audiogram Video';
+    agCoverImg = null;
+    if (CoverArt && CoverArt.url) {
+      try {
+        agCoverImg = await new Promise((res) => {
+          const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = CoverArt.url;
+        });
+      } catch (e) {}
+    }
+    const [sa, sb] = selRange();
+    const selDurS = (sb - sa) / S.rate;
+    $('#modalBody').innerHTML = `
+      <div class="ag-wrap">
+        <div class="ag-preview-box"><canvas id="agPreviewCanvas"></canvas></div>
+        <div class="grid-2">
+          <div class="field"><label for="agRatio">Aspect Ratio</label>
+            <select id="agRatio">
+              <option value="9:16" selected>9:16 Reels / Shorts</option>
+              <option value="1:1">1:1 Square Feed</option>
+              <option value="16:9">16:9 YouTube</option>
+            </select>
+          </div>
+          <div class="field"><label for="agTheme">Glass Theme</label>
+            <select id="agTheme">
+              <option value="glass" selected>Midnight Glass</option>
+              <option value="amber">Sunset Amber</option>
+              <option value="emerald">Emerald Studio</option>
+              <option value="violet">Neon Violet</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label for="agTitle">Video Title</label><input type="text" id="agTitle" value="${escHtml($('#exTitle')?.value || S.name || '')}"></div>
+          <div class="field"><label for="agArtist">Subtitle / Artist</label><input type="text" id="agArtist" value="${escHtml($('#exArtist')?.value || 'SonicForge Studio')}"></div>
+        </div>
+        <div class="field"><label for="agScope">Audio Range</label>
+          <select id="agScope">
+            <option value="selection" selected>Selection (${fmtTime(selDurS, true)})</option>
+            <option value="all">Whole track (${fmtTime(dur(), true)})</option>
+          </select>
+        </div>
+        <div class="prog" id="agProg"><i></i></div>
+        <button type="button" class="btn primary wide" id="btnRenderAudiogram">Render &amp; Download Video</button>
+        <p class="hint" id="agStatus">Renders in real time with live spectrum bars + embedded cover art.</p>
+      </div>`;
+
+    $('#modal').classList.add('on');
+    $('#scrim').classList.add('on');
+    $('#modalClose').focus();
+
+    const redrawPreview = () => {
+      const cv = $('#agPreviewCanvas');
+      if (!cv || !$('#modal').classList.contains('on')) { agAnimRaf = 0; return; }
+      const total = $('#agScope').value === 'all' ? dur() : selDurS;
+      drawAudiogramFrame(cv, $('#agRatio').value, $('#agTheme').value, $('#agTitle').value, $('#agArtist').value, 0.35, analyserBuf, total * 0.35, total);
+      agAnimRaf = requestAnimationFrame(redrawPreview);
+    };
+    cancelAnimationFrame(agAnimRaf);
+    redrawPreview();
+
+    let rendering = false;
+    $('#btnRenderAudiogram').onclick = async () => {
+      if (rendering) return;
+      rendering = true;
+      const btn = $('#btnRenderAudiogram');
+      btn.disabled = true; btn.textContent = 'Rendering video…';
+      $('#agProg').classList.add('on');
+      try {
+        const c = AC();
+        if (c.state === 'suspended') await c.resume();
+        const useAll = $('#agScope').value === 'all';
+        const [a, b] = useAll ? [0, S.data[0].length] : selRange();
+        let data = (Layer.active || Stems.clips.length || Regions.list.length) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
+        if (liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
+        const totalSec = data[0].length / S.rate;
+        const buf = c.createBuffer(data.length, data[0].length, S.rate);
+        for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
+
+        const offCv = document.createElement('canvas');
+        const ratio = $('#agRatio').value, theme = $('#agTheme').value;
+        const title = $('#agTitle').value, artist = $('#agArtist').value;
+        drawAudiogramFrame(offCv, ratio, theme, title, artist, 0, null, 0, totalSec);
+
+        const dest = c.createMediaStreamDestination();
+        const agAn = c.createAnalyser(); agAn.fftSize = 256;
+        const agBins = new Uint8Array(agAn.frequencyBinCount);
+        const srcN = c.createBufferSource(); srcN.buffer = buf;
+        srcN.connect(agAn); agAn.connect(dest);
+
+        const vStream = offCv.captureStream(30);
+        const combo = new MediaStream([...vStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+        const mimes = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+        const mime = mimes.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+        const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: 3500000, audioBitsPerSecond: 192000 } : undefined);
+        const chunks = [];
+        recV.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+
+        const startAt = c.currentTime;
+        let stopDraw = false;
+        const stepRender = () => {
+          if (stopDraw || !$('#modal').classList.contains('on')) return;
+          const el = Math.min(totalSec, Math.max(0, c.currentTime - startAt));
+          agAn.getByteFrequencyData(agBins);
+          drawAudiogramFrame(offCv, ratio, theme, title, artist, el / Math.max(0.01, totalSec), agBins, el, totalSec);
+          $('#agProg').firstElementChild.style.width = Math.round((el / Math.max(0.01, totalSec)) * 100) + '%';
+          if ($('#agStatus')) $('#agStatus').textContent = `Rendering ${fmtTime(el, true)} / ${fmtTime(totalSec, true)}…`;
+          requestAnimationFrame(stepRender);
+        };
+
+        const blob = await new Promise((resolve) => {
+          recV.onstop = () => resolve(new Blob(chunks, { type: mime || 'video/webm' }));
+          srcN.onended = () => { stopDraw = true; setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 100); };
+          recV.start(250);
+          srcN.start();
+          requestAnimationFrame(stepRender);
+        });
+        const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
+        const fname = sanitizeName(title || S.name) + '-audiogram.' + ext;
+        downloadBlob(blob, fname);
+        toast(`Exported ${fname} (${fmtBytes(blob.size)})`, 'ok', 3400);
+        if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)})`;
+      } catch (e) {
+        toast('Audiogram export failed: ' + e.message, 'err', 4200);
+      } finally {
+        rendering = false;
+        btn.disabled = false; btn.textContent = 'Render & Download Video';
+        $('#agProg').classList.remove('on');
+      }
+    };
+  }
+
   /* ----------------------------------------------------------------- help */
   function showHelp() {
     const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
@@ -26021,6 +26750,9 @@ self.onmessage = function (e) {
     $('#btnRedo').addEventListener('click', redo);
     $('#btnHelp').addEventListener('click', showHelp);
     $('#btnPrefs').addEventListener('click', showPrefsModal);
+    if ($('#btnOpenMacros')) $('#btnOpenMacros').addEventListener('click', openMacrosModal);
+    if ($('#btnSmartAudiogram')) $('#btnSmartAudiogram').addEventListener('click', openAudiogramModal);
+    renderMacroQuickRow();
     $('#btnSpecBrush').addEventListener('click', () => {
       SpecBrush.enabled = !SpecBrush.enabled;
       if (!SpecBrush.enabled) SpecBrush.box = null;
@@ -26246,13 +26978,74 @@ self.onmessage = function (e) {
       const on = $('#speedDrawer').classList.toggle('on');
       $('#btnSpeedPill').classList.toggle('on', on);
       $('#btnSpeedPill').setAttribute('aria-expanded', on);
+      if (on) haptic(6);
     });
-    $('#speedDrawer').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-spd]');
-      if (!b) return;
-      $('#rateSlider').value = b.dataset.spd;
-      $('#rateSlider').dispatchEvent(new Event('input'));
-    });
+    (function initSpeedRuler() {
+      const ticksEl = $('#speedTicks');
+      if (ticksEl && !ticksEl.children.length) {
+        const labels = { 25: '0.25×', 50: '0.5×', 75: '0.75×', 100: '1×', 125: '1.25×', 150: '1.5×', 175: '1.75×', 200: '2×' };
+        for (let v = 25; v <= 200; v += 5) {
+          const d = document.createElement('div');
+          d.className = 'speed-tick' + (v === 100 ? ' unity' : (v % 25 === 0 ? ' maj' : ''));
+          d.dataset.val = v;
+          if (labels[v]) {
+            const sp = document.createElement('span');
+            sp.textContent = labels[v];
+            d.appendChild(sp);
+          }
+          ticksEl.appendChild(d);
+        }
+      }
+      const ruler = $('#speedRuler');
+      const setPct = (val, snap) => {
+        let pct = clamp(Math.round(val), 25, 200);
+        if (snap) {
+          for (const d of [25, 50, 75, 100, 125, 150, 175, 200]) {
+            if (Math.abs(pct - d) <= 2) { pct = d; break; }
+          }
+        }
+        const prev = Number($('#rateSlider').value);
+        if (pct !== prev) {
+          if ([50, 75, 100, 125, 150, 175, 200].includes(pct)) haptic(6);
+          $('#rateSlider').value = String(pct);
+          $('#rateSlider').dispatchEvent(new Event('input'));
+        }
+      };
+      const valFromClientX = (clientX) => {
+        const r = ruler.getBoundingClientRect();
+        const pad = 12;
+        const w = Math.max(1, r.width - pad * 2);
+        const f = clamp((clientX - r.left - pad) / w, 0, 1);
+        return 25 + f * 175;
+      };
+      let dragging = false, lastTap = 0;
+      ruler.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const now = performance.now();
+        if (now - lastTap < 280) { setPct(100, false); haptic(8); lastTap = 0; return; }
+        lastTap = now;
+        dragging = true;
+        ruler.classList.add('dragging');
+        ruler.setPointerCapture(e.pointerId);
+        setPct(valFromClientX(e.clientX), true);
+      });
+      ruler.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        setPct(valFromClientX(e.clientX), true);
+      });
+      const endDrag = () => { if (dragging) { dragging = false; ruler.classList.remove('dragging'); } };
+      ruler.addEventListener('pointerup', endDrag);
+      ruler.addEventListener('pointercancel', endDrag);
+      ruler.addEventListener('keydown', (e) => {
+        const step = e.shiftKey ? 5 : 1;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); setPct(Number($('#rateSlider').value) - step, false); }
+        else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); setPct(Number($('#rateSlider').value) + step, false); }
+        else if (e.key === 'Home' || e.key === '0') { e.preventDefault(); setPct(100, false); }
+      });
+      $('#btnSpeedDown').addEventListener('click', () => { setPct(Number($('#rateSlider').value) - 5, false); haptic(5); });
+      $('#btnSpeedUp').addEventListener('click', () => { setPct(Number($('#rateSlider').value) + 5, false); haptic(5); });
+      $('#rateOut').addEventListener('click', () => { setPct(100, false); haptic(8); });
+    })();
     $('#qTrim').addEventListener('click', doTrim);
     $('#qDelete').addEventListener('click', doDelete);
     $('#qFade').addEventListener('click', () => {
@@ -26445,42 +27238,45 @@ self.onmessage = function (e) {
       const f = e.target.files[0]; e.target.value = '';
       if (!f) return;
       try {
-        let bytes = new Uint8Array(await f.arrayBuffer());
-        let mime = f.type || 'image/jpeg';
-        if (mime === 'image/webp' || bytes.length > 1500 * 1024) {
-          const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
-          const maxDim = 800;
-          const sc = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
-          const cv = document.createElement('canvas');
-          cv.width = Math.max(1, Math.round(bmp.width * sc));
-          cv.height = Math.max(1, Math.round(bmp.height * sc));
-          cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
-          const jb = await new Promise((res) => cv.toBlob(res, 'image/jpeg', 0.88));
-          bytes = new Uint8Array(await jb.arrayBuffer());
-          mime = 'image/jpeg';
-        }
-        CoverArt.bytes = bytes; CoverArt.mime = mime; CoverArt.name = f.name;
-        if (CoverArt.url) URL.revokeObjectURL(CoverArt.url);
-        CoverArt.url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-        if ($('#exCoverThumb')) $('#exCoverThumb').innerHTML = `<img src="${CoverArt.url}" alt="Cover art">`;
-        if ($('#exCoverName')) $('#exCoverName').textContent = f.name + ' (' + fmtBytes(bytes.length) + ')';
-        if ($('#exCoverClear')) $('#exCoverClear').hidden = false;
-        toast('Cover art attached for MP3 ID3v2 export', 'ok', 2000);
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        await setCoverArtBytes(bytes, f.type || 'image/jpeg', f.name);
+        toast('Cover art attached for export', 'ok', 2000);
       } catch (err) { toast('Could not read image: ' + err.message, 'err'); }
     });
     $('#btnSplitL').addEventListener('click', () => splitAt('left'));
     $('#btnSplitR').addEventListener('click', () => splitAt('right'));
     // preview speed
     const rate = $('#rateSlider');
-    rate.addEventListener('input', () => {
-      const was = P.playing; if (was) pausePlay();
-      P.rate = clamp(parseFloat(rate.value) / 100, 0.25, 1.5);
+    const syncSpeedUI = () => {
+      const pct = Math.round(P.rate * 100);
       const txt = P.rate.toFixed(2) + '×';
       $('#rateOut').textContent = txt;
       if ($('#btnSpeedPill')) $('#btnSpeedPill').textContent = txt;
-      $$('#speedDrawer [data-spd]').forEach((b) => b.classList.toggle('on', Number(b.dataset.spd) === Math.round(P.rate * 100)));
+      const frac = clamp((pct - 25) / 175, 0, 1);
+      const unityFrac = (100 - 25) / 175;
+      if ($('#speedNeedle')) $('#speedNeedle').style.left = `calc(12px + (100% - 24px) * ${frac.toFixed(4)})`;
+      if ($('#speedFill')) {
+        const lo = Math.min(frac, unityFrac), hi = Math.max(frac, unityFrac);
+        $('#speedFill').style.left = `calc(12px + (100% - 24px) * ${lo.toFixed(4)})`;
+        $('#speedFill').style.width = `calc((100% - 24px) * ${(hi - lo).toFixed(4)})`;
+      }
+      if ($('#speedRuler')) $('#speedRuler').setAttribute('aria-valuenow', pct);
+      if ($('#speedTag')) {
+        const tag = pct === 100 ? 'Normal' : pct === 50 ? 'Half-speed' : pct === 200 ? 'Double' : pct < 100 ? 'Slow-mo' : 'Sped up';
+        $('#speedTag').textContent = tag;
+        $('#speedTag').classList.toggle('mod', pct !== 100);
+      }
+      $$('#speedTicks .speed-tick').forEach((t) => {
+        t.classList.toggle('on', Math.abs(Number(t.dataset.val) - pct) <= 2);
+      });
+    };
+    rate.addEventListener('input', () => {
+      const was = P.playing; if (was) pausePlay();
+      P.rate = clamp(parseFloat(rate.value) / 100, 0.25, 2);
+      syncSpeedUI();
       if (was) play();
     });
+    syncSpeedUI();
     // cut panel: quick spans
     const setSpan = (secs) => {
       // duration chips anchor at the playhead so they always show the same
@@ -26912,5 +27708,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e056b55e5c7f9f',t:'MTc5NTI3MDg2NA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e056b55e5c7f9f',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
