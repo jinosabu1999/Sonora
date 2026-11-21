@@ -549,6 +549,27 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 }
 .chapter-out { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--txt-2); }
 .skip-note { color: #ffd60a !important; font-weight: 550; }
+.spec-brush-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 7px; flex-wrap: wrap;
+  padding: 7px 10px; border-radius: 14px; margin-top: 4px;
+  background: rgba(191, 90, 242, .11); border: 1px solid rgba(191, 90, 242, .34);
+}
+.spec-brush-bar[hidden] { display: none; }
+.spec-brush-bar b { font: 600 11px/1.2 ui-monospace, monospace; color: #f0d0ff; }
+.btn.is-spec-on { background: rgba(191, 90, 242, .25); border-color: rgba(191, 90, 242, .62); color: #f4dcff; }
+.rec-metro-row {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 8px 10px;
+  border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid var(--rim);
+}
+.metro-led { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.2); flex: none; transition: transform .08s, background .08s; }
+.metro-led.beat { background: #30d158; transform: scale(1.35); box-shadow: 0 0 10px rgba(48,209,88,.75); }
+.metro-led.down { background: #ff453a; transform: scale(1.45); box-shadow: 0 0 12px rgba(255,69,58,.85); }
+.bpm-in { width: 64px !important; height: 30px !important; text-align: center; font: 600 12px ui-monospace, monospace; padding: 2px 6px !important; }
+.pref-grid { display: flex; flex-direction: column; gap: 11px; }
+.pref-card {
+  display: flex; flex-direction: column; gap: 8px; padding: 11px 12px; border-radius: 16px;
+  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
+}
 
 /* --------------------------------- iOS 27 Grouped Glass Effect & Tool Cards */
 .acc {
@@ -1272,6 +1293,7 @@ body.overlay-open { overflow: hidden; }
     <button class="btn icon sm desktop-only" id="btnRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
     <button class="btn sm ghost desktop-only" id="btnOpen" title="Open audio file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lbl">Open</span></button>
     <button class="btn icon sm ghost desktop-only" id="btnCmd" title="Command palette (Ctrl+K)" aria-label="Commands"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></button>
+    <button class="btn icon sm ghost" id="btnPrefs" title="Preferences &amp; haptics" aria-label="Preferences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.79 1 1.45 1.07H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     <button class="btn icon sm ghost desktop-only" id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Shortcuts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><circle cx="12" cy="17" r=".9" fill="currentColor" stroke="none"/></svg></button>
     <button class="btn sm primary" id="btnExportTop" title="Export audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg><span class="lbl">Export</span></button>
   </header>
@@ -1362,11 +1384,22 @@ body.overlay-open { overflow: hidden; }
             <span class="chip mono" id="chipSel">no selection</span>
             <span class="chip mono hide-xs" id="chipInfo">—</span>
             <span class="chip warn mono hide-xs" id="chipClip" hidden>clipping</span>
+            <span class="chip mono" id="specFreqChip" hidden>— Hz</span>
+            <button type="button" class="btn sm" id="btnSpecBrush" hidden style="min-height:26px;height:26px;padding:0 9px;font-size:11px;border-radius:999px">Band Notch</button>
           </div>
           <div class="zoom-pill">
             <button class="btn icon" id="mZoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
             <button class="btn icon" id="mZoomFit" title="Zoom to fit" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
             <button class="btn icon" id="mZoomIn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+        </div>
+        <div class="spec-brush-bar" id="specBrushBar" hidden>
+          <b id="specBrushReadout">Drag on spectrogram to select a frequency band</b>
+          <div class="btn-row" style="flex:none">
+            <button type="button" class="btn sm primary" id="btnSpecNotch" disabled>Notch −24 dB</button>
+            <button type="button" class="btn sm" id="btnSpecDip" disabled>Dip −9 dB</button>
+            <button type="button" class="btn sm" id="btnSpecIsolate" disabled>Isolate</button>
+            <button type="button" class="btn icon sm ghost" id="btnSpecClear" aria-label="Clear frequency band" style="width:28px;height:28px;min-height:28px">×</button>
           </div>
         </div>
 
@@ -1599,6 +1632,13 @@ body.overlay-open { overflow: hidden; }
                 <button class="btn sm" id="btnSnapBeats">Snap to beats</button>
               </div>
               <div class="divider"></div>
+              <div class="range-row"><label>Tap Tempo &amp; Metronome Click</label><span class="metro-led" id="smartMetroLed"></span></div>
+              <div class="btn-row" style="align-items:center">
+                <button type="button" class="btn sm" id="btnSmartTapTempo">Tap Tempo</button>
+                <input type="number" class="bpm-in" id="smartMetroBpm" min="40" max="240" step="1" value="120" aria-label="Metronome BPM">
+                <button type="button" class="btn sm" id="btnSmartMetroPlay">▶ Click</button>
+              </div>
+              <div class="divider"></div>
               <div class="range-row"><label>Ringtone maker</label><output id="ringInfoOut">Loop + 0.5s fade</output></div>
               <div class="btn-row">
                 <button class="btn sm" id="btnRing30">30s Ringtone</button>
@@ -1747,6 +1787,15 @@ body.overlay-open { overflow: hidden; }
         <span class="rec-main-core"></span>
       </button>
       <button type="button" class="btn sm" id="recPauseBtn" disabled>Pause</button>
+    </div>
+
+    <div class="rec-metro-row">
+      <span class="metro-led" id="recMetroLed"></span>
+      <span style="font-size:12px;font-weight:600">Click Track</span>
+      <button type="button" class="btn sm" id="btnRecTapTempo">Tap</button>
+      <input type="number" class="bpm-in" id="recMetroBpm" min="40" max="240" step="1" value="120" aria-label="Recording click BPM">
+      <label class="checkrow" style="margin-left:auto"><input type="checkbox" id="chkRecMetro"><span>On in rec</span></label>
+      <button type="button" class="btn sm" id="btnRecMetroAudition">▶</button>
     </div>
 
     <div class="rec-overdub-box" id="recOverdubBox" hidden>
@@ -18877,11 +18926,48 @@ lamejs();
     return out;
   }
 
+  function spectralBandOp(data, range, sampleRate, fLo, fHi, mode) {
+    const lo = Math.max(25, Math.min(fLo, fHi));
+    const hi = Math.min(sampleRate * 0.48, Math.max(fLo, fHi));
+    const fc = clamp(Math.sqrt(lo * hi), 30, sampleRate * 0.46);
+    const bw = Math.max(25, hi - lo);
+    const q = clamp(fc / bw, 0.55, 14);
+    const a = range ? clamp(Math.round(range[0]), 0, data[0].length) : 0;
+    const b = range ? clamp(Math.round(range[1]), a, data[0].length) : data[0].length;
+    if (b - a < 16) return data;
+    const xf = Math.min(Math.round(0.018 * sampleRate), Math.floor((b - a) / 4));
+    return data.map((ch) => {
+      const out = Float32Array.from(ch);
+      let seg = ch.slice(a, b);
+      if (mode === 'notch') {
+        const c1 = biquadCoeffs('peaking', sampleRate, fc, clamp(q, 0.8, 12), -24);
+        seg = applyBiquad(seg, c1);
+        const c2 = biquadCoeffs('notch', sampleRate, fc, clamp(q * 1.1, 1.0, 14), 0);
+        seg = applyBiquad(seg, c2);
+      } else if (mode === 'dip') {
+        const c1 = biquadCoeffs('peaking', sampleRate, fc, clamp(q, 0.6, 10), -9);
+        seg = applyBiquad(seg, c1);
+      } else if (mode === 'isolate') {
+        const c1 = biquadCoeffs('bandpass', sampleRate, fc, clamp(q, 0.6, 10), 0);
+        seg = applyBiquad(applyBiquad(seg, c1), c1);
+      }
+      for (let i = 0; i < seg.length; i++) {
+        let g = 1;
+        if (xf > 1) {
+          if (i < xf) g = 0.5 * (1 - Math.cos(Math.PI * (i / xf)));
+          else if (i >= seg.length - xf) g = 0.5 * (1 - Math.cos(Math.PI * ((seg.length - 1 - i) / xf)));
+        }
+        out[a + i] = ch[a + i] * (1 - g) + seg[i] * g;
+      }
+      return out;
+    });
+  }
+
   /* ------------------------------------------------------------ public API */
   const SonicDSP = {
     FFT, getFFT, hann, nextPow2, clamp, dbToLin, linToDb, lerp, smoothstep, smootherstep,
     resample, resampleChannel, fade, applyFade, gain, removeDC, peakOf, rmsOf, stats, normalize,
-    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, scanClipping, declip, vocalTools, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps,
+    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, scanClipping, declip, vocalTools, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
     concat, crossfade, biquadCoeffs, applyBiquad, eqCurve, applyEq, eq, makeIR, fftConvolve, reverb,
     measureLufs, compress, deess, applyEnvelope,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, makeNoiseProfile, denoise,
@@ -18933,7 +19019,18 @@ lamejs();
     return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + ' ' + u[i];
   }
   function fmtHz(hz) { return hz >= 1000 ? (hz / 1000).toFixed(hz >= 10000 ? 0 : 1) + ' kHz' : Math.round(hz) + ' Hz'; }
-  function haptic(ms) { if (navigator.vibrate) { try { navigator.vibrate(ms || 8); } catch (e) {} } }
+  const PREFS_KEY = 'sonicforge_prefs_v1';
+  const Prefs = (() => {
+    const def = { haptic: true, snapPx: 6, defExport: 'wav', autosave: true, zoomSens: 1.0 };
+    try {
+      const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+      return Object.assign({}, def, raw);
+    } catch (e) { return def; }
+  })();
+  function savePrefs() {
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(Prefs)); } catch (e) {}
+  }
+  function haptic(ms) { if (Prefs.haptic && navigator.vibrate) { try { navigator.vibrate(ms || 8); } catch (e) {} } }
   const yieldUI = () => new Promise((r) => setTimeout(r, 0));
   function sanitizeName(n) {
     return (n || 'audio').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'audio';
@@ -20435,11 +20532,58 @@ self.onmessage = function (e) {
     } catch (e) { toast('Spectrogram unavailable: ' + e.message, 'err'); P.waveMode = 'wave'; }
     finally { specPending = false; }
   }
+  const SpecBrush = { enabled: false, box: null };
+  function yToSpecHz(y, top, mainH) {
+    const frac = clamp(1 - (y - top) / Math.max(1, mainH), 0, 1);
+    return clamp(Math.pow(frac, 1.55) * ((S.rate || 44100) * 0.5), 25, (S.rate || 44100) * 0.48);
+  }
+  function specHzToY(hz, top, mainH) {
+    const nyq = (S.rate || 44100) * 0.5;
+    const frac = Math.pow(clamp(hz / nyq, 0, 1), 1 / 1.55);
+    return top + (1 - frac) * mainH;
+  }
+  function syncSpecBrushUI() {
+    const isSpec = P.waveMode === 'spec' || P.waveMode === 'mix';
+    if ($('#btnSpecBrush')) {
+      $('#btnSpecBrush').hidden = !isSpec;
+      $('#btnSpecBrush').classList.toggle('is-spec-on', SpecBrush.enabled);
+    }
+    if ($('#specFreqChip')) $('#specFreqChip').hidden = !isSpec;
+    if ($('#specBrushBar')) $('#specBrushBar').hidden = !(isSpec && (SpecBrush.enabled || SpecBrush.box));
+    const hasBox = !!(SpecBrush.box && SpecBrush.box.t1 - SpecBrush.box.t0 > 0.02);
+    if ($('#btnSpecNotch')) $('#btnSpecNotch').disabled = !hasBox;
+    if ($('#btnSpecDip')) $('#btnSpecDip').disabled = !hasBox;
+    if ($('#btnSpecIsolate')) $('#btnSpecIsolate').disabled = !hasBox;
+    if ($('#specBrushReadout')) {
+      if (hasBox) {
+        const b = SpecBrush.box;
+        $('#specBrushReadout').textContent = `${fmtHz(b.fLo)} – ${fmtHz(b.fHi)} · ${fmtTime(b.t0, true)}–${fmtTime(b.t1, true)}`;
+      } else {
+        $('#specBrushReadout').textContent = 'Drag on spectrogram to select a frequency band';
+      }
+    }
+  }
+  async function applySpecBand(mode) {
+    if (!hasAudio || !SpecBrush.box) return;
+    const b = SpecBrush.box;
+    const s0 = clamp(Math.round(b.t0 * S.rate), 0, S.data[0].length);
+    const s1 = clamp(Math.round(b.t1 * S.rate), s0 + 16, S.data[0].length);
+    const lbl = mode === 'notch' ? `Spectral Notch (${fmtHz((b.fLo + b.fHi) / 2)})`
+      : mode === 'dip' ? `Spectral Dip (${fmtHz((b.fLo + b.fHi) / 2)})`
+      : `Isolate Band (${fmtHz(b.fLo)}–${fmtHz(b.fHi)})`;
+    await edit(lbl, async () => {
+      S.data = D.spectralBandOp(S.data, [s0, s1], S.rate, b.fLo, b.fHi, mode);
+    });
+    SpecBrush.box = null;
+    syncSpecBrushUI();
+    fxDirty = true;
+  }
   function setWaveMode(mode) {
     if (mode === 'stereo' && (!S.data || S.data.length < 2)) mode = 'wave';
     P.waveMode = mode;
     $$('#waveModeSeg [data-wmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wmode === mode));
     if ((mode === 'spec' || mode === 'mix') && !S.spec) ensureSpectrogram();
+    syncSpecBrushUI();
     baseDirty = fxDirty = true;
   }
   function pickTick() {
@@ -20899,6 +21043,31 @@ self.onmessage = function (e) {
       c.restore();
     }
 
+    // Spectral Brush Time x Frequency selection box
+    if ((P.waveMode === 'spec' || P.waveMode === 'mix') && SpecBrush.box) {
+      const sb = SpecBrush.box;
+      const sx0 = tToX(sb.t0), sx1 = tToX(sb.t1);
+      const syTop = specHzToY(sb.fHi, top, lanesFx.mainH);
+      const syBot = specHzToY(sb.fLo, top, lanesFx.mainH);
+      const rw = Math.max(4, sx1 - sx0), rh = Math.max(6, syBot - syTop);
+      c.save();
+      c.fillStyle = 'rgba(191, 90, 242, .24)';
+      c.fillRect(sx0, syTop, rw, rh);
+      c.setLineDash([4, 3]);
+      c.strokeStyle = '#e5baff';
+      c.lineWidth = 1.5;
+      c.strokeRect(sx0 + 0.5, syTop + 0.5, rw - 1, rh - 1);
+      c.setLineDash([]);
+      c.fillStyle = 'rgba(12, 10, 18, .86)';
+      roundRect(c, sx0 + 4, Math.max(top + 2, syTop - 16), Math.min(180, Math.max(88, rw)), 15, 5);
+      c.fill();
+      c.fillStyle = '#f2d9ff';
+      c.font = '600 9.5px ui-monospace, monospace';
+      c.textBaseline = 'middle';
+      c.fillText(`${fmtHz(sb.fLo)}–${fmtHz(sb.fHi)}`, sx0 + 8, Math.max(top + 9.5, syTop - 8.5));
+      c.restore();
+    }
+
     // Color-coded markers + cue labels
     for (let i = 0; i < Markers.list.length; i++) {
       const m = Markers.list[i];
@@ -21141,6 +21310,14 @@ self.onmessage = function (e) {
       }
     }
     closeMarkerPop();
+    const lanesPtr = getTimelineLanes();
+    if (SpecBrush.enabled && (P.waveMode === 'spec' || P.waveMode === 'mix') && p.y > 24 && p.y <= 24 + lanesPtr.mainH) {
+      const tStart = clamp(xToT(p.x), 0, dur());
+      const fStart = yToSpecHz(p.y, 24, lanesPtr.mainH);
+      SpecBrush.box = { t0: tStart, t1: tStart, fLo: fStart, fHi: fStart };
+      drag = { mode: 'specbox', id: e.pointerId, sx: p.x, sy: p.y, tStart, fStart, moved: true };
+      haptic(6); syncSpecBrushUI(); fxDirty = true; return;
+    }
     const mode = hitTest(p.x, p.y);
     const [a, b] = selRange();
     drag = { mode, id: e.pointerId, sx: p.x, a, b, t0: xToT(p.x), moved: false, lastCoincide: null };
@@ -21153,6 +21330,12 @@ self.onmessage = function (e) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
         baseCv.style.cursor = hitTest(p.x, p.y) === 'scrub' ? 'crosshair' : 'ew-resize';
+        if ((P.waveMode === 'spec' || P.waveMode === 'mix') && $('#specFreqChip')) {
+          const lanesHov = getTimelineLanes();
+          if (p.y >= lanesHov.top && p.y <= lanesHov.top + lanesHov.mainH) {
+            $('#specFreqChip').textContent = fmtHz(yToSpecHz(p.y, lanesHov.top, lanesHov.mainH));
+          }
+        }
       }
       return;
     }
@@ -21162,7 +21345,8 @@ self.onmessage = function (e) {
       const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
       const cx = (pts[0].x + pts[1].x) / 2;
       const anchorT = pinch.x0 + pinch.cx / pinch.pps0;
-      V.pps = clamp(pinch.pps0 * (d / pinch.d), minPps(), maxPps());
+      const ratio = Math.pow(d / pinch.d, Prefs.zoomSens || 1.0);
+      V.pps = clamp(pinch.pps0 * ratio, minPps(), maxPps());
       V.x0 = anchorT - cx / V.pps;
       clampView();
       baseDirty = fxDirty = true;
@@ -21172,7 +21356,19 @@ self.onmessage = function (e) {
     const p = canvasXY(e);
     if (Math.abs(p.x - drag.sx) > 2) drag.moved = true;
     const t = xToT(p.x);
-    if (drag.mode === 'marker') {
+    if (drag.mode === 'specbox') {
+      const lanesB = getTimelineLanes();
+      const tCur = clamp(t, 0, dur());
+      const fCur = yToSpecHz(p.y, lanesB.top, lanesB.mainH);
+      SpecBrush.box = {
+        t0: Math.min(drag.tStart, tCur),
+        t1: Math.max(drag.tStart, tCur),
+        fLo: Math.min(drag.fStart, fCur),
+        fHi: Math.max(drag.fStart, fCur),
+      };
+      if ($('#specFreqChip')) $('#specFreqChip').textContent = fmtHz(fCur);
+      syncSpecBrushUI(); fxDirty = true; return;
+    } else if (drag.mode === 'marker') {
       const m = Markers.list[drag.markerIdx];
       if (m && drag.moved) {
         m.t = clamp(t, 0, dur());
@@ -21203,7 +21399,8 @@ self.onmessage = function (e) {
       const ta = sa / S.rate, tb = sb / S.rate;
       const rawPx = tToX(rawT), xa = tToX(ta), xb = tToX(tb);
       const da = Math.abs(rawPx - xa), db = Math.abs(rawPx - xb);
-      const nearEdge = (da <= 5.5 && da <= db) ? 'a' : (db <= 5.5 ? 'b' : null);
+      const sTol = Prefs.snapPx == null ? 6 : Prefs.snapPx;
+      const nearEdge = (sTol > 0 && da <= sTol && da <= db) ? 'a' : ((sTol > 0 && db <= sTol) ? 'b' : null);
       if (nearEdge === 'a') {
         P.t = ta;
         if (drag.lastCoincide !== 'a') { triggerCoincideFeedback('a'); drag.lastCoincide = 'a'; }
@@ -21232,7 +21429,8 @@ self.onmessage = function (e) {
       sample = snapSample(sample);
       const playPx = tToX(P.t), edgePx = tToX(sample / S.rate);
       const dPlay = Math.abs(edgePx - playPx);
-      if (dPlay <= 4.5) {
+      const sTolE = Prefs.snapPx == null ? 6 : Prefs.snapPx;
+      if (sTolE > 0 && dPlay <= sTolE) {
         sample = clamp(Math.round(P.t * S.rate), 0, S.data[0].length);
         if (drag.lastCoincide !== drag.mode) { triggerCoincideFeedback(drag.mode); drag.lastCoincide = drag.mode; }
       } else {
@@ -21252,7 +21450,10 @@ self.onmessage = function (e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
     if (drag && drag.id === e.pointerId) {
-      if (drag.mode === 'marker') {
+      if (drag.mode === 'specbox') {
+        if (SpecBrush.box && SpecBrush.box.t1 - SpecBrush.box.t0 < 0.02) SpecBrush.box = null;
+        syncSpecBrushUI(); fxDirty = true;
+      } else if (drag.mode === 'marker') {
         const mRef = Markers.list[drag.markerIdx];
         if (!drag.moved && e.type !== 'pointercancel' && mRef) {
           openMarkerPop(drag.markerIdx, drag.sx);
@@ -21279,7 +21480,7 @@ self.onmessage = function (e) {
     if (!hasAudio) return;
     e.preventDefault();
     const p = canvasXY(e);
-    if (e.ctrlKey || e.metaKey) zoomAt(Math.pow(0.9988, e.deltaY * (e.deltaMode ? 16 : 1)), p.x);
+    if (e.ctrlKey || e.metaKey) zoomAt(Math.pow(0.9988, e.deltaY * (e.deltaMode ? 16 : 1) * (Prefs.zoomSens || 1)), p.x);
     else {
       const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       V.x0 += dx / V.pps * (e.deltaMode ? 16 : 1);
@@ -21660,6 +21861,9 @@ self.onmessage = function (e) {
     <div class="field"><label for="exFormat">Format</label><select id="exFormat">
       <option value="wav">WAV — lossless</option>
       <option value="mp3">MP3 — compressed</option>
+      <option value="opus">Opus — voice (.ogg / .webm)</option>
+      <option value="m4a">AAC — Apple audio (.m4a)</option>
+      <option value="m4r">iPhone Ringtone (.m4r)</option>
     </select></div>
     <div class="field"><label for="exBits" id="exBitsLbl">Bit depth</label><select id="exBits">
       <option value="16">16-bit</option><option value="24">24-bit</option><option value="32">32-bit float</option>
@@ -21667,7 +21871,7 @@ self.onmessage = function (e) {
   </div>
   <div class="grid-2">
     <div class="field" id="exBrWrap" hidden><label for="exBr">Bitrate</label><select id="exBr">
-      <option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
+      <option value="64">64 kbps</option><option value="96">96 kbps</option><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
     </select></div>
     <div class="field"><label for="exRate">Sample rate</label><select id="exRate">
       <option value="0">Keep original</option><option value="48000">48 kHz</option><option value="44100">44.1 kHz</option>
@@ -21703,6 +21907,7 @@ self.onmessage = function (e) {
   <label class="checkrow" id="exStudioWrap" hidden><input type="checkbox" id="exIncludeStudio" checked><span>Include Track 2 mix &amp; active live FX rack</span></label>
   <div class="prog" id="exProg"><i></i></div>
   <button class="btn primary wide" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg>Export audio</button>
+  <button class="btn sm wide" id="btnExportStemsZip">Export Stems Bundle (.zip)</button>
   <p class="hint" id="exEst">—</p>`;
 
 
@@ -23322,6 +23527,7 @@ self.onmessage = function (e) {
   /* --------------------------------------------------------------- export */
   function bindExport() {
     const fmt = $('#exFormat');
+    if (Prefs.defExport && fmt.querySelector(`option[value="${Prefs.defExport}"]`)) fmt.value = Prefs.defExport;
     if ($('#exCoverBtn')) {
       $('#exCoverBtn').addEventListener('click', () => $('#exCoverInput').click());
       $('#exCoverClear').addEventListener('click', () => {
@@ -23333,9 +23539,9 @@ self.onmessage = function (e) {
       });
     }
     const sync = () => {
-      const mp3 = fmt.value === 'mp3';
-      $('#exBrWrap').hidden = !mp3;
-      $('#exBits').closest('.field').style.display = mp3 ? 'none' : '';
+      const compressed = fmt.value !== 'wav';
+      $('#exBrWrap').hidden = !compressed;
+      $('#exBits').closest('.field').style.display = compressed ? 'none' : '';
       estimateSize();
     };
     fmt.addEventListener('change', sync);
@@ -23343,29 +23549,232 @@ self.onmessage = function (e) {
     $('#exBr').addEventListener('change', estimateSize);
     $('#exRate').addEventListener('change', estimateSize);
     $('#btnExport').addEventListener('click', () => doExport(false));
+    if ($('#btnExportStemsZip')) $('#btnExportStemsZip').addEventListener('click', exportStemsZip);
     sync();
   }
   function exportSettings() {
-    const mp3 = $('#exFormat').value === 'mp3';
+    const fmt = $('#exFormat').value;
+    const compressed = fmt !== 'wav';
     let rate = parseInt($('#exRate').value,10) || S.rate;
     let br = parseInt($('#exBr').value,10);
-    if (mp3) {
+    if (fmt === 'mp3') {
       const supported = [8000,11025,12000,16000,22050,24000,32000,44100,48000];
       rate = supported.reduce((best,v) => Math.abs(v-rate) < Math.abs(best-rate) ? v : best, supported[0]);
       br = Math.min(br, rate < 16000 ? 64 : rate < 32000 ? 160 : 320);
+    } else if (fmt === 'opus') {
+      rate = 48000;
+    } else if (fmt === 'm4a' || fmt === 'm4r') {
+      const supAac = [16000, 22050, 24000, 32000, 44100, 48000];
+      rate = supAac.reduce((best,v) => Math.abs(v-rate) < Math.abs(best-rate) ? v : best, supAac[5]);
     }
-    return {rate,br,channels:mp3?Math.min(2,S.data.length):S.data.length};
+    return {rate,br,channels:compressed?Math.min(2,S.data.length):S.data.length};
   }
   function estimateSize() {
     const el = $('#exEst');
     if (!el || !hasAudio) return;
+    const fmt = $('#exFormat').value;
     const {rate, br, channels} = exportSettings();
     const [a, b] = selRange();
     const secs = (!$('#exScope') || $('#exScope').value !== 'all') ? (b - a) / S.rate : dur();
     let bytes;
-    if ($('#exFormat').value === 'mp3') bytes = (br * 1000 / 8) * secs;
+    if (fmt !== 'wav') bytes = (br * 1000 / 8) * secs;
     else bytes = secs * rate * S.data.length * (parseInt($('#exBits').value, 10) / 8);
-    el.textContent = '≈ ' + fmtBytes(bytes) + ' · ' + fmtTime(secs, true) + ' · ' + (rate / 1000).toFixed(1) + ' kHz · ' + channels + ' ch' + ($('#exFormat').value === 'mp3' ? ' · ' + br + ' kbps' : '');
+    el.textContent = '≈ ' + fmtBytes(bytes) + ' · ' + fmtTime(secs, true) + ' · ' + (rate / 1000).toFixed(1) + ' kHz · ' + channels + ' ch' + (fmt !== 'wav' ? ' · ' + br + ' kbps' : '');
+  }
+
+  function muxAacMp4(frames, sampleRate, channels, totalSamples, ascBytes) {
+    const u32 = (n) => new Uint8Array([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]);
+    const u16 = (n) => new Uint8Array([(n >>> 8) & 255, n & 255]);
+    const str = (t) => new TextEncoder().encode(t);
+    const cat = (...parts) => {
+      const len = parts.reduce((n, p) => n + p.length, 0);
+      const out = new Uint8Array(len);
+      let o = 0;
+      for (const p of parts) { out.set(p, o); o += p.length; }
+      return out;
+    };
+    const box = (type, ...payload) => {
+      const body = cat(...payload);
+      return cat(u32(8 + body.length), str(type), body);
+    };
+    const fullBox = (type, ver, flags, ...payload) => {
+      return box(type, new Uint8Array([ver, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255]), ...payload);
+    };
+    const ftyp = box('ftyp', str('M4A '), u32(0), str('M4A '), str('mp42'), str('isom'));
+    const mdatBody = cat(...frames);
+    const mdat = box('mdat', mdatBody);
+
+    const asc = ascBytes && ascBytes.length ? ascBytes : (() => {
+      const freqs = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000];
+      const fi = Math.max(0, freqs.indexOf(sampleRate));
+      const b0 = (2 << 3) | (fi >> 1);
+      const b1 = ((fi & 1) << 7) | (channels << 3);
+      return new Uint8Array([b0, b1]);
+    })();
+    const esds = fullBox('esds', 0, 0, cat(
+      new Uint8Array([0x03, 25 + asc.length, 0x00, 0x01, 0x00]),
+      new Uint8Array([0x04, 15 + asc.length, 0x40, 0x15, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf4, 0x00, 0x00, 0x01, 0xf4, 0x00]),
+      new Uint8Array([0x05, asc.length]), asc,
+      new Uint8Array([0x06, 0x01, 0x02])
+    ));
+    const mp4a = box('mp4a',
+      new Uint8Array(6), u16(1), new Uint8Array(8),
+      u16(channels), u16(16), u16(0), u16(0), u32(sampleRate << 16),
+      esds
+    );
+    const stsd = fullBox('stsd', 0, 0, u32(1), mp4a);
+    const stts = fullBox('stts', 0, 0, u32(1), u32(frames.length), u32(1024));
+    const stsc = fullBox('stsc', 0, 0, u32(1), u32(1), u32(frames.length), u32(1));
+    const stszParts = [u32(0), u32(frames.length)];
+    for (const f of frames) stszParts.push(u32(f.length));
+    const stsz = fullBox('stsz', 0, 0, ...stszParts);
+    const stcoZero = fullBox('stco', 0, 0, u32(1), u32(0));
+    const stbl = box('stbl', stsd, stts, stsc, stsz, stcoZero);
+    const dinf = box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1)));
+    const minf = box('minf', fullBox('smhd', 0, 0, u32(0)), dinf, stbl);
+    const mdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(sampleRate), u32(totalSamples), u16(0x55c4), u16(0));
+    const hdlr = fullBox('hdlr', 0, 0, u32(0), str('soun'), u32(0), u32(0), u32(0), str('SoundHandler\0'));
+    const mdia = box('mdia', mdhd, hdlr, minf);
+    const tkhd = fullBox('tkhd', 0, 7, u32(0), u32(0), u32(1), u32(0), u32(totalSamples), u32(0), u32(0), u16(0), u16(0), u16(0x0100), u16(0),
+      u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000), u32(0), u32(0));
+    const trak = box('trak', tkhd, mdia);
+    const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(sampleRate), u32(totalSamples), u32(0x00010000), u16(0x0100), new Uint8Array(10),
+      u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000), new Uint8Array(24), u32(2));
+    const moov = box('moov', mvhd, trak);
+    const out = cat(ftyp, moov, mdat);
+    // Patch stco chunk offset to point right after mdat header (ftyp + moov + 8)
+    const mdatDataOffset = ftyp.length + moov.length + 8;
+    const stcoTag = [0x73, 0x74, 0x63, 0x6f];
+    for (let i = ftyp.length; i < ftyp.length + moov.length - 16; i++) {
+      if (out[i] === stcoTag[0] && out[i+1] === stcoTag[1] && out[i+2] === stcoTag[2] && out[i+3] === stcoTag[3]) {
+        const dv = new DataView(out.buffer);
+        dv.setUint32(i + 12, mdatDataOffset, false);
+        break;
+      }
+    }
+    return out;
+  }
+
+  async function encodeWebAudioRecorder(data, rate, mimeCandidates, kbps, onProgress) {
+    const c = AC();
+    if (c.state === 'suspended') await c.resume().catch(() => {});
+    const mime = mimeCandidates.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+    if (!mime) throw new Error('Codec not supported in this browser');
+    const nch = Math.min(2, data.length);
+    const buf = c.createBuffer(nch, data[0].length, rate);
+    for (let i = 0; i < nch; i++) buf.copyToChannel(data[i], i);
+    const dest = c.createMediaStreamDestination();
+    const s = c.createBufferSource();
+    s.buffer = buf;
+    s.connect(dest);
+    const recM = new MediaRecorder(dest.stream, { mimeType: mime, audioBitsPerSecond: (kbps || 128) * 1000 });
+    const chunks = [];
+    recM.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const totalMs = Math.max(200, (data[0].length / rate) * 1000);
+    const t0 = performance.now();
+    const timer = setInterval(() => {
+      if (onProgress) onProgress(clamp((performance.now() - t0) / totalMs, 0.05, 0.95));
+    }, 150);
+    const blob = await new Promise((resolve) => {
+      recM.onstop = () => resolve(new Blob(chunks, { type: mime }));
+      s.onended = () => { setTimeout(() => { if (recM.state !== 'inactive') recM.stop(); }, 80); };
+      recM.start(200);
+      s.start();
+    });
+    clearInterval(timer);
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), mime };
+  }
+
+  async function encodeAacM4aBytes(data, rate, kbps, onProgress) {
+    const nch = Math.min(2, data.length);
+    if (typeof AudioEncoder !== 'undefined' && typeof AudioData !== 'undefined') {
+      try {
+        const sup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: rate, numberOfChannels: nch, bitrate: (kbps || 192) * 1000 });
+        if (sup && sup.supported) {
+          const frames = [];
+          let ascBytes = null;
+          const enc = new AudioEncoder({
+            output: (chunk, meta) => {
+              const b = new Uint8Array(chunk.byteLength);
+              chunk.copyTo(b);
+              frames.push(b);
+              if (!ascBytes && meta && meta.decoderConfig && meta.decoderConfig.description) {
+                ascBytes = new Uint8Array(meta.decoderConfig.description);
+              }
+            },
+            error: (e) => { throw e; }
+          });
+          enc.configure({ codec: 'mp4a.40.2', sampleRate: rate, numberOfChannels: nch, bitrate: (kbps || 192) * 1000 });
+          const total = data[0].length;
+          const blk = 1024;
+          for (let off = 0; off < total; off += blk) {
+            const nf = Math.min(blk, total - off);
+            const planar = new Float32Array(nf * nch);
+            for (let ch = 0; ch < nch; ch++) planar.set(data[ch].subarray(off, off + nf), ch * nf);
+            const ad = new AudioData({
+              format: 'f32-planar',
+              sampleRate: rate,
+              numberOfFrames: nf,
+              numberOfChannels: nch,
+              timestamp: Math.round((off / rate) * 1e6),
+              data: planar
+            });
+            enc.encode(ad);
+            ad.close();
+            if (onProgress && (off % (blk * 32) === 0)) { onProgress(off / total); await yieldUI(); }
+          }
+          await enc.flush();
+          enc.close();
+          if (frames.length) {
+            return { bytes: muxAacMp4(frames, rate, nch, total, ascBytes), mime: 'audio/mp4' };
+          }
+        }
+      } catch (e) { /* fall through to MediaRecorder fallback */ }
+    }
+    return encodeWebAudioRecorder(data, rate, ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'], kbps, onProgress);
+  }
+
+  async function exportStemsZip() {
+    if (!hasAudio || processing || importing) return;
+    processing = true; pausePlay();
+    busy(true, 'Exporting Stems Bundle');
+    try {
+      const [a, b] = (!$('#exScope') || $('#exScope').value !== 'all') ? selRange() : [0, S.data[0].length];
+      const base = sanitizeName($('#exName')?.value || S.name || 'track');
+      const entries = [];
+      const mainDry = S.data.map((ch) => ch.slice(a, b));
+      entries.push({ name: '01_Main_Dry.wav', data: await runTask({ act: 'wav', data: cloneData(mainDry), rate: S.rate, bits: 24 }) });
+      if (Layer.active && Layer.data) {
+        const prevM = MainMix.mute, prevL = Layer.mute, prevS = Stems.mute;
+        MainMix.mute = true; Layer.mute = false; Stems.mute = true;
+        const t2 = renderMixedRange(a, b);
+        MainMix.mute = prevM; Layer.mute = prevL; Stems.mute = prevS;
+        entries.push({ name: '02_Track2_Layer.wav', data: await runTask({ act: 'wav', data: cloneData(t2), rate: S.rate, bits: 24 }) });
+      }
+      if (Stems.clips.length) {
+        const len = Math.max(1, b - a), aSec = a / S.rate;
+        const stOut = [new Float32Array(len), new Float32Array(len)];
+        for (const st of Stems.clips) {
+          if (st.mute) continue;
+          const g = Math.pow(10, (st.gainDb || 0) / 20);
+          const offS = Math.round((st.offsetSec - aSec) * S.rate);
+          for (let i = 0; i < st.data[0].length; i++) {
+            const dst = offS + i;
+            if (dst < 0 || dst >= len) continue;
+            stOut[0][dst] += st.data[0][i] * g;
+            stOut[1][dst] += (st.data[1] || st.data[0])[i] * g;
+          }
+        }
+        entries.push({ name: '03_Track3_Stems.wav', data: await runTask({ act: 'wav', data: stOut, rate: S.rate, bits: 24 }) });
+      }
+      let masterMix = (Layer.active || Stems.clips.length || Regions.list.length) ? renderMixedRange(a, b) : cloneData(mainDry);
+      if (liveFxDirty()) masterMix = await renderLiveFxOffline(masterMix, S.rate);
+      entries.push({ name: '04_Full_Master.wav', data: await runTask({ act: 'wav', data: cloneData(masterMix), rate: S.rate, bits: 24 }) });
+      const zipBytes = buildZip(entries);
+      downloadBlob(new Blob([zipBytes], { type: 'application/zip' }), base + '-stems.zip');
+      toast(`Exported ${entries.length} stems (.zip · ${fmtBytes(zipBytes.length)})`, 'ok', 3400);
+    } catch (e) { toast('Stems export failed: ' + e.message, 'err', 4200); }
+    finally { processing = false; busy(false); }
   }
   function downloadBlob(blob, filename) {
     const a = document.createElement('a');
@@ -23418,6 +23827,12 @@ self.onmessage = function (e) {
       if (format === 'mp3') {
         bytes = encodeMp3Bytes(data, rate, br, meta, CoverArt, (p) => setProg(0.1 + 0.85 * p));
         mime = 'audio/mpeg'; ext = 'mp3';
+      } else if (format === 'opus') {
+        const res = await encodeWebAudioRecorder(data, rate, ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm'], br, (p) => setProg(0.1 + 0.85 * p));
+        bytes = res.bytes; mime = res.mime; ext = res.mime.includes('ogg') ? 'ogg' : 'webm';
+      } else if (format === 'm4a' || format === 'm4r') {
+        const res = await encodeAacM4aBytes(data, rate, br, (p) => setProg(0.1 + 0.85 * p));
+        bytes = res.bytes; mime = format === 'm4r' ? 'audio/x-m4r' : 'audio/mp4'; ext = format;
       } else {
         const bits = parseInt($('#exBits').value, 10);
         bytes = await runTask({ act: 'wav', data: cloneData(data), rate, bits, meta });
@@ -24741,6 +25156,7 @@ self.onmessage = function (e) {
     clearInterval(recTimer);
     recActive = false; recPaused = false;
     if (recOverdubActive) { pausePlay(); recOverdubActive = false; }
+    if (Metro.playing) stopMetronome();
     $('#recordStatus').hidden = true;
     syncRecUI();
     let decData = null, decRate = recRate;
@@ -24809,6 +25225,7 @@ self.onmessage = function (e) {
       }
       const c = AC();
       if (c.state === 'suspended') await c.resume().catch(() => {});
+      if ($('#chkRecMetro') && $('#chkRecMetro').checked) startMetronome();
       if (recUseCountdown) {
         recCounting = true;
         const cd = $('#recCountdown');
@@ -25125,7 +25542,12 @@ self.onmessage = function (e) {
     { t: 'Split Track 1 into non-destructive regions', cat: 'Track', sub: 'Split at playhead into movable clip blocks', run: splitAtPlayheadRegion },
     { t: 'Bounce non-destructive regions', cat: 'Track', sub: 'Commit moved/trimmed clip regions to Track 1', run: bounceRegionsToMain },
     { t: 'Merge multiple clips', cat: 'Track', sub: 'Stitch clips with crossfades', run: openMergeStudio },
-    { t: 'Export audio', cat: 'Track', sub: 'Render WAV/MP3 with ID3 & cover art', k: 'Ctrl+E', run: () => doExport(false) },
+    { t: 'Export audio', cat: 'Track', sub: 'Render WAV, MP3, Opus, M4A, or M4R ringtone', k: 'Ctrl+E', run: () => doExport(false) },
+    { t: 'Export Stems Bundle (.zip)', cat: 'Track', sub: 'Dry main, Track 2, Track 3, and full master WAVs', run: exportStemsZip },
+    { t: 'Toggle Metronome Click Track', cat: 'Smart', sub: 'Start/stop BPM click track', run: toggleMetronome },
+    { t: 'Tap Tempo', cat: 'Smart', sub: 'Tap repeatedly to set metronome BPM', run: triggerTapTempo },
+    { t: 'Toggle Spectrogram Band Notch tool', cat: 'Effects', sub: 'Draw time × frequency box on spectrogram', run: () => { setWaveMode('spec'); SpecBrush.enabled = !SpecBrush.enabled; syncSpecBrushUI(); } },
+    { t: 'Preferences & Haptics', cat: 'Playback', sub: 'Haptic feedback, magnetic snap, default export', run: showPrefsModal },
     { t: 'Export selection', cat: 'Track', sub: 'Export only the IN/OUT range', run: exportSelection },
     { t: 'Open audio file', cat: 'Track', sub: 'Import audio from device', k: 'Ctrl+O', run: () => $('#fileInput').click() },
     { t: 'Record from microphone', cat: 'Track', sub: 'Open Pro Mic Studio recorder', run: startRecording },
@@ -25274,7 +25696,7 @@ self.onmessage = function (e) {
     const c = cmdList[i];
     closeOverlays();
     if (c) {
-      if (!hasAudio && !['Open audio file', 'Load demo track', 'Keyboard shortcuts', 'Record from microphone', 'Merge multiple clips'].includes(c.t)) return toast('Open an audio file first', 'info');
+      if (!hasAudio && !['Open audio file', 'Load demo track', 'Keyboard shortcuts', 'Record from microphone', 'Merge multiple clips', 'Preferences & Haptics', 'Toggle Metronome Click Track', 'Tap Tempo'].includes(c.t)) return toast('Open an audio file first', 'info');
       haptic(6);
       setTimeout(c.run, 30);
     }
@@ -25288,6 +25710,133 @@ self.onmessage = function (e) {
     else if (e.key === 'Enter') { e.preventDefault(); runCmd(cmdSel); }
     else if (e.key === 'Escape') { closeOverlays(); }
   });
+
+  /* ------------------------------------------------ tap tempo & metronome */
+  const Metro = { bpm: 120, playing: false, timer: 0, nextAt: 0, beatIdx: 0, taps: [] };
+  function setMetroBpm(valBpm) {
+    Metro.bpm = clamp(Math.round(valBpm || 120), 40, 240);
+    if ($('#smartMetroBpm')) $('#smartMetroBpm').value = Metro.bpm;
+    if ($('#recMetroBpm')) $('#recMetroBpm').value = Metro.bpm;
+  }
+  function triggerTapTempo() {
+    const now = performance.now();
+    if (Metro.taps.length && now - Metro.taps[Metro.taps.length - 1] > 2100) Metro.taps = [];
+    Metro.taps.push(now);
+    if (Metro.taps.length > 8) Metro.taps.shift();
+    haptic(10);
+    if (Metro.taps.length >= 2) {
+      let sum = 0;
+      for (let i = 1; i < Metro.taps.length; i++) sum += Metro.taps[i] - Metro.taps[i - 1];
+      const avg = sum / (Metro.taps.length - 1);
+      setMetroBpm(60000 / Math.max(200, avg));
+    }
+    flashMetroLed(0);
+  }
+  function flashMetroLed(beatNum) {
+    const cls = (beatNum % 4 === 0) ? 'down' : 'beat';
+    for (const id of ['smartMetroLed', 'recMetroLed']) {
+      const el = $('#' + id);
+      if (!el) continue;
+      el.classList.remove('beat', 'down');
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove('beat', 'down'), 110);
+    }
+  }
+  function scheduleClickBeat(when, beatNum) {
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime((beatNum % 4 === 0) ? 1240 : 880, when);
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.linearRampToValueAtTime((beatNum % 4 === 0) ? 0.36 : 0.22, when + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.045);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(when); osc.stop(when + 0.055);
+    const delayMs = Math.max(0, (when - ctx.currentTime) * 1000);
+    setTimeout(() => { if (Metro.playing) flashMetroLed(beatNum); }, delayMs);
+  }
+  function startMetronome() {
+    const c = AC();
+    if (c.state === 'suspended') c.resume().catch(() => {});
+    stopMetronome();
+    Metro.playing = true;
+    Metro.beatIdx = 0;
+    Metro.nextAt = c.currentTime + 0.02;
+    Metro.timer = setInterval(() => {
+      if (!Metro.playing || !ctx) return;
+      const step = 60 / clamp(Metro.bpm, 40, 240);
+      while (Metro.nextAt < ctx.currentTime + 0.14) {
+        scheduleClickBeat(Metro.nextAt, Metro.beatIdx++);
+        Metro.nextAt += step;
+      }
+    }, 25);
+    if ($('#btnSmartMetroPlay')) { $('#btnSmartMetroPlay').textContent = '■ Stop'; $('#btnSmartMetroPlay').classList.add('on'); }
+    if ($('#btnRecMetroAudition')) { $('#btnRecMetroAudition').textContent = '■'; $('#btnRecMetroAudition').classList.add('on'); }
+  }
+  function stopMetronome() {
+    Metro.playing = false;
+    if (Metro.timer) { clearInterval(Metro.timer); Metro.timer = 0; }
+    if ($('#btnSmartMetroPlay')) { $('#btnSmartMetroPlay').textContent = '▶ Click'; $('#btnSmartMetroPlay').classList.remove('on'); }
+    if ($('#btnRecMetroAudition')) { $('#btnRecMetroAudition').textContent = '▶'; $('#btnRecMetroAudition').classList.remove('on'); }
+  }
+  function toggleMetronome() { Metro.playing ? stopMetronome() : startMetronome(); }
+
+  /* ---------------------------------------------- preferences & haptics UI */
+  function showPrefsModal() {
+    const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
+    $('#modal').inert = false; $('.app').inert = true; document.body.classList.add('overlay-open');
+    $('#modalTitle').textContent = 'Preferences & Haptics';
+    $('#modalBody').innerHTML = `
+      <div class="pref-grid">
+        <div class="pref-card">
+          <label class="checkrow"><input type="checkbox" id="prefHaptic" ${Prefs.haptic ? 'checked' : ''}><span><b>Haptic feedback</b> — vibrate on playhead snap, markers, and tools</span></label>
+          <div class="field"><label for="prefSnapPx">Magnetic snap strength (playhead ↔ IN/OUT)</label>
+            <select id="prefSnapPx">
+              <option value="0" ${Prefs.snapPx === 0 ? 'selected' : ''}>Off (free movement)</option>
+              <option value="4" ${Prefs.snapPx === 4 ? 'selected' : ''}>Subtle (4 px)</option>
+              <option value="6" ${Prefs.snapPx === 6 ? 'selected' : ''}>Standard (6 px)</option>
+              <option value="11" ${Prefs.snapPx === 11 ? 'selected' : ''}>Strong (11 px)</option>
+            </select>
+          </div>
+          <div class="field"><label for="prefZoomSens">Pinch &amp; wheel zoom sensitivity</label>
+            <select id="prefZoomSens">
+              <option value="0.7" ${Prefs.zoomSens === 0.7 ? 'selected' : ''}>Smooth (0.7×)</option>
+              <option value="1" ${Prefs.zoomSens === 1 ? 'selected' : ''}>Normal (1.0×)</option>
+              <option value="1.4" ${Prefs.zoomSens === 1.4 ? 'selected' : ''}>Fast (1.4×)</option>
+            </select>
+          </div>
+        </div>
+        <div class="pref-card">
+          <div class="field"><label for="prefDefExport">Default export format</label>
+            <select id="prefDefExport">
+              <option value="wav" ${Prefs.defExport === 'wav' ? 'selected' : ''}>WAV — lossless</option>
+              <option value="mp3" ${Prefs.defExport === 'mp3' ? 'selected' : ''}>MP3 — compressed</option>
+              <option value="opus" ${Prefs.defExport === 'opus' ? 'selected' : ''}>Opus — voice (.ogg / .webm)</option>
+              <option value="m4a" ${Prefs.defExport === 'm4a' ? 'selected' : ''}>AAC — Apple (.m4a)</option>
+            </select>
+          </div>
+          <label class="checkrow"><input type="checkbox" id="prefAutosave" ${Prefs.autosave ? 'checked' : ''}><span><b>IndexedDB Auto-save</b> — continuous crash recovery</span></label>
+        </div>
+      </div>`;
+    $('#prefHaptic').addEventListener('change', (e) => { Prefs.haptic = e.target.checked; savePrefs(); if (Prefs.haptic) haptic(14); });
+    $('#prefSnapPx').addEventListener('change', (e) => { Prefs.snapPx = parseFloat(e.target.value); savePrefs(); });
+    $('#prefZoomSens').addEventListener('change', (e) => { Prefs.zoomSens = parseFloat(e.target.value) || 1; savePrefs(); });
+    $('#prefDefExport').addEventListener('change', (e) => {
+      Prefs.defExport = e.target.value; savePrefs();
+      if ($('#exFormat') && $('#exFormat').querySelector(`option[value="${Prefs.defExport}"]`)) {
+        $('#exFormat').value = Prefs.defExport;
+        $('#exFormat').dispatchEvent(new Event('change'));
+      }
+    });
+    $('#prefAutosave').addEventListener('change', (e) => {
+      Prefs.autosave = e.target.checked; savePrefs();
+      if (Prefs.autosave && hasAudio) scheduleSave();
+      else if (!Prefs.autosave && $('#saveStatus')) $('#saveStatus').textContent = 'Autosave off';
+    });
+    $('#modal').classList.add('on'); $('#modalClose').focus();
+    $('#scrim').classList.add('on');
+  }
 
   /* ----------------------------------------------------------------- help */
   function showHelp() {
@@ -25359,6 +25908,10 @@ self.onmessage = function (e) {
   }
   let saveTimer = 0, saveRevision = 0;
   function scheduleSave() {
+    if (!Prefs.autosave) {
+      if ($('#saveStatus')) $('#saveStatus').textContent = 'Autosave off';
+      return;
+    }
     const revision = ++saveRevision;
     clearTimeout(saveTimer);
     if ($('#saveStatus')) $('#saveStatus').textContent = 'Unsaved changes';
@@ -25467,6 +26020,22 @@ self.onmessage = function (e) {
     $('#btnUndo').addEventListener('click', undo);
     $('#btnRedo').addEventListener('click', redo);
     $('#btnHelp').addEventListener('click', showHelp);
+    $('#btnPrefs').addEventListener('click', showPrefsModal);
+    $('#btnSpecBrush').addEventListener('click', () => {
+      SpecBrush.enabled = !SpecBrush.enabled;
+      if (!SpecBrush.enabled) SpecBrush.box = null;
+      syncSpecBrushUI(); fxDirty = true;
+    });
+    $('#btnSpecNotch').addEventListener('click', () => applySpecBand('notch'));
+    $('#btnSpecDip').addEventListener('click', () => applySpecBand('dip'));
+    $('#btnSpecIsolate').addEventListener('click', () => applySpecBand('isolate'));
+    $('#btnSpecClear').addEventListener('click', () => { SpecBrush.box = null; syncSpecBrushUI(); fxDirty = true; });
+    $('#btnSmartTapTempo').addEventListener('click', triggerTapTempo);
+    $('#btnRecTapTempo').addEventListener('click', triggerTapTempo);
+    $('#smartMetroBpm').addEventListener('change', (e) => setMetroBpm(e.target.value));
+    $('#recMetroBpm').addEventListener('change', (e) => setMetroBpm(e.target.value));
+    $('#btnSmartMetroPlay').addEventListener('click', toggleMetronome);
+    $('#btnRecMetroAudition').addEventListener('click', toggleMetronome);
     $('#btnCmd').addEventListener('click', openCmd);
     function setSideTab(tab) {
       $$('#sideTabs [data-stab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.stab === tab));
@@ -26343,5 +26912,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e056b55e5c7f9f',t:'MTc5NTI3MDg2NA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e056b55e5c7f9f',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
