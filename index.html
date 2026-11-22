@@ -327,9 +327,23 @@ kbd {
 #wave { display: block; width: 100%; height: clamp(185px, 27dvh, 305px); touch-action: none; cursor: crosshair; transition: height .18s ease; }
 body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .wave-meta-bar {
-  display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: nowrap;
   padding: 2px 2px 0;
 }
+.wave-meta-bar .meter {
+  height: 36px; padding: 7px 11px; gap: 3px;
+  background: rgba(26, 26, 34, .82); border: 1px solid var(--rim-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+.wave-meta-bar .meter i { width: 3px; }
+.wave-meta-bar .stage-pip-btn {
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
+  background: rgba(26, 26, 34, .82); border: 1px solid var(--rim-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
+  color: var(--txt); display: grid; place-items: center;
+}
+.wave-meta-bar .stage-pip-btn:hover { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .32); }
+.wave-meta-bar .stage-pip-btn svg { width: 15px; height: 15px; }
 .wave-chip {
   display: flex; gap: 5px; flex-wrap: wrap; align-items: center; min-width: 0; flex: 1;
 }
@@ -340,7 +354,7 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .chip.acc { color: #c4f0ff; border-color: rgba(100, 210, 255, .4); background: rgba(100, 210, 255, .08); }
 .chip.warn { color: #ffe57f; border-color: rgba(255, 214, 10, .4); background: rgba(255, 214, 10, .09); }
 .zoom-pill {
-  display: flex; align-items: center; gap: 2px; flex: none;
+  display: flex; align-items: center; gap: 2px; flex: none; height: 36px;
   padding: 3px; border-radius: var(--r-pill);
   background: rgba(26, 26, 34, .82); border: 1px solid var(--rim-2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
@@ -1577,6 +1591,8 @@ body.overlay-open { overflow: hidden; }
         </div>
 
         <div class="wave-meta-bar">
+          <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <button type="button" class="tbtn sm stage-pip-btn" id="btnTransportPip" title="Pop out Picture-in-Picture mini player" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
           <div class="zoom-pill">
             <button class="btn icon" id="mZoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
             <button class="btn icon" id="mZoomFit" title="Zoom to fit" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
@@ -1599,7 +1615,6 @@ body.overlay-open { overflow: hidden; }
           </div>
           <div class="tc-cluster">
             <div class="timecode"><b class="mono" id="tcNow">0:00.000</b><span class="mono" id="tcDur">/ 0:00.000</span></div>
-            <div class="meter hide-xs" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
           </div>
         </div>
         <div class="transport-row row-tools">
@@ -1607,7 +1622,6 @@ body.overlay-open { overflow: hidden; }
             <button class="tbtn sm" id="btnLoop" title="Loop selection (L)" aria-label="Loop selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3 3 3-3 3"/><path d="M20 6H8a4 4 0 0 0-4 4v1"/><path d="m7 21-3-3 3-3"/><path d="M4 18h12a4 4 0 0 0 4-4v-1"/></svg></button>
             <button class="tbtn sm" id="btnSnap" title="Snap handles to zero crossings" aria-label="Snap to zero crossings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M12 5v14"/></svg></button>
             <button class="tbtn sm" id="btnMarker" title="Add marker at playhead" aria-label="Add marker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M9 12h7M9 16h5"/></svg></button>
-            <button type="button" class="tbtn sm" id="btnTransportPip" title="Pop out Picture-in-Picture mini player" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
           </div>
           <div class="transport-pills">
             <button type="button" class="speed-pill" id="btnJogPill" title="Touch scrub jog wheel" aria-expanded="false">Scrub</button>
@@ -28826,5 +28840,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5e141aca9e11431',t:'MTc5NTI4MDQ4OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5e141aca9e11431',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
