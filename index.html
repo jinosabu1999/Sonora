@@ -710,12 +710,61 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   background: rgba(255,255,255,.06); border: 1px solid var(--rim); color: var(--txt-2);
 }
 .macro-step-chip[aria-pressed="true"] { background: rgba(48,209,88,.22); border-color: rgba(48,209,88,.55); color: #c8ffd6; }
-.ag-wrap { display: flex; flex-direction: column; gap: 11px; }
+.ag-wrap { display: flex; flex-direction: column; gap: 12px; }
 .ag-preview-box {
-  display: flex; justify-content: center; align-items: center; padding: 10px; border-radius: 18px;
-  background: rgba(5, 6, 10, .82); border: 1px solid rgba(255,255,255,.12);
+  position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 9px;
+  padding: 12px; border-radius: 20px;
+  background: radial-gradient(120% 100% at 50% 0%, rgba(100, 210, 255, .09), rgba(5, 6, 10, .92));
+  border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
 }
-#agPreviewCanvas { max-width: 100%; max-height: 250px; border-radius: 12px; display: block; box-shadow: 0 12px 32px rgba(0,0,0,.6); }
+#agPreviewCanvas { max-width: 100%; max-height: 230px; border-radius: 14px; display: block; box-shadow: 0 14px 36px rgba(0,0,0,.68); }
+.ag-preview-bar {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.11);
+}
+.ag-preview-bar .btn.icon { width: 30px; height: 30px; min-height: 30px; padding: 0; border-radius: 50%; flex: none; }
+.ag-preview-bar input[type=range] { flex: 1; min-width: 0; }
+.ag-preview-bar span { font: 600 11px/1 ui-monospace, monospace; color: var(--txt-2); white-space: nowrap; flex: none; }
+.ag-tabs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px;
+  border-radius: 14px; background: rgba(0, 0, 0, .34); border: 1px solid rgba(255, 255, 255, .1);
+}
+.ag-tab {
+  min-height: 32px; border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--txt-2);
+  background: transparent; transition: background var(--fast), color var(--fast);
+}
+.ag-tab[aria-selected="true"] { background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
+.ag-pane { display: flex; flex-direction: column; gap: 10px; }
+.ag-pane[hidden] { display: none !important; }
+.ag-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.ag-swatch {
+  display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 12px;
+  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.11);
+  color: var(--txt-2); font-size: 11.5px; font-weight: 580; text-align: left;
+  transition: border-color var(--fast), background var(--fast), color var(--fast);
+}
+.ag-swatch i { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 1px solid rgba(255,255,255,.35); }
+.ag-swatch[aria-pressed="true"] { background: rgba(100,210,255,.14); border-color: rgba(100,210,255,.55); color: #fff; }
+.ag-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-chip {
+  padding: 6px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 590;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.11); color: var(--txt-2);
+}
+.ag-chip[aria-pressed="true"] { background: rgba(100,210,255,.2); border-color: rgba(100,210,255,.55); color: #e8f8ff; }
+.ag-art-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+}
+.ag-art-thumb {
+  width: 40px; height: 40px; border-radius: 10px; flex: none; overflow: hidden; display: grid; place-items: center;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--txt-3);
+}
+.ag-art-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ag-art-meta { flex: 1; min-width: 0; }
+.ag-art-meta b { display: block; font-size: 12px; font-weight: 620; color: var(--txt); }
+.ag-art-meta span { display: block; font-size: 11px; color: var(--txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-actions { display: flex; gap: 8px; }
+.ag-actions .btn.primary { flex: 1; min-height: 46px; }
 
 /* --------------------------------- iOS 27 Grouped Glass Effect & Tool Cards */
 .acc {
@@ -22885,7 +22934,7 @@ self.onmessage = function (e) {
     <button class="btn primary wide" id="btnExport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg>Export Selected Audio</button>
     <div class="ex-actions-sub">
       <button class="btn sm" id="btnExportStemsZip">Stems Bundle (.zip)</button>
-      <button class="btn sm accent" id="btnOpenAudiogram">Audiogram Video…</button>
+      <button class="btn sm accent" id="btnOpenAudiogram">Video Studio…</button>
     </div>
   </div>`;
 
@@ -24980,6 +25029,7 @@ self.onmessage = function (e) {
     $('#sheetClose').focus({ preventScroll: true });
   }
   function closeOverlays() {
+    if (typeof stopAudiogramPreview === 'function') stopAudiogramPreview();
     if (panelNode && panelNode.id === 'recordPanel') stopRecMonitorIfIdle();
     if (panelHome && panelNode) { panelHome.replaceWith(panelNode); panelHome = panelNode = null; }
     for (const id of ['sheet', 'cmdk', 'modal']) { $('#' + id).classList.remove('on'); $('#' + id).inert = true; }
@@ -26748,7 +26798,7 @@ self.onmessage = function (e) {
     { t: 'Merge multiple clips', cat: 'Track', sub: 'Stitch clips with crossfades', run: openMergeStudio },
     { t: 'Export audio', cat: 'Track', sub: 'Render WAV, MP3, Opus, M4A, or M4R ringtone', k: 'Ctrl+E', run: () => doExport(false) },
     { t: 'Export Stems Bundle (.zip)', cat: 'Track', sub: 'Dry main, Track 2, Track 3, and full master WAVs', run: exportStemsZip },
-    { t: 'Export Audiogram Video (Reels / Shorts)', cat: 'Smart', sub: 'Render 9:16, 1:1, or 16:9 animated spectrum video', run: openAudiogramModal },
+    { t: 'Export Video (Sonora Video Studio)', cat: 'Smart', sub: '9:16, 4:5, 1:1, 16:9 · visualizers, vinyl, particles & captions', run: openAudiogramModal },
     { t: 'Manage Batch Macros & Chains', cat: 'Macros', sub: 'Create & run multi-step workflow macros', run: openMacrosModal },
     { t: 'Toggle Metronome Click Track', cat: 'Smart', sub: 'Start/stop BPM click track', run: toggleMetronome },
     { t: 'Tap Tempo', cat: 'Smart', sub: 'Tap repeatedly to set metronome BPM', run: triggerTapTempo },
@@ -27187,104 +27237,364 @@ self.onmessage = function (e) {
     $('#scrim').classList.add('on');
   }
 
-  /* -------------------------------------- export audio-to-video audiogram */
+  /* -------------------------------------- export audio-to-video studio */
   let agAnimRaf = 0, agCoverImg = null;
-  function drawAudiogramFrame(cv, ratio, theme, title, artist, progress, bins, tSec, totalSec) {
-    const dims = ratio === '9:16' ? [720, 1280] : ratio === '1:1' ? [720, 720] : [1280, 720];
+  let agPreviewCtx = null, agPreviewSrc = null, agPreviewAn = null, agPreviewBins = null;
+  let agPreviewPlaying = false, agPreviewStartAt = 0, agPreviewOffset = 0, agPreviewDur = 0;
+  let agCancelRender = null;
+  const agPeakHold = new Float32Array(64);
+  const agParticlesSeed = Array.from({ length: 24 }, (_, i) => ({
+    x: ((i * 73 + 19) % 100) / 100,
+    y: ((i * 41 + 7) % 100) / 100,
+    r: 1.8 + ((i * 17) % 5),
+    sp: 0.018 + ((i * 13) % 10) * 0.004,
+    ph: i * 1.13,
+  }));
+
+  function stopAudiogramPreview() {
+    if (agPreviewSrc) {
+      try { agPreviewSrc.onended = null; agPreviewSrc.stop(); agPreviewSrc.disconnect(); } catch (e) {}
+      agPreviewSrc = null;
+    }
+    agPreviewPlaying = false;
+    if (typeof agCancelRender === 'function') { try { agCancelRender(); } catch (e) {} }
+    if ($('#agPreviewPlay')) {
+      $('#agPreviewPlay').setAttribute('aria-label', 'Play preview');
+      $('#agPreviewPlay').innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg>';
+    }
+  }
+
+  function agActiveCaption(absSec) {
+    if (!Markers || !Markers.list || !Markers.list.length) return null;
+    let found = null;
+    for (const m of Markers.list) {
+      if (m.t <= absSec + 0.05) found = m;
+    }
+    if (!found) return null;
+    const age = absSec - found.t;
+    if (age < 0 || age > 6.5) return null;
+    const alpha = age < 0.25 ? age / 0.25 : age > 5.8 ? Math.max(0, (6.5 - age) / 0.7) : 1;
+    return { title: found.name || 'Cue', note: found.note || '', color: found.color || '#64d2ff', alpha };
+  }
+
+  function drawAudiogramFrame(cv, arg1, themeArg, titleArg, artistArg, progressArg, binsArg, tSecArg, totalSecArg) {
+    const o = (arg1 && typeof arg1 === 'object') ? arg1 : {
+      ratio: arg1 || '9:16', theme: themeArg || 'glass', title: titleArg || '', artist: artistArg || '',
+      progress: progressArg || 0, bins: binsArg || null, tSec: tSecArg || 0, totalSec: totalSecArg || 1,
+    };
+    const ratio = o.ratio || '9:16';
+    const hd = !!o.hd;
+    const base = hd ? 1080 : 720;
+    const dims = ratio === '9:16' ? [base, Math.round(base * 16 / 9)]
+      : ratio === '4:5' ? [base, Math.round(base * 5 / 4)]
+      : ratio === '1:1' ? [base, base]
+      : [Math.round(base * 16 / 9), base];
     if (cv.width !== dims[0] || cv.height !== dims[1]) { cv.width = dims[0]; cv.height = dims[1]; }
     const w = cv.width, h = cv.height, c = cv.getContext('2d');
+    const tSec = o.tSec || 0, totalSec = Math.max(0.01, o.totalSec || 1);
+    const progress = clamp(o.progress != null ? o.progress : (tSec / totalSec), 0, 1);
+    const bins = o.bins || null;
+    const viz = o.viz || 'bars';
+    const artStyle = o.artStyle || 'card';
     const palettes = {
-      glass:   ['#0b1120', '#16253f', '#64d2ff', '#30d158'],
-      amber:   ['#170d06', '#2e1608', '#ff9f0a', '#ffd60a'],
-      emerald: ['#061610', '#0b2b1e', '#30d158', '#64d2ff'],
-      violet:  ['#130820', '#271042', '#bf5af2', '#64d2ff']
+      glass:   ['#09101f', '#132442', '#64d2ff', '#30d158'],
+      gold:    ['#12100a', '#26200f', '#ffd60a', '#ff9f0a'],
+      amber:   ['#180c08', '#33141c', '#ff9f0a', '#ff375f'],
+      emerald: ['#051510', '#0a2d21', '#30d158', '#64d2ff'],
+      violet:  ['#120822', '#261046', '#bf5af2', '#64d2ff'],
+      crimson: ['#18070a', '#350d16', '#ff453a', '#ff9f0a']
     };
-    const pal = palettes[theme] || palettes.glass;
+    const pal = palettes[o.theme] || palettes.glass;
+
+    // 1. Base gradient + optional blurred cover backdrop
     const bg = c.createLinearGradient(0, 0, w, h);
     bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
     c.fillStyle = bg; c.fillRect(0, 0, w, h);
 
-    // Subtle ambient glow
-    const avgEnergy = bins ? bins.reduce((a, b) => a + b, 0) / (bins.length * 255) : 0.28;
-    const rg = c.createRadialGradient(w * 0.5, h * 0.42, 20, w * 0.5, h * 0.42, Math.max(w, h) * 0.55);
-    rg.addColorStop(0, pal[2] + '33'); rg.addColorStop(1, 'transparent');
+    if (agCoverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
+      c.save();
+      c.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
+      try { c.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
+      const scBg = Math.max(w / agCoverImg.width, h / agCoverImg.height) * 1.12;
+      const bgW = agCoverImg.width * scBg, bgH = agCoverImg.height * scBg;
+      c.drawImage(agCoverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
+      c.restore();
+      const vig = c.createLinearGradient(0, 0, 0, h);
+      vig.addColorStop(0, 'rgba(6,8,14,.55)');
+      vig.addColorStop(0.5, 'rgba(6,8,14,.32)');
+      vig.addColorStop(1, 'rgba(6,8,14,.78)');
+      c.fillStyle = vig; c.fillRect(0, 0, w, h);
+    }
+
+    // Energy metrics from FFT bins or smooth preview synth
+    let avgEnergy = 0.24 + 0.12 * Math.sin(tSec * 2.8);
+    let bassEnergy = 0.28 + 0.14 * Math.sin(tSec * 3.6);
+    if (bins && bins.length) {
+      let sum = 0, bass = 0;
+      const bCount = Math.max(1, Math.min(8, bins.length));
+      for (let i = 0; i < bins.length; i++) sum += bins[i];
+      for (let i = 0; i < bCount; i++) bass += bins[i];
+      avgEnergy = sum / (bins.length * 255);
+      bassEnergy = bass / (bCount * 255);
+    }
+
+    // Ambient bass-reactive radial glow
+    const rg = c.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * (0.48 + bassEnergy * 0.14));
+    rg.addColorStop(0, pal[2] + '44');
+    rg.addColorStop(0.55, pal[3] + '14');
+    rg.addColorStop(1, 'transparent');
     c.fillStyle = rg; c.fillRect(0, 0, w, h);
 
-    const vertical = h > w;
-    const artSize = Math.round(Math.min(w, h) * (vertical ? 0.46 : 0.38));
-    const artX = Math.round((w - artSize) / 2);
-    const artY = vertical ? Math.round(h * 0.16) : Math.round(h * 0.12);
-    const pulse = 1 + avgEnergy * 0.04;
-    c.save();
-    c.translate(w / 2, artY + artSize / 2);
-    c.scale(pulse, pulse);
-    c.translate(-w / 2, -(artY + artSize / 2));
-    c.shadowColor = pal[2] + '66'; c.shadowBlur = 32;
-    roundRect(c, artX, artY, artSize, artSize, 26);
-    c.fillStyle = 'rgba(255,255,255,.08)'; c.fill();
-    c.restore();
+    // Optional reactive bokeh particles
+    if (o.particles !== false) {
+      c.save();
+      for (let i = 0; i < agParticlesSeed.length; i++) {
+        const pt = agParticlesSeed[i];
+        const py = ((pt.y - tSec * pt.sp) % 1 + 1) % 1;
+        const px = pt.x + Math.sin(tSec * 0.8 + pt.ph) * 0.02;
+        const rad = (pt.r * (w / 720)) * (1 + bassEnergy * 0.75);
+        c.globalAlpha = 0.16 + 0.25 * (0.5 + 0.5 * Math.sin(tSec * 1.7 + pt.ph));
+        c.fillStyle = i % 2 === 0 ? pal[2] : pal[3];
+        c.beginPath(); c.arc(px * w, py * h, rad, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+    }
 
+    const vertical = h > w;
+    const minDim = Math.min(w, h);
+    const artSize = Math.round(minDim * (vertical ? 0.42 : ratio === '1:1' ? 0.36 : 0.34));
+    const artX = Math.round((w - artSize) / 2);
+    const artY = vertical ? Math.round(h * 0.14) : ratio === '1:1' ? Math.round(h * 0.11) : Math.round(h * 0.10);
+    const artCx = artX + artSize / 2, artCy = artY + artSize / 2;
+
+    // Orbital ring visualizer behind artwork when selected
+    if (viz === 'orbital') {
+      const segs = 64;
+      const baseR = artSize * 0.56;
+      const maxSpoke = minDim * (vertical ? 0.095 : 0.08);
+      c.save();
+      c.translate(artCx, artCy);
+      for (let i = 0; i < segs; i++) {
+        const ang = (i / segs) * Math.PI * 2 - Math.PI / 2 + tSec * 0.18;
+        let v = 0.18 + 0.34 * Math.abs(Math.sin(tSec * 3.8 + i * 0.35));
+        if (bins && bins.length) {
+          const bi = clamp(Math.floor(((i % (segs / 2)) / (segs / 2)) * (bins.length * 0.7)), 0, bins.length - 1);
+          v = Math.max(0.08, bins[bi] / 255);
+        }
+        const len = Math.max(6, v * maxSpoke);
+        c.strokeStyle = i % 2 === 0 ? pal[2] : pal[3];
+        c.lineWidth = Math.max(3, minDim * 0.006);
+        c.lineCap = 'round';
+        c.globalAlpha = 0.45 + v * 0.55;
+        c.beginPath();
+        c.moveTo(Math.cos(ang) * baseR, Math.sin(ang) * baseR);
+        c.lineTo(Math.cos(ang) * (baseR + len), Math.sin(ang) * (baseR + len));
+        c.stroke();
+      }
+      c.restore();
+    }
+
+    // 2. Artwork frame (Glass Card, Spinning Vinyl, or Backdrop Label)
+    const pulse = 1 + bassEnergy * 0.045;
     c.save();
-    roundRect(c, artX, artY, artSize, artSize, 26); c.clip();
-    if (agCoverImg) {
-      const sc = Math.max(artSize / agCoverImg.width, artSize / agCoverImg.height);
-      const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
-      c.drawImage(agCoverImg, artX + (artSize - dw) / 2, artY + (artSize - dh) / 2, dw, dh);
+    c.translate(artCx, artCy);
+    c.scale(pulse, pulse);
+    if (artStyle === 'vinyl') {
+      const vr = artSize * 0.5;
+      c.shadowColor = pal[2] + '55'; c.shadowBlur = Math.round(minDim * 0.045);
+      c.fillStyle = '#0c0d12';
+      c.beginPath(); c.arc(0, 0, vr, 0, Math.PI * 2); c.fill();
+      c.shadowBlur = 0;
+      for (let g = 0.62; g <= 0.94; g += 0.08) {
+        c.strokeStyle = 'rgba(255,255,255,.075)'; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(0, 0, vr * g, 0, Math.PI * 2); c.stroke();
+      }
+      c.save();
+      c.rotate(tSec * 1.15);
+      const lblR = vr * 0.56;
+      c.beginPath(); c.arc(0, 0, lblR, 0, Math.PI * 2); c.clip();
+      if (agCoverImg) {
+        const sc = Math.max((lblR * 2) / agCoverImg.width, (lblR * 2) / agCoverImg.height);
+        const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
+        c.drawImage(agCoverImg, -dw / 2, -dh / 2, dw, dh);
+      } else {
+        const cg = c.createLinearGradient(-lblR, -lblR, lblR, lblR);
+        cg.addColorStop(0, pal[2]); cg.addColorStop(1, pal[3]);
+        c.fillStyle = cg; c.fillRect(-lblR, -lblR, lblR * 2, lblR * 2);
+      }
+      c.restore();
+      c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 2;
+      c.beginPath(); c.arc(0, 0, vr * 0.56, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = '#090a0e';
+      c.beginPath(); c.arc(0, 0, vr * 0.08, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1.5; c.stroke();
     } else {
-      const cg = c.createLinearGradient(artX, artY, artX + artSize, artY + artSize);
-      cg.addColorStop(0, pal[2] + '44'); cg.addColorStop(1, pal[3] + '33');
-      c.fillStyle = cg; c.fillRect(artX, artY, artSize, artSize);
-      c.fillStyle = '#ffffff';
-      c.font = `700 ${Math.round(artSize * 0.16)}px -apple-system, sans-serif`;
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText('SF', artX + artSize / 2, artY + artSize / 2);
+      const rad = Math.round(artSize * 0.11);
+      c.shadowColor = pal[2] + '66'; c.shadowBlur = Math.round(minDim * 0.045);
+      roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad);
+      c.fillStyle = 'rgba(255,255,255,.08)'; c.fill();
+      c.shadowBlur = 0;
+      c.save();
+      roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad); c.clip();
+      if (agCoverImg) {
+        const sc = Math.max(artSize / agCoverImg.width, artSize / agCoverImg.height);
+        const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
+        c.drawImage(agCoverImg, -dw / 2, -dh / 2, dw, dh);
+      } else {
+        const cg = c.createLinearGradient(-artSize / 2, -artSize / 2, artSize / 2, artSize / 2);
+        cg.addColorStop(0, pal[2] + '55'); cg.addColorStop(1, pal[3] + '44');
+        c.fillStyle = cg; c.fillRect(-artSize / 2, -artSize / 2, artSize, artSize);
+        c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = Math.max(3, artSize * 0.022); c.lineCap = 'round';
+        const bars = [0.22, 0.45, 0.72, 0.52, 0.30];
+        const bGap = artSize * 0.08;
+        bars.forEach((bh, idx) => {
+          const bx = (idx - 2) * bGap;
+          const half = artSize * 0.24 * bh;
+          c.beginPath(); c.moveTo(bx, -half); c.lineTo(bx, half); c.stroke();
+        });
+      }
+      c.restore();
+      c.strokeStyle = 'rgba(255,255,255,.30)'; c.lineWidth = Math.max(2, minDim * 0.003);
+      roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad); c.stroke();
     }
     c.restore();
-    c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 2;
-    roundRect(c, artX, artY, artSize, artSize, 26); c.stroke();
 
-    // Title & Artist
-    const textY = artY + artSize + (vertical ? 46 : 30);
+    // 3. Title & Artist typography
+    const textY = artY + artSize + Math.round(h * (vertical ? 0.036 : 0.034));
+    const titlePx = Math.round(minDim * (vertical ? 0.048 : 0.042));
+    const subPx = Math.round(minDim * (vertical ? 0.030 : 0.027));
     c.textAlign = 'center'; c.textBaseline = 'top';
     c.fillStyle = '#ffffff';
-    c.font = `700 ${vertical ? 34 : 28}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    c.fillText((title || S.name || 'Sonora Track').slice(0, 34), w / 2, textY, w - 72);
+    c.font = `700 ${titlePx}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    c.fillText((o.title || S.name || 'Sonora Track').slice(0, 36), w / 2, textY, w - minDim * 0.12);
     c.fillStyle = 'rgba(255,255,255,.72)';
-    c.font = `500 ${vertical ? 22 : 18}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    c.fillText((artist || 'Sonora Studio').slice(0, 40), w / 2, textY + (vertical ? 44 : 36), w - 72);
+    c.font = `500 ${subPx}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    c.fillText((o.artist || 'Sonora Studio').slice(0, 44), w / 2, textY + Math.round(titlePx * 1.24), w - minDim * 0.12);
 
-    // Spectrum Bars
-    const barCount = 44;
-    const barsW = Math.round(w * 0.80), barsX = Math.round((w - barsW) / 2);
-    const barBaseY = h - (vertical ? 190 : 108);
-    const maxBarH = vertical ? 170 : 105;
-    const step = barsW / barCount;
-    const bw = Math.max(4, step * 0.62);
-    const barGrad = c.createLinearGradient(barsX, barBaseY - maxBarH, barsX + barsW, barBaseY);
-    barGrad.addColorStop(0, pal[2]); barGrad.addColorStop(1, pal[3]);
-    c.fillStyle = barGrad;
-    for (let i = 0; i < barCount; i++) {
-      let v = 0.18 + 0.35 * Math.abs(Math.sin(tSec * 4.2 + i * 0.35));
-      if (bins && bins.length) {
-        const bi = clamp(Math.floor((i / barCount) * (bins.length * 0.65)), 0, bins.length - 1);
-        v = Math.max(0.08, bins[bi] / 255);
+    // 4. Visualizer section
+    const barsW = Math.round(w * (vertical ? 0.82 : 0.76));
+    const barsX = Math.round((w - barsW) / 2);
+    const barBaseY = h - Math.round(h * (vertical ? 0.155 : 0.165));
+    const maxBarH = Math.round(h * (vertical ? 0.125 : 0.145));
+
+    if (viz === 'bars') {
+      const barCount = 46;
+      const step = barsW / barCount;
+      const bw = Math.max(4, step * 0.58);
+      const barGrad = c.createLinearGradient(barsX, barBaseY - maxBarH, barsX + barsW, barBaseY);
+      barGrad.addColorStop(0, pal[2]); barGrad.addColorStop(1, pal[3]);
+      for (let i = 0; i < barCount; i++) {
+        let v = 0.16 + 0.34 * Math.abs(Math.sin(tSec * 4.2 + i * 0.32));
+        if (bins && bins.length) {
+          const bi = clamp(Math.floor((i / barCount) * (bins.length * 0.68)), 0, bins.length - 1);
+          v = Math.max(0.07, bins[bi] / 255);
+        }
+        agPeakHold[i] = Math.max(v, agPeakHold[i] * 0.94);
+        const bh = Math.max(6, v * maxBarH);
+        const ph = Math.max(6, agPeakHold[i] * maxBarH);
+        c.fillStyle = barGrad;
+        roundRect(c, barsX + i * step, barBaseY - bh, bw, bh, bw / 2); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.78)';
+        roundRect(c, barsX + i * step, barBaseY - ph - Math.max(4, bw * 0.65), bw, Math.max(3, bw * 0.48), bw / 2); c.fill();
       }
-      const bh = Math.max(8, v * maxBarH);
-      roundRect(c, barsX + i * step, barBaseY - bh, bw, bh, bw / 2);
-      c.fill();
+    } else if (viz === 'mirror') {
+      const barCount = 44;
+      const step = barsW / barCount;
+      const bw = Math.max(4, step * 0.58);
+      const midY = barBaseY - maxBarH * 0.5;
+      const barGrad = c.createLinearGradient(barsX, midY - maxBarH * 0.5, barsX + barsW, midY + maxBarH * 0.5);
+      barGrad.addColorStop(0, pal[2]); barGrad.addColorStop(1, pal[3]);
+      c.fillStyle = barGrad;
+      for (let i = 0; i < barCount; i++) {
+        const sym = Math.abs(i - (barCount - 1) / 2) / (barCount / 2);
+        let v = 0.18 + 0.45 * (1 - sym * 0.5) * Math.abs(Math.sin(tSec * 4.6 + i * 0.38));
+        if (bins && bins.length) {
+          const bi = clamp(Math.floor(sym * (bins.length * 0.65)), 0, bins.length - 1);
+          v = Math.max(0.08, bins[bi] / 255);
+        }
+        const half = Math.max(5, v * maxBarH * 0.55);
+        roundRect(c, barsX + i * step, midY - half, bw, half * 2, bw / 2); c.fill();
+      }
+    } else if (viz === 'wave') {
+      const pts = 56;
+      const midY = barBaseY - maxBarH * 0.45;
+      for (let layer = 0; layer < 2; layer++) {
+        c.save();
+        c.beginPath();
+        for (let i = 0; i <= pts; i++) {
+          const u = i / pts;
+          const x = barsX + u * barsW;
+          const env = Math.sin(u * Math.PI);
+          let amp = 0.25 + 0.35 * Math.sin(tSec * (3.5 + layer) + u * 8);
+          if (bins && bins.length) {
+            const bi = clamp(Math.floor(u * (bins.length * 0.6)), 0, bins.length - 1);
+            amp = Math.max(0.08, bins[bi] / 255);
+          }
+          const y = midY + Math.sin(u * 12 + tSec * (5.2 - layer * 1.4) + layer * 1.5) * (amp * maxBarH * 0.52 * env);
+          if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        }
+        c.strokeStyle = layer === 0 ? pal[2] : pal[3];
+        c.lineWidth = Math.max(3, minDim * (layer === 0 ? 0.006 : 0.0038));
+        c.globalAlpha = layer === 0 ? 0.95 : 0.62;
+        c.shadowColor = pal[2]; c.shadowBlur = 16;
+        c.stroke();
+        c.restore();
+      }
     }
 
-    // Progress Bar & Time
-    const pw = barsW, px = barsX, py = h - (vertical ? 120 : 62);
+    // 5. Optional Marker Captions lower-third pill
+    if (o.captions) {
+      const cap = agActiveCaption((o.startSec || 0) + tSec);
+      if (cap) {
+        c.save();
+        c.globalAlpha = cap.alpha;
+        const capW = Math.min(barsW, Math.round(w * 0.84));
+        const capH = Math.round(minDim * (cap.note ? 0.088 : 0.056));
+        const capX = Math.round((w - capW) / 2);
+        const capY = barBaseY - maxBarH - capH - Math.round(minDim * 0.025);
+        roundRect(c, capX, capY, capW, capH, Math.round(capH * 0.4));
+        c.fillStyle = 'rgba(10, 14, 24, .74)'; c.fill();
+        c.strokeStyle = cap.color + '88'; c.lineWidth = 1.8; c.stroke();
+        c.fillStyle = '#ffffff';
+        c.font = `650 ${Math.round(minDim * 0.024)}px -apple-system, sans-serif`;
+        c.textAlign = 'center'; c.textBaseline = cap.note ? 'top' : 'middle';
+        c.fillText(cap.title.slice(0, 42), w / 2, cap.note ? capY + capH * 0.18 : capY + capH / 2, capW - 28);
+        if (cap.note) {
+          c.fillStyle = 'rgba(255,255,255,.76)';
+          c.font = `500 ${Math.round(minDim * 0.020)}px -apple-system, sans-serif`;
+          c.fillText(cap.note.slice(0, 56), w / 2, capY + capH * 0.56, capW - 28);
+        }
+        c.restore();
+      }
+    }
+
+    // 6. Progress Bar & Timecode
+    const pw = barsW, px = barsX, py = h - Math.round(h * (vertical ? 0.092 : 0.088));
+    const pH = Math.max(6, Math.round(minDim * 0.009));
     c.fillStyle = 'rgba(255,255,255,.18)';
-    roundRect(c, px, py, pw, 7, 3.5); c.fill();
-    c.fillStyle = pal[2];
-    roundRect(c, px, py, Math.max(7, pw * clamp(progress, 0, 1)), 7, 3.5); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.72)';
-    c.font = '600 16px ui-monospace, monospace';
-    c.textAlign = 'left'; c.fillText(fmtTime(tSec, true), px, py + 16);
-    c.textAlign = 'right'; c.fillText(fmtTime(totalSec, true), px + pw, py + 16);
+    roundRect(c, px, py, pw, pH, pH / 2); c.fill();
+    const pGrad = c.createLinearGradient(px, py, px + pw, py);
+    pGrad.addColorStop(0, pal[2]); pGrad.addColorStop(1, pal[3]);
+    c.fillStyle = pGrad;
+    roundRect(c, px, py, Math.max(pH, pw * progress), pH, pH / 2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.74)';
+    c.font = `600 ${Math.round(minDim * 0.022)}px ui-monospace, monospace`;
+    c.textBaseline = 'top';
+    c.textAlign = 'left'; c.fillText(fmtTime(tSec, true), px, py + pH + 8);
+    c.textAlign = 'right'; c.fillText(fmtTime(totalSec, true), px + pw, py + pH + 8);
     c.textAlign = 'left';
+
+    // 7. Optional Sonora corner badge
+    if (o.badge !== false) {
+      c.save();
+      const bFont = Math.round(minDim * 0.017);
+      const bPad = Math.round(minDim * 0.025);
+      c.font = `700 ${bFont}px -apple-system, sans-serif`;
+      c.textAlign = 'right'; c.textBaseline = 'top';
+      c.fillStyle = 'rgba(255,255,255,.45)';
+      c.fillText('SONORA', w - bPad, bPad);
+      c.restore();
+    }
   }
 
   async function openAudiogramModal() {
@@ -27292,9 +27602,10 @@ self.onmessage = function (e) {
     if (typeof HTMLCanvasElement === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
       return toast('Canvas video capture is not supported in this browser', 'err', 3600);
     }
+    stopAudiogramPreview();
     const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
     $('#modal').inert = false; $('.app').inert = true; document.body.classList.add('overlay-open');
-    $('#modalTitle').textContent = 'Export Audiogram Video';
+    $('#modalTitle').textContent = 'Sonora Video Studio';
     agCoverImg = null;
     if (CoverArt && CoverArt.url) {
       try {
@@ -27305,50 +27616,274 @@ self.onmessage = function (e) {
     }
     const [sa, sb] = selRange();
     const selDurS = (sb - sa) / S.rate;
+    const defTitle = ($('#exTitle') && $('#exTitle').value) || (S.meta && S.meta.title) || S.name || '';
+    const defArtist = ($('#exArtist') && $('#exArtist').value) || (S.meta && S.meta.artist) || 'Sonora Studio';
+    const hasMarkers = Markers && Markers.list && Markers.list.length > 0;
+    const themes = [
+      ['glass', 'Midnight', '#64d2ff'],
+      ['gold', 'Obsidian', '#ffd60a'],
+      ['amber', 'Sunset', '#ff9f0a'],
+      ['emerald', 'Emerald', '#30d158'],
+      ['violet', 'Violet', '#bf5af2'],
+      ['crimson', 'Crimson', '#ff453a'],
+    ];
+    let curTheme = 'glass', curViz = 'bars', curArtStyle = 'card', curTab = 'look';
+
     $('#modalBody').innerHTML = `
       <div class="ag-wrap">
-        <div class="ag-preview-box"><canvas id="agPreviewCanvas"></canvas></div>
-        <div class="grid-2">
-          <div class="field"><label for="agRatio">Aspect Ratio</label>
-            <select id="agRatio">
-              <option value="9:16" selected>9:16 Reels / Shorts</option>
-              <option value="1:1">1:1 Square Feed</option>
-              <option value="16:9">16:9 YouTube</option>
-            </select>
-          </div>
-          <div class="field"><label for="agTheme">Glass Theme</label>
-            <select id="agTheme">
-              <option value="glass" selected>Midnight Glass</option>
-              <option value="amber">Sunset Amber</option>
-              <option value="emerald">Emerald Studio</option>
-              <option value="violet">Neon Violet</option>
-            </select>
+        <div class="ag-preview-box">
+          <canvas id="agPreviewCanvas"></canvas>
+          <div class="ag-preview-bar">
+            <button type="button" class="btn icon" id="agPreviewPlay" title="Play / pause preview" aria-label="Play preview"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg></button>
+            <input type="range" id="agPreviewScrub" min="0" max="1000" value="0" aria-label="Preview scrub">
+            <span id="agPreviewTime">0:00.0 / ${fmtTime(selDurS, false)}</span>
           </div>
         </div>
-        <div class="grid-2">
-          <div class="field"><label for="agTitle">Video Title</label><input type="text" id="agTitle" value="${escHtml($('#exTitle')?.value || S.name || '')}"></div>
-          <div class="field"><label for="agArtist">Subtitle / Artist</label><input type="text" id="agArtist" value="${escHtml($('#exArtist')?.value || 'Sonora Studio')}"></div>
+
+        <div class="ag-tabs" role="tablist" aria-label="Video Studio sections">
+          <button type="button" class="ag-tab" role="tab" data-ag-tab="look" aria-selected="true">Look &amp; Style</button>
+          <button type="button" class="ag-tab" role="tab" data-ag-tab="visuals" aria-selected="false">Art &amp; Text</button>
+          <button type="button" class="ag-tab" role="tab" data-ag-tab="export" aria-selected="false">Quality</button>
         </div>
-        <div class="field"><label for="agScope">Audio Range</label>
-          <select id="agScope">
-            <option value="selection" selected>Selection (${fmtTime(selDurS, true)})</option>
-            <option value="all">Whole track (${fmtTime(dur(), true)})</option>
-          </select>
+
+        <div class="ag-pane" data-ag-pane="look">
+          <div class="grid-2">
+            <div class="field"><label for="agRatio">Aspect Ratio</label>
+              <select id="agRatio">
+                <option value="9:16" selected>9:16 Reels / Shorts</option>
+                <option value="4:5">4:5 Portrait Feed</option>
+                <option value="1:1">1:1 Square Post</option>
+                <option value="16:9">16:9 YouTube HD</option>
+              </select>
+            </div>
+            <div class="field"><label for="agArtStyle">Artwork Frame</label>
+              <select id="agArtStyle">
+                <option value="card" selected>Glass Card</option>
+                <option value="vinyl">Spinning Vinyl</option>
+                <option value="backdrop">Full Backdrop</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Visualizer</label>
+            <div class="ag-chip-row" id="agVizRow">
+              <button type="button" class="ag-chip" data-ag-viz="bars" aria-pressed="true">Spectrum Bars</button>
+              <button type="button" class="ag-chip" data-ag-viz="orbital" aria-pressed="false">Orbital Ring</button>
+              <button type="button" class="ag-chip" data-ag-viz="wave" aria-pressed="false">Liquid Wave</button>
+              <button type="button" class="ag-chip" data-ag-viz="mirror" aria-pressed="false">Pulse Mirror</button>
+              <button type="button" class="ag-chip" data-ag-viz="minimal" aria-pressed="false">Minimal</button>
+            </div>
+          </div>
+          <div class="field"><label>Color Theme</label>
+            <div class="ag-swatches" id="agSwatchRow">
+              ${themes.map(([id, lbl, col], idx) => `<button type="button" class="ag-swatch" data-ag-theme="${id}" aria-pressed="${idx === 0}"><i style="background:${col}"></i>${lbl}</button>`).join('')}
+            </div>
+          </div>
         </div>
+
+        <div class="ag-pane" data-ag-pane="visuals" hidden>
+          <div class="ag-art-row">
+            <div class="ag-art-thumb" id="agArtThumb">${agCoverImg ? `<img src="${CoverArt.url}" alt="Cover">` : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>'}</div>
+            <div class="ag-art-meta"><b>Cover Image</b><span id="agArtName">${agCoverImg ? 'Embedded / project cover art' : 'Auto waveform emblem'}</span></div>
+            <button type="button" class="btn sm" id="agArtChoose">Choose</button>
+            <button type="button" class="btn sm ghost" id="agArtClear" ${agCoverImg ? '' : 'hidden'}>×</button>
+            <input type="file" id="agArtFile" accept="image/*" hidden>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label for="agTitle">Video Title</label><input type="text" id="agTitle" value="${escHtml(defTitle)}"></div>
+            <div class="field"><label for="agArtist">Subtitle / Artist</label><input type="text" id="agArtist" value="${escHtml(defArtist)}"></div>
+          </div>
+          <label class="checkrow"><input type="checkbox" id="agBlurBg" checked><span>Blurred cover art backdrop</span></label>
+          <label class="checkrow"><input type="checkbox" id="agParticles" checked><span>Bass-reactive ambient bokeh particles</span></label>
+          <label class="checkrow"><input type="checkbox" id="agCaptions" ${hasMarkers ? 'checked' : ''}><span>Show markers as timed captions (${hasMarkers ? Markers.list.length : '0'})</span></label>
+          <label class="checkrow"><input type="checkbox" id="agBadge" checked><span>Show Sonora studio watermark</span></label>
+        </div>
+
+        <div class="ag-pane" data-ag-pane="export" hidden>
+          <div class="grid-2">
+            <div class="field"><label for="agScope">Audio Range</label>
+              <select id="agScope">
+                <option value="selection" selected>Selection (${fmtTime(selDurS, true)})</option>
+                <option value="all">Whole track (${fmtTime(dur(), true)})</option>
+              </select>
+            </div>
+            <div class="field"><label for="agQuality">Resolution &amp; FPS</label>
+              <select id="agQuality">
+                <option value="1080-60">1080p HD · 60 fps</option>
+                <option value="1080-30" selected>1080p HD · 30 fps</option>
+                <option value="720-30">720p Fast · 30 fps</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="agFormat">Container Preference</label>
+            <select id="agFormat">
+              <option value="auto" selected>Auto (Best browser codec: MP4 / WebM)</option>
+              <option value="mp4">MP4 (H.264 / AAC when supported)</option>
+              <option value="webm">WebM (VP9 / Opus)</option>
+            </select>
+          </div>
+          <label class="checkrow"><input type="checkbox" id="agFade" checked><span>Smooth 120 ms audio fade-in &amp; fade-out</span></label>
+          <label class="checkrow"><input type="checkbox" id="agStudio" checked><span>Include Track 2 mix &amp; live FX rack</span></label>
+        </div>
+
         <div class="prog" id="agProg"><i></i></div>
-        <button type="button" class="btn primary wide" id="btnRenderAudiogram">Render &amp; Download Video</button>
-        <p class="hint" id="agStatus">Renders in real time with live spectrum bars + embedded cover art.</p>
+        <div class="ag-actions">
+          <button type="button" class="btn primary" id="btnRenderAudiogram">Render &amp; Download Video</button>
+          <button type="button" class="btn warn" id="btnCancelAudiogram" hidden>Cancel</button>
+        </div>
+        <p class="hint" id="agStatus">Press ▶ above for live audio-reactive preview before rendering.</p>
       </div>`;
 
     $('#modal').classList.add('on');
     $('#scrim').classList.add('on');
     $('#modalClose').focus();
 
+    const getOpts = (hd = false) => ({
+      ratio: $('#agRatio') ? $('#agRatio').value : '9:16',
+      theme: curTheme,
+      viz: curViz,
+      artStyle: $('#agArtStyle') ? $('#agArtStyle').value : curArtStyle,
+      title: $('#agTitle') ? $('#agTitle').value : defTitle,
+      artist: $('#agArtist') ? $('#agArtist').value : defArtist,
+      blurBg: $('#agBlurBg') ? $('#agBlurBg').checked : true,
+      particles: $('#agParticles') ? $('#agParticles').checked : true,
+      captions: $('#agCaptions') ? $('#agCaptions').checked : false,
+      badge: $('#agBadge') ? $('#agBadge').checked : true,
+      hd,
+    });
+
+    const scopeRange = () => ($('#agScope') && $('#agScope').value === 'all') ? [0, S.data[0].length] : selRange();
+
+    // Tab switching
+    $$('[data-ag-tab]').forEach((tabBtn) => {
+      tabBtn.onclick = () => {
+        curTab = tabBtn.dataset.agTab;
+        $$('[data-ag-tab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.agTab === curTab));
+        $$('[data-ag-pane]').forEach((p) => { p.hidden = p.dataset.agPane !== curTab; });
+      };
+    });
+
+    // Visualizer & theme chips
+    $$('[data-ag-viz]').forEach((btn) => {
+      btn.onclick = () => {
+        curViz = btn.dataset.agViz;
+        $$('[data-ag-viz]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.agViz === curViz));
+      };
+    });
+    $$('[data-ag-theme]').forEach((btn) => {
+      btn.onclick = () => {
+        curTheme = btn.dataset.agTheme;
+        $$('[data-ag-theme]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.agTheme === curTheme));
+      };
+    });
+    if ($('#agArtStyle')) $('#agArtStyle').onchange = () => { curArtStyle = $('#agArtStyle').value; };
+
+    // Custom artwork upload
+    if ($('#agArtChoose')) $('#agArtChoose').onclick = () => $('#agArtFile') && $('#agArtFile').click();
+    if ($('#agArtFile')) {
+      $('#agArtFile').onchange = (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        const im = new Image();
+        im.onload = () => {
+          agCoverImg = im;
+          if ($('#agArtThumb')) $('#agArtThumb').innerHTML = `<img src="${url}" alt="Cover">`;
+          if ($('#agArtName')) $('#agArtName').textContent = f.name;
+          if ($('#agArtClear')) $('#agArtClear').hidden = false;
+        };
+        im.src = url;
+      };
+    }
+    if ($('#agArtClear')) {
+      $('#agArtClear').onclick = () => {
+        agCoverImg = null;
+        if ($('#agArtThumb')) $('#agArtThumb').innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+        if ($('#agArtName')) $('#agArtName').textContent = 'Auto waveform emblem';
+        $('#agArtClear').hidden = true;
+      };
+    }
+
+    // Live audio-reactive preview player
+    const startPreviewAt = async (offsetSec) => {
+      stopAudiogramPreview();
+      try {
+        const c = AC();
+        if (c.state === 'suspended') await c.resume();
+        const [a, b] = scopeRange();
+        let data = ($('#agStudio') && $('#agStudio').checked && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
+        if ($('#agStudio') && $('#agStudio').checked && liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
+        agPreviewDur = Math.max(0.05, data[0].length / S.rate);
+        agPreviewOffset = clamp(offsetSec, 0, Math.max(0, agPreviewDur - 0.05));
+        const buf = c.createBuffer(data.length, data[0].length, S.rate);
+        for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
+        agPreviewAn = c.createAnalyser(); agPreviewAn.fftSize = 256;
+        agPreviewBins = new Uint8Array(agPreviewAn.frequencyBinCount);
+        agPreviewSrc = c.createBufferSource(); agPreviewSrc.buffer = buf;
+        agPreviewSrc.connect(agPreviewAn); agPreviewAn.connect(c.destination);
+        agPreviewSrc.onended = () => {
+          if (agPreviewPlaying) {
+            agPreviewOffset = 0;
+            stopAudiogramPreview();
+          }
+        };
+        agPreviewStartAt = c.currentTime - agPreviewOffset;
+        agPreviewPlaying = true;
+        agPreviewSrc.start(0, agPreviewOffset);
+        if ($('#agPreviewPlay')) {
+          $('#agPreviewPlay').setAttribute('aria-label', 'Pause preview');
+          $('#agPreviewPlay').innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="7" y="5" width="3.6" height="14" rx="1.3"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.3"/></svg>';
+        }
+      } catch (e) {
+        toast('Preview unavailable: ' + e.message, 'info', 2500);
+      }
+    };
+
+    if ($('#agPreviewPlay')) {
+      $('#agPreviewPlay').onclick = () => {
+        if (agPreviewPlaying) {
+          const c = AC();
+          agPreviewOffset = clamp(c.currentTime - agPreviewStartAt, 0, Math.max(0, agPreviewDur));
+          stopAudiogramPreview();
+        } else {
+          startPreviewAt(agPreviewOffset);
+        }
+      };
+    }
+    if ($('#agPreviewScrub')) {
+      $('#agPreviewScrub').oninput = () => {
+        const [a, b] = scopeRange();
+        const tot = Math.max(0.05, (b - a) / S.rate);
+        agPreviewOffset = (Number($('#agPreviewScrub').value) / 1000) * tot;
+        if (agPreviewPlaying) startPreviewAt(agPreviewOffset);
+      };
+    }
+    if ($('#agScope')) {
+      $('#agScope').onchange = () => {
+        agPreviewOffset = 0;
+        if (agPreviewPlaying) stopAudiogramPreview();
+      };
+    }
+
     const redrawPreview = () => {
       const cv = $('#agPreviewCanvas');
       if (!cv || !$('#modal').classList.contains('on')) { agAnimRaf = 0; return; }
-      const total = $('#agScope').value === 'all' ? dur() : selDurS;
-      drawAudiogramFrame(cv, $('#agRatio').value, $('#agTheme').value, $('#agTitle').value, $('#agArtist').value, 0.35, analyserBuf, total * 0.35, total);
+      const [a, b] = scopeRange();
+      const total = Math.max(0.05, (b - a) / S.rate);
+      let tSec = agPreviewOffset;
+      let bins = analyserBuf;
+      if (agPreviewPlaying && agPreviewAn) {
+        const c = AC();
+        tSec = clamp(c.currentTime - agPreviewStartAt, 0, total);
+        agPreviewOffset = tSec;
+        agPreviewAn.getByteFrequencyData(agPreviewBins);
+        bins = agPreviewBins;
+      }
+      if ($('#agPreviewScrub') && agPreviewPlaying) $('#agPreviewScrub').value = Math.round((tSec / total) * 1000);
+      if ($('#agPreviewTime')) $('#agPreviewTime').textContent = `${fmtTime(tSec, false)} / ${fmtTime(total, false)}`;
+      const opts = getOpts(false);
+      opts.tSec = tSec; opts.totalSec = total; opts.startSec = a / S.rate;
+      opts.progress = tSec / total; opts.bins = bins;
+      drawAudiogramFrame(cv, opts);
       agAnimRaf = requestAnimationFrame(redrawPreview);
     };
     cancelAnimationFrame(agAnimRaf);
@@ -27357,25 +27892,33 @@ self.onmessage = function (e) {
     let rendering = false;
     $('#btnRenderAudiogram').onclick = async () => {
       if (rendering) return;
+      stopAudiogramPreview();
       rendering = true;
+      let cancelled = false;
       const btn = $('#btnRenderAudiogram');
+      const cancelBtn = $('#btnCancelAudiogram');
       btn.disabled = true; btn.textContent = 'Rendering video…';
+      if (cancelBtn) cancelBtn.hidden = false;
       $('#agProg').classList.add('on');
       try {
         const c = AC();
         if (c.state === 'suspended') await c.resume();
-        const useAll = $('#agScope').value === 'all';
-        const [a, b] = useAll ? [0, S.data[0].length] : selRange();
-        let data = (Layer.active || Stems.clips.length || Regions.list.length) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
-        if (liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
+        const [a, b] = scopeRange();
+        const useStudio = !$('#agStudio') || $('#agStudio').checked;
+        let data = (useStudio && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
+        if (useStudio && liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
+        if ($('#agFade') && $('#agFade').checked) D.fade(data, S.rate, [0, data[0].length], 120, 'cos', 'both');
         const totalSec = data[0].length / S.rate;
         const buf = c.createBuffer(data.length, data[0].length, S.rate);
         for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
 
+        const qVal = ($('#agQuality') && $('#agQuality').value) || '1080-30';
+        const is1080 = qVal.startsWith('1080');
+        const fps = qVal.endsWith('60') ? 60 : 30;
         const offCv = document.createElement('canvas');
-        const ratio = $('#agRatio').value, theme = $('#agTheme').value;
-        const title = $('#agTitle').value, artist = $('#agArtist').value;
-        drawAudiogramFrame(offCv, ratio, theme, title, artist, 0, null, 0, totalSec);
+        const opts = getOpts(is1080);
+        opts.tSec = 0; opts.totalSec = totalSec; opts.startSec = a / S.rate; opts.progress = 0; opts.bins = null;
+        drawAudiogramFrame(offCv, opts);
 
         const dest = c.createMediaStreamDestination();
         const agAn = c.createAnalyser(); agAn.fftSize = 256;
@@ -27383,43 +27926,63 @@ self.onmessage = function (e) {
         const srcN = c.createBufferSource(); srcN.buffer = buf;
         srcN.connect(agAn); agAn.connect(dest);
 
-        const vStream = offCv.captureStream(30);
+        const vStream = offCv.captureStream(fps);
         const combo = new MediaStream([...vStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
-        const mimes = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+        const pref = ($('#agFormat') && $('#agFormat').value) || 'auto';
+        const mp4List = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4'];
+        const webmList = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+        const mimes = pref === 'mp4' ? [...mp4List, ...webmList] : pref === 'webm' ? [...webmList, ...mp4List] : [...mp4List, ...webmList];
         const mime = mimes.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
-        const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: 3500000, audioBitsPerSecond: 192000 } : undefined);
+        const vBps = is1080 ? (fps === 60 ? 7500000 : 5200000) : 3200000;
+        const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: vBps, audioBitsPerSecond: 192000 } : undefined);
         const chunks = [];
         recV.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
 
         const startAt = c.currentTime;
         let stopDraw = false;
+        agCancelRender = () => {
+          cancelled = true; stopDraw = true;
+          try { srcN.onended = null; srcN.stop(); } catch (e) {}
+          try { if (recV.state !== 'inactive') recV.stop(); } catch (e) {}
+        };
+        if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
+
         const stepRender = () => {
-          if (stopDraw || !$('#modal').classList.contains('on')) return;
+          if (stopDraw || cancelled || !$('#modal').classList.contains('on')) return;
           const el = Math.min(totalSec, Math.max(0, c.currentTime - startAt));
           agAn.getByteFrequencyData(agBins);
-          drawAudiogramFrame(offCv, ratio, theme, title, artist, el / Math.max(0.01, totalSec), agBins, el, totalSec);
+          opts.tSec = el; opts.progress = el / Math.max(0.01, totalSec); opts.bins = agBins;
+          drawAudiogramFrame(offCv, opts);
           $('#agProg').firstElementChild.style.width = Math.round((el / Math.max(0.01, totalSec)) * 100) + '%';
-          if ($('#agStatus')) $('#agStatus').textContent = `Rendering ${fmtTime(el, true)} / ${fmtTime(totalSec, true)}…`;
+          if ($('#agStatus')) $('#agStatus').textContent = `Rendering ${fmtTime(el, true)} / ${fmtTime(totalSec, true)} · ${is1080 ? '1080p' : '720p'} ${fps}fps…`;
           requestAnimationFrame(stepRender);
         };
 
         const blob = await new Promise((resolve) => {
-          recV.onstop = () => resolve(new Blob(chunks, { type: mime || 'video/webm' }));
+          recV.onstop = () => resolve(cancelled ? null : new Blob(chunks, { type: mime || 'video/webm' }));
           srcN.onended = () => { stopDraw = true; setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 100); };
           recV.start(250);
           srcN.start();
           requestAnimationFrame(stepRender);
         });
-        const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
-        const fname = sanitizeName(title || S.name) + '-audiogram.' + ext;
-        downloadBlob(blob, fname);
-        toast(`Exported ${fname} (${fmtBytes(blob.size)})`, 'ok', 3400);
-        if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)})`;
+        agCancelRender = null;
+        if (cancelled || !blob) {
+          toast('Video render cancelled', 'info', 2200);
+          if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
+        } else {
+          const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
+          const fname = sanitizeName(opts.title || S.name) + '-video.' + ext;
+          downloadBlob(blob, fname);
+          toast(`Exported ${fname} (${fmtBytes(blob.size)})`, 'ok', 3400);
+          if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)})`;
+        }
       } catch (e) {
-        toast('Audiogram export failed: ' + e.message, 'err', 4200);
+        toast('Video export failed: ' + e.message, 'err', 4200);
       } finally {
+        agCancelRender = null;
         rendering = false;
         btn.disabled = false; btn.textContent = 'Render & Download Video';
+        if (cancelBtn) cancelBtn.hidden = true;
         $('#agProg').classList.remove('on');
       }
     };
