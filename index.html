@@ -866,6 +866,28 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .env-bar { display: flex; flex-direction: column; gap: 8px; padding: 11px 12px; border-radius: var(--r-md); background: rgba(100, 210, 255, .08); border: 1px solid rgba(100, 210, 255, .26); }
 .env-bar .row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .env-bar b { font-size: 12px; color: #dcf6ff; }
+.auto-seg {
+  display: inline-flex; gap: 3px; padding: 3px; border-radius: 999px;
+  background: rgba(0, 0, 0, .34); border: 1px solid rgba(255, 255, 255, .1);
+}
+.auto-seg button {
+  min-height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  color: var(--txt-2); transition: background var(--fast), color var(--fast);
+}
+.auto-seg button[aria-pressed="true"] { background: rgba(100, 210, 255, .22); color: #e8f8ff; box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+.auto-seg button[data-amode="pan"][aria-pressed="true"] { background: rgba(255, 214, 10, .22); color: #fff2b2; }
+.ref-ab-card {
+  display: flex; flex-direction: column; gap: 9px; padding: 11px 12px; border-radius: 16px;
+  background: rgba(255, 159, 10, .07); border: 1px solid rgba(255, 159, 10, .28);
+}
+.ref-ab-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ref-ab-bar button { min-height: 36px; font-weight: 650; }
+.ref-ab-bar button.is-a { background: rgba(100, 210, 255, .2); border-color: rgba(100, 210, 255, .55); color: #e8f8ff; }
+.ref-ab-bar button.is-b { background: rgba(255, 159, 10, .24); border-color: rgba(255, 159, 10, .62); color: #ffe7bf; }
+.send-bus-box {
+  display: flex; flex-direction: column; gap: 9px; padding: 10px 11px; border-radius: 14px;
+  background: rgba(100, 210, 255, .055); border: 1px solid rgba(100, 210, 255, .22);
+}
 
 /* Export & History */
 #exportHost { display: flex; flex-direction: column; gap: 14px; padding-bottom: 6px; }
@@ -2012,6 +2034,7 @@ body.overlay-open { overflow: hidden; }
   <button type="button" class="tbtn sm" id="btnMiniPip" title="Pop out Picture-in-Picture" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
 </div>
 <input type="file" id="matchRefInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
+<input type="file" id="refTrackInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
 
 <div id="mergeHost" hidden>
   <div class="merge-panel" id="mergePanel">
@@ -19440,9 +19463,108 @@ lamejs();
         case 'denoise': out = out.map((ch) => denoise(ch, sampleRate, op)); break;
         case 'compress': compress(out, full(), sampleRate, op); break;
         case 'deess': deess(out, full(), sampleRate, op); break;
+        case 'masterLimit': out = masterImagerAndLimit(out, sampleRate, op); break;
         default: throw new Error('unknown op ' + op.t);
       }
       if (onProgress) onProgress((i + 1) / ops.length);
+    }
+    return out;
+  }
+
+  function stereoDelay(data, sampleRate, opts) {
+    opts = opts || {};
+    const chs = data.length > 1 ? [Float32Array.from(data[0]), Float32Array.from(data[1])] : [Float32Array.from(data[0]), Float32Array.from(data[0])];
+    const len = chs[0].length;
+    const delayMs = clamp(opts.delayMs || 320, 30, 1200);
+    const fb = clamp((opts.feedback != null ? opts.feedback : 0.35), 0, 0.85);
+    const toneHz = clamp(opts.toneHz || 4200, 600, sampleRate * 0.45);
+    const wetOnly = !!opts.wetOnly;
+    const wet = opts.wet != null ? clamp(opts.wet, 0, 1) : 1;
+    const dL = Math.max(1, Math.round((delayMs / 1000) * sampleRate));
+    const dR = Math.max(1, Math.round(((delayMs * 1.33) / 1000) * sampleRate));
+    const bufL = new Float32Array(dL), bufR = new Float32Array(dR);
+    const outL = new Float32Array(len), outR = new Float32Array(len);
+    const lpAlpha = 1 - Math.exp((-2 * Math.PI * toneHz) / sampleRate);
+    let idxL = 0, idxR = 0, lpL = 0, lpR = 0;
+    for (let i = 0; i < len; i++) {
+      const tapL = bufL[idxL], tapR = bufR[idxR];
+      lpL += lpAlpha * (tapL - lpL);
+      lpR += lpAlpha * (tapR - lpR);
+      const inL = chs[0][i], inR = chs[1][i];
+      bufL[idxL] = inL + lpR * fb;
+      bufR[idxR] = inR + lpL * fb;
+      idxL = (idxL + 1) % dL;
+      idxR = (idxR + 1) % dR;
+      outL[i] = wetOnly ? lpL * wet : inL + lpL * wet;
+      outR[i] = wetOnly ? lpR * wet : inR + lpR * wet;
+    }
+    return data.length > 1 ? [outL, outR] : [outL.map((v, i) => (v + outR[i]) * 0.5)];
+  }
+
+  function masterImagerAndLimit(data, sampleRate, opts) {
+    opts = opts || {};
+    const n = data[0] ? data[0].length : 0;
+    if (!n) return data;
+    const width = clamp((opts.widthPct != null ? opts.widthPct : 100) / 100, 0, 2);
+    const monoHz = clamp(opts.monoBelowHz || 0, 0, 350);
+    const brickOn = !!opts.brickEnable;
+    const driveLin = brickOn ? dbToLin(clamp(opts.driveDb || 0, 0, 14)) : 1;
+    const ceilLin = brickOn ? dbToLin(clamp(opts.ceilingDb != null ? opts.ceilingDb : -0.5, -6, -0.05)) : 10;
+
+    let out = data.map((ch) => Float32Array.from(ch));
+    if (out.length >= 2 && (Math.abs(width - 1) > 0.005 || monoHz >= 20)) {
+      const L = out[0], R = out[1];
+      const mid = new Float32Array(n);
+      let side = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        mid[i] = 0.5 * (L[i] + R[i]);
+        side[i] = 0.5 * (L[i] - R[i]) * width;
+      }
+      if (monoHz >= 20) {
+        const cHp = biquadCoeffs('highpass', monoHz, 0, 0.707, sampleRate);
+        side = applyBiquad(side, cHp);
+      }
+      for (let i = 0; i < n; i++) {
+        L[i] = mid[i] + side[i];
+        R[i] = mid[i] - side[i];
+      }
+    }
+
+    if (brickOn) {
+      const lookS = Math.max(1, Math.round(0.002 * sampleRate));
+      const relCoef = Math.exp(-1 / Math.max(1, 0.055 * sampleRate));
+      const gainEnv = new Float32Array(n);
+      const peakBuf = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        let pk = 0;
+        for (let c = 0; c < out.length; c++) {
+          let v = out[c][i] * driveLin;
+          if (driveLin > 1.05) v = Math.tanh(v / (ceilLin * 1.6)) * (ceilLin * 1.6);
+          out[c][i] = v;
+          const av = Math.abs(v);
+          if (av > pk) pk = av;
+        }
+        peakBuf[i] = pk;
+      }
+      // Lookahead max + smooth attack/release envelope
+      let env = 1;
+      for (let i = 0; i < n; i++) {
+        let aheadMax = peakBuf[i];
+        const end = Math.min(n, i + lookS);
+        for (let k = i + 1; k < end; k++) {
+          if (peakBuf[k] > aheadMax) aheadMax = peakBuf[k];
+        }
+        const needed = aheadMax > ceilLin ? (ceilLin / aheadMax) : 1;
+        if (needed < env) env = needed;
+        else env = env * relCoef + (1 - relCoef) * needed;
+        gainEnv[i] = Math.min(1, env);
+      }
+      for (let i = 0; i < n; i++) {
+        const g = gainEnv[i];
+        for (let c = 0; c < out.length; c++) {
+          out[c][i] = clamp(out[c][i] * g, -ceilLin, ceilLin);
+        }
+      }
     }
     return out;
   }
@@ -19461,15 +19583,15 @@ lamejs();
       const out = Float32Array.from(ch);
       let seg = ch.slice(a, b);
       if (mode === 'notch') {
-        const c1 = biquadCoeffs('peaking', sampleRate, fc, clamp(q, 0.8, 12), -24);
+        const c1 = biquadCoeffs('peaking', fc, -24, clamp(q, 0.8, 12), sampleRate);
         seg = applyBiquad(seg, c1);
-        const c2 = biquadCoeffs('notch', sampleRate, fc, clamp(q * 1.1, 1.0, 14), 0);
+        const c2 = biquadCoeffs('notch', fc, 0, clamp(q * 1.1, 1.0, 14), sampleRate);
         seg = applyBiquad(seg, c2);
       } else if (mode === 'dip') {
-        const c1 = biquadCoeffs('peaking', sampleRate, fc, clamp(q, 0.6, 10), -9);
+        const c1 = biquadCoeffs('peaking', fc, -9, clamp(q, 0.6, 10), sampleRate);
         seg = applyBiquad(seg, c1);
       } else if (mode === 'isolate') {
-        const c1 = biquadCoeffs('bandpass', sampleRate, fc, clamp(q, 0.6, 10), 0);
+        const c1 = biquadCoeffs('bandpass', fc, 0, clamp(q, 0.6, 10), sampleRate);
         seg = applyBiquad(applyBiquad(seg, c1), c1);
       }
       for (let i = 0; i < seg.length; i++) {
@@ -19488,7 +19610,7 @@ lamejs();
   const SonicDSP = {
     FFT, getFFT, hann, nextPow2, clamp, dbToLin, linToDb, lerp, smoothstep, smootherstep,
     resample, resampleChannel, fade, applyFade, gain, removeDC, peakOf, rmsOf, stats, normalize,
-    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, scanClipping, declip, vocalTools, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
+    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, stereoDelay, masterImagerAndLimit, scanClipping, declip, vocalTools, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
     concat, crossfade, biquadCoeffs, applyBiquad, eqCurve, applyEq, eq, makeIR, fftConvolve, reverb,
     measureLufs, compress, deess, applyEnvelope,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, formantShiftChannel, formantShift,
@@ -19633,11 +19755,15 @@ lamejs();
   function totalDur() {
     let d = dur();
     if (typeof Layer !== 'undefined' && Layer.active && Layer.data && Layer.data[0] && !Layer.loopBed) {
-      d = Math.max(d, (Layer.offset || 0) + Layer.data[0].length / (Layer.rate || S.rate));
+      const sp = typeof layerTrimmedSpan === 'function' ? layerTrimmedSpan().playDur : (Layer.data[0].length / (Layer.rate || S.rate));
+      d = Math.max(d, (Layer.offset || 0) + sp);
     }
     if (typeof Stems !== 'undefined' && Stems.clips.length) {
       for (const st of Stems.clips) {
-        if (!st.mute && st.data && st.data[0]) d = Math.max(d, (st.offsetSec || 0) + st.data[0].length / (st.rate || S.rate));
+        if (!st.mute && st.data && st.data[0]) {
+          const sp = typeof stemTrimmedSpan === 'function' ? stemTrimmedSpan(st).playDur : (st.data[0].length / (st.rate || S.rate));
+          d = Math.max(d, (st.offsetSec || 0) + sp);
+        }
       }
     }
     if (typeof Regions !== 'undefined' && Regions.list.length) {
@@ -19770,23 +19896,33 @@ self.onmessage = function (e) {
 
   /* ---------------------------------------------------------- audio engine */
   const Env = { enabled: false, points: [] };
-  const MainMix = { gainDb: 0, mute: false, solo: false };
+  const PanEnv = { enabled: false, points: [] };
+  const MainMix = { gainDb: 0, pan: 0, mute: false, solo: false, revSend: 0, delSend: 0, autoMode: 'off' };
   const Layer = {
     active: false, name: '', data: null, buffer: null, rate: 48000,
-    offset: 0, gainDb: 0, pan: 0, mute: false, solo: false,
+    offset: 0, trimInSec: 0, trimOutSec: 0, fadeInMs: 0, fadeOutMs: 0,
+    gainDb: 0, pan: 0, mute: false, solo: false,
+    revSend: 0, delSend: 0, autoMode: 'off', volEnv: [], panEnv: [],
     duck: false, duckDepthDb: -12, duckSensDb: -32, duckReleaseMs: 340,
     loopBed: false, duckCurve: null, duckStepSec: 0.02,
     src: null, gainNode: null, panNode: null
   };
+  const SendBus = { revSize: 1.9, revDamp: 0.48, delTimeMs: 320, delFeedback: 35, delToneHz: 4200 };
+  const MasterBus = { widthPct: 100, monoBelowHz: 0, brickEnable: false, driveDb: 0, ceilingDb: -0.5 };
+  const RefTrack = { active: false, name: '', data: null, buffer: null, rate: 48000, lufs: -14, mixLufs: -14, matchLoudness: true, matchDb: 0, listeningRef: false, showOnEq: true, spectrumDb: null, src: null, gainNode: null };
   const FXRack = {
-    order: ['hpEq', 'gainEnv', 'compLim', 'deess'],
-    bypass: { hpEq: false, gainEnv: false, compLim: false, deess: false }
+    order: ['hpEq', 'gainEnv', 'compLim', 'deess', 'masterMsLim'],
+    bypass: { hpEq: false, gainEnv: false, compLim: false, deess: false, masterMsLim: false }
   };
   const Comp = { takes: [], auditionSrc: null };
   const Stems = { clips: [], sources: [], mute: false, nextId: 1 };
   const Regions = { list: [], sources: [], nextId: 1 };
 
-  let ctx = null, master = null, mainTrackGainNode = null, src = null, analyser = null, analyserBuf = null, endTimer = 0;
+  let ctx = null, master = null, mixBusNode = null, mainTrackGainNode = null, mainTrackPanNode = null, src = null, analyser = null, analyserBuf = null, endTimer = 0;
+  let mainRevSendNode = null, mainDelSendNode = null, layerRevSendNode = null, layerDelSendNode = null;
+  let sendRevIn = null, sendRevConv = null, sendRevOut = null;
+  let sendDelIn = null, sendDelL = null, sendDelR = null, sendDelFbL = null, sendDelFbR = null, sendDelToneL = null, sendDelToneR = null, sendDelMerge = null, sendDelOut = null;
+  let msInNode = null, msOutNode = null, msMidG = null, msSideG = null, msSideHp = null, msBrickDrive = null, msBrickLim = null;
   let phaseSplitter = null, analyserL = null, analyserR = null, timeBufL = null, timeBufR = null;
   const MeterState = { peakHoldDb: -Infinity, shortHist: [], intLufs: null, lraDb: null, lastScrubAt: 0 };
   function initPhaseAnalysers() {
@@ -19799,6 +19935,30 @@ self.onmessage = function (e) {
     master.connect(phaseSplitter);
     phaseSplitter.connect(analyserL, 0);
     phaseSplitter.connect(analyserR, 1);
+  }
+  function buildSendReverbIR() {
+    if (!ctx || !sendRevConv) return;
+    try {
+      const ir = D.makeIR(ctx.sampleRate, SendBus.revSize || 1.9, 2.4, SendBus.revDamp != null ? SendBus.revDamp : 0.48);
+      const b = ctx.createBuffer(2, ir.length, ctx.sampleRate);
+      b.copyToChannel(ir, 0);
+      for (let i = 0; i < ir.length; i++) ir[i] = ir[i] * (i % 2 === 0 ? 1 : 0.96);
+      b.copyToChannel(ir, 1);
+      sendRevConv.buffer = b;
+    } catch (e) {}
+  }
+  function evalAutomationPoints(pts, sec, defVal, field) {
+    if (!pts || !pts.length) return defVal;
+    const s = pts.slice().sort((a, b) => a.t - b.t);
+    if (sec <= s[0].t) return s[0][field];
+    if (sec >= s[s.length - 1].t) return s[s.length - 1][field];
+    for (let i = 0; i < s.length - 1; i++) {
+      if (sec >= s[i].t && sec <= s[i + 1].t) {
+        const u = (sec - s[i].t) / Math.max(1e-6, s[i + 1].t - s[i].t);
+        return s[i][field] + (s[i + 1][field] - s[i][field]) * u;
+      }
+    }
+    return defVal;
   }
   function playScrubGrain(sec) {
     if (!hasAudio || !S.buffer) return;
@@ -19828,7 +19988,18 @@ self.onmessage = function (e) {
       ctx = new C();
       master = ctx.createGain();
       master.gain.value = P.volume;
+      mixBusNode = ctx.createGain();
+      mixBusNode.gain.value = 1;
+      mixBusNode.connect(master);
+
+      RefTrack.gainNode = ctx.createGain();
+      RefTrack.gainNode.gain.value = 0;
+      RefTrack.gainNode.connect(master);
+
       mainTrackGainNode = ctx.createGain();
+      mainTrackPanNode = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+      mainTrackGainNode.connect(mainTrackPanNode);
+
       fxHpNode = ctx.createBiquadFilter(); fxHpNode.type = 'highpass'; fxHpNode.frequency.value = 20; fxHpNode.Q.value = 0.707;
       fxGainNode = ctx.createGain();
       fxLowNode = ctx.createBiquadFilter(); fxLowNode.type = 'lowshelf'; fxLowNode.frequency.value = 120;
@@ -19845,10 +20016,87 @@ self.onmessage = function (e) {
       fxLimiterNode.attack.value = 0.001; fxLimiterNode.release.value = 0.05;
       fxEnvNode = ctx.createGain();
 
+      // Master Mid/Side Imager + Brickwall Limiter chain
+      msInNode = ctx.createGain();
+      msOutNode = ctx.createGain();
+      msBrickDrive = ctx.createGain();
+      msBrickLim = ctx.createDynamicsCompressor();
+      msBrickLim.threshold.value = -0.5; msBrickLim.knee.value = 0; msBrickLim.ratio.value = 20;
+      msBrickLim.attack.value = 0.0005; msBrickLim.release.value = 0.04;
+      if (ctx.createChannelMerger) {
+        const sp = ctx.createChannelSplitter(2);
+        const mg = ctx.createChannelMerger(2);
+        const lToM = ctx.createGain(); lToM.gain.value = 0.5;
+        const rToM = ctx.createGain(); rToM.gain.value = 0.5;
+        const lToS = ctx.createGain(); lToS.gain.value = 0.5;
+        const rToS = ctx.createGain(); rToS.gain.value = -0.5;
+        msMidG = ctx.createGain(); msMidG.gain.value = 1;
+        msSideHp = ctx.createBiquadFilter(); msSideHp.type = 'highpass'; msSideHp.frequency.value = 10; msSideHp.Q.value = 0.707;
+        msSideG = ctx.createGain(); msSideG.gain.value = 1;
+        const sInv = ctx.createGain(); sInv.gain.value = -1;
+        msInNode.connect(sp);
+        sp.connect(lToM, 0); sp.connect(rToM, 1);
+        sp.connect(lToS, 0); sp.connect(rToS, 1);
+        lToM.connect(msMidG); rToM.connect(msMidG);
+        lToS.connect(msSideHp); rToS.connect(msSideHp);
+        msSideHp.connect(msSideG);
+        msMidG.connect(mg, 0, 0); msMidG.connect(mg, 0, 1);
+        msSideG.connect(mg, 0, 0); msSideG.connect(sInv); sInv.connect(mg, 0, 1);
+        mg.connect(msBrickDrive);
+      } else {
+        msInNode.connect(msBrickDrive);
+      }
+      msBrickDrive.connect(msBrickLim);
+      msBrickLim.connect(msOutNode);
+
+      // Shared Send / Return Buses (Reverb & Stereo Delay)
+      sendRevIn = ctx.createGain();
+      sendRevOut = ctx.createGain(); sendRevOut.gain.value = 1;
+      if (ctx.createConvolver) {
+        sendRevConv = ctx.createConvolver();
+        buildSendReverbIR();
+        sendRevIn.connect(sendRevConv);
+        sendRevConv.connect(sendRevOut);
+      } else {
+        sendRevIn.connect(sendRevOut);
+      }
+      sendRevOut.connect(mixBusNode);
+
+      sendDelIn = ctx.createGain();
+      sendDelOut = ctx.createGain(); sendDelOut.gain.value = 1;
+      if (ctx.createDelay && ctx.createChannelMerger) {
+        sendDelL = ctx.createDelay(1.5); sendDelL.delayTime.value = 0.32;
+        sendDelR = ctx.createDelay(1.5); sendDelR.delayTime.value = 0.425;
+        sendDelFbL = ctx.createGain(); sendDelFbL.gain.value = 0.35;
+        sendDelFbR = ctx.createGain(); sendDelFbR.gain.value = 0.35;
+        sendDelToneL = ctx.createBiquadFilter(); sendDelToneL.type = 'lowpass'; sendDelToneL.frequency.value = 4200;
+        sendDelToneR = ctx.createBiquadFilter(); sendDelToneR.type = 'lowpass'; sendDelToneR.frequency.value = 4200;
+        sendDelMerge = ctx.createChannelMerger(2);
+        sendDelIn.connect(sendDelL); sendDelIn.connect(sendDelR);
+        sendDelL.connect(sendDelToneL); sendDelR.connect(sendDelToneR);
+        sendDelToneL.connect(sendDelFbL); sendDelFbL.connect(sendDelR);
+        sendDelToneR.connect(sendDelFbR); sendDelFbR.connect(sendDelL);
+        sendDelToneL.connect(sendDelMerge, 0, 0);
+        sendDelToneR.connect(sendDelMerge, 0, 1);
+        sendDelMerge.connect(sendDelOut);
+      } else {
+        sendDelIn.connect(sendDelOut);
+      }
+      sendDelOut.connect(mixBusNode);
+
+      mainRevSendNode = ctx.createGain(); mainRevSendNode.gain.value = 0;
+      mainDelSendNode = ctx.createGain(); mainDelSendNode.gain.value = 0;
+      mainTrackPanNode.connect(mainRevSendNode); mainRevSendNode.connect(sendRevIn);
+      mainTrackPanNode.connect(mainDelSendNode); mainDelSendNode.connect(sendDelIn);
+
       Layer.gainNode = ctx.createGain();
       Layer.panNode = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
       Layer.gainNode.connect(Layer.panNode);
-      Layer.panNode.connect(master);
+      Layer.panNode.connect(mixBusNode);
+      layerRevSendNode = ctx.createGain(); layerRevSendNode.gain.value = 0;
+      layerDelSendNode = ctx.createGain(); layerDelSendNode.gain.value = 0;
+      Layer.panNode.connect(layerRevSendNode); layerRevSendNode.connect(sendRevIn);
+      Layer.panNode.connect(layerDelSendNode); layerDelSendNode.connect(sendDelIn);
 
       fxHpNode.connect(fxLowNode);
       fxLowNode.connect(fxLowMidNode);
@@ -19872,23 +20120,26 @@ self.onmessage = function (e) {
     return ctx;
   }
   function reconnectRackNodes() {
-    if (!ctx || !mainTrackGainNode) return;
+    if (!ctx || !mainTrackPanNode) return;
     const modIo = {
       hpEq: [fxHpNode, fxHighNode],
       gainEnv: [fxGainNode, fxEnvNode],
       compLim: [fxCompNode, fxLimiterNode],
       deess: [fxDeEssNode, fxDeEssNode],
+      masterMsLim: [msInNode, msOutNode],
     };
-    try { mainTrackGainNode.disconnect(); } catch (e) {}
-    Object.values(modIo).forEach(([, out]) => { try { out.disconnect(); } catch (e) {} });
-    let prev = mainTrackGainNode;
+    try { mainTrackPanNode.disconnect(); } catch (e) {}
+    if (mainRevSendNode) { mainTrackPanNode.connect(mainRevSendNode); }
+    if (mainDelSendNode) { mainTrackPanNode.connect(mainDelSendNode); }
+    Object.values(modIo).forEach(([, out]) => { try { if (out) out.disconnect(); } catch (e) {} });
+    let prev = mainTrackPanNode;
     for (const id of FXRack.order) {
       const pair = modIo[id];
-      if (!pair) continue;
+      if (!pair || !pair[0] || !pair[1]) continue;
       prev.connect(pair[0]);
       prev = pair[1];
     }
-    prev.connect(master);
+    prev.connect(mixBusNode);
   }
   function compActive() {
     const el = $('#fxCompEnable');
@@ -19899,6 +20150,7 @@ self.onmessage = function (e) {
     if (id === 'gainEnv') return Math.abs(val('#fxGain')) > 0.05 || (Env.enabled && Env.points.length >= 2);
     if (id === 'compLim') return compActive();
     if (id === 'deess') return val('#fxDeEssAmt') > 0.2;
+    if (id === 'masterMsLim') return Math.abs((MasterBus.widthPct ?? 100) - 100) > 1 || (MasterBus.monoBelowHz || 0) >= 20 || !!MasterBus.brickEnable;
     return false;
   }
   function liveFxDirty() {
@@ -19910,6 +20162,14 @@ self.onmessage = function (e) {
     const layerOn = Layer.active && !Layer.mute && (!anySolo || Layer.solo);
     return { mainOn, layerOn };
   }
+  function syncRefSwitchNodes() {
+    if (!ctx || !mixBusNode || !RefTrack.gainNode) return;
+    const t = ctx.currentTime;
+    const useRef = !!(RefTrack.active && RefTrack.listeningRef);
+    mixBusNode.gain.setTargetAtTime(useRef ? 0 : 1, t, 0.015);
+    const matchLin = RefTrack.matchLoudness ? Math.pow(10, clamp(RefTrack.matchDb || 0, -24, 24) / 20) : 1;
+    RefTrack.gainNode.gain.setTargetAtTime(useRef ? matchLin : 0, t, 0.015);
+  }
   function syncMixNodes() {
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -19918,20 +20178,52 @@ self.onmessage = function (e) {
       const mg = mainOn ? Math.pow(10, (MainMix.gainDb || 0) / 20) : 0;
       mainTrackGainNode.gain.setTargetAtTime(mg, t, 0.015);
     }
+    if (mainTrackPanNode && mainTrackPanNode.pan) {
+      if (PanEnv.enabled && PanEnv.points.length >= 2 && P.playing && src) {
+        scheduleLivePanEnvelope(curTime(), src._end || dur());
+      } else {
+        mainTrackPanNode.pan.cancelScheduledValues(t);
+        mainTrackPanNode.pan.setTargetAtTime(clamp((MainMix.pan || 0) / 100, -1, 1), t, 0.015);
+      }
+    }
+    if (mainRevSendNode) mainRevSendNode.gain.setTargetAtTime(mainOn ? clamp((MainMix.revSend || 0) / 100, 0, 1) : 0, t, 0.015);
+    if (mainDelSendNode) mainDelSendNode.gain.setTargetAtTime(mainOn ? clamp((MainMix.delSend || 0) / 100, 0, 1) : 0, t, 0.015);
+
+    if (sendDelL && sendDelR) {
+      const dt = clamp((SendBus.delTimeMs || 320) / 1000, 0.03, 1.2);
+      sendDelL.delayTime.setTargetAtTime(dt, t, 0.02);
+      sendDelR.delayTime.setTargetAtTime(dt * 1.33, t, 0.02);
+      const fb = clamp((SendBus.delFeedback || 35) / 100, 0, 0.85);
+      if (sendDelFbL) sendDelFbL.gain.setTargetAtTime(fb, t, 0.02);
+      if (sendDelFbR) sendDelFbR.gain.setTargetAtTime(fb, t, 0.02);
+      const tn = clamp(SendBus.delToneHz || 4200, 600, 14000);
+      if (sendDelToneL) sendDelToneL.frequency.setTargetAtTime(tn, t, 0.02);
+      if (sendDelToneR) sendDelToneR.frequency.setTargetAtTime(tn, t, 0.02);
+    }
+
+    if (layerRevSendNode) layerRevSendNode.gain.setTargetAtTime(layerOn ? clamp((Layer.revSend || 0) / 100, 0, 1) : 0, t, 0.015);
+    if (layerDelSendNode) layerDelSendNode.gain.setTargetAtTime(layerOn ? clamp((Layer.delSend || 0) / 100, 0, 1) : 0, t, 0.015);
+
     if (Layer.panNode && Layer.panNode.pan) {
-      Layer.panNode.pan.setTargetAtTime(clamp(Layer.pan / 100, -1, 1), t, 0.015);
+      if (Layer.panEnv && Layer.panEnv.length >= 2 && P.playing && Layer.src) {
+        scheduleLayerEnvelopes(curTime(), src ? (src._end || dur()) : dur());
+      } else {
+        Layer.panNode.pan.cancelScheduledValues(t);
+        Layer.panNode.pan.setTargetAtTime(clamp((Layer.pan || 0) / 100, -1, 1), t, 0.015);
+      }
     }
     if (Layer.gainNode) {
       if (!layerOn) {
         Layer.gainNode.gain.cancelScheduledValues(t);
         Layer.gainNode.gain.setTargetAtTime(0, t, 0.015);
-      } else if (P.playing && Layer.src && Layer.duck && Layer.duckCurve) {
-        scheduleLayerDuck(curTime(), src ? (src._end || dur()) : dur());
+      } else if (P.playing && Layer.src && ((Layer.duck && Layer.duckCurve) || (Layer.volEnv && Layer.volEnv.length >= 2) || Layer.fadeInMs > 0 || Layer.fadeOutMs > 0)) {
+        scheduleLayerEnvelopes(curTime(), src ? (src._end || dur()) : dur());
       } else {
         Layer.gainNode.gain.cancelScheduledValues(t);
         Layer.gainNode.gain.setTargetAtTime(Math.pow(10, (Layer.gainDb || 0) / 20), t, 0.015);
       }
     }
+    syncRefSwitchNodes();
   }
   function syncLiveFxNodes() {
     const active = P.liveFx && !P.liveBypass && !comparing;
@@ -19982,6 +20274,20 @@ self.onmessage = function (e) {
       } else if (P.playing && src) {
         scheduleLiveEnvelope(curTime(), src._end || dur());
       }
+      const useMs = active && !FXRack.bypass.masterMsLim;
+      if (msSideG) msSideG.gain.setTargetAtTime(useMs ? clamp((MasterBus.widthPct ?? 100) / 100, 0, 2) : 1, t, 0.015);
+      if (msSideHp) msSideHp.frequency.setTargetAtTime(useMs && (MasterBus.monoBelowHz || 0) >= 20 ? MasterBus.monoBelowHz : 10, t, 0.015);
+      if (msBrickDrive && msBrickLim) {
+        if (useMs && MasterBus.brickEnable) {
+          msBrickDrive.gain.setTargetAtTime(Math.pow(10, clamp(MasterBus.driveDb || 0, 0, 14) / 20), t, 0.015);
+          msBrickLim.threshold.setTargetAtTime(clamp(MasterBus.ceilingDb != null ? MasterBus.ceilingDb : -0.5, -6, -0.05), t, 0.015);
+          msBrickLim.ratio.setTargetAtTime(20, t, 0.015);
+        } else {
+          msBrickDrive.gain.setTargetAtTime(1, t, 0.015);
+          msBrickLim.threshold.setTargetAtTime(0, t, 0.015);
+          msBrickLim.ratio.setTargetAtTime(1, t, 0.015);
+        }
+      }
     }
     syncMixNodes();
     if (typeof renderRackList === 'function') renderRackList();
@@ -20030,6 +20336,24 @@ self.onmessage = function (e) {
     }
     fxEnvNode.gain.linearRampToValueAtTime(Math.pow(10, evalDb(hiSec) / 20), t0 + Math.max(0.01, (hiSec - fromSec) / rate));
   }
+  function scheduleLivePanEnvelope(fromSec, hiSec) {
+    if (!ctx || !mainTrackPanNode || !mainTrackPanNode.pan) return;
+    const t0 = ctx.currentTime;
+    mainTrackPanNode.pan.cancelScheduledValues(t0);
+    if (!PanEnv.enabled || PanEnv.points.length < 2) {
+      mainTrackPanNode.pan.setValueAtTime(clamp((MainMix.pan || 0) / 100, -1, 1), t0);
+      return;
+    }
+    const pts = PanEnv.points.slice().sort((a, b) => a.t - b.t);
+    const rate = P.rate || 1;
+    mainTrackPanNode.pan.setValueAtTime(clamp(evalAutomationPoints(pts, fromSec, 0, 'pan') / 100, -1, 1), t0);
+    for (const pt of pts) {
+      if (pt.t > fromSec && pt.t <= hiSec) {
+        mainTrackPanNode.pan.linearRampToValueAtTime(clamp(pt.pan / 100, -1, 1), t0 + (pt.t - fromSec) / rate);
+      }
+    }
+    mainTrackPanNode.pan.linearRampToValueAtTime(clamp(evalAutomationPoints(pts, hiSec, 0, 'pan') / 100, -1, 1), t0 + Math.max(0.01, (hiSec - fromSec) / rate));
+  }
   function makeBuffer() {
     const c = AC();
     const b = c.createBuffer(S.data.length, S.data[0].length, S.rate);
@@ -20041,6 +20365,11 @@ self.onmessage = function (e) {
       try { Layer.src.onended = null; Layer.src.stop(); } catch (e) {}
       try { Layer.src.disconnect(); } catch (e) {}
       Layer.src = null;
+    }
+    if (RefTrack.src) {
+      try { RefTrack.src.onended = null; RefTrack.src.stop(); } catch (e) {}
+      try { RefTrack.src.disconnect(); } catch (e) {}
+      RefTrack.src = null;
     }
     if (Stems.sources.length) {
       for (const node of Stems.sources) {
@@ -20074,30 +20403,84 @@ self.onmessage = function (e) {
     killLayerSource();
     killAuditionSource();
   }
-  function scheduleLayerDuck(fromSec, hiSec) {
+  function layerTrimmedSpan() {
+    if (!Layer.data || !Layer.data[0]) return { rawDur: 0, inS: 0, outS: 0, playDur: 0 };
+    const rawDur = Layer.data[0].length / Layer.rate;
+    const inS = clamp(Layer.trimInSec || 0, 0, Math.max(0, rawDur - 0.05));
+    const outS = clamp(Layer.trimOutSec || 0, 0, Math.max(0, rawDur - inS - 0.05));
+    return { rawDur, inS, outS, playDur: Math.max(0.05, rawDur - inS - outS) };
+  }
+  function stemTrimmedSpan(st) {
+    if (!st || !st.data || !st.data[0]) return { rawDur: 0, inS: 0, outS: 0, playDur: 0 };
+    const rawDur = st.data[0].length / st.rate;
+    const inS = clamp(st.trimInSec || 0, 0, Math.max(0, rawDur - 0.04));
+    const outS = clamp(st.trimOutSec || 0, 0, Math.max(0, rawDur - inS - 0.04));
+    return { rawDur, inS, outS, playDur: Math.max(0.04, rawDur - inS - outS) };
+  }
+  function scheduleLayerEnvelopes(fromSec, hiSec) {
     if (!ctx || !Layer.gainNode) return;
     const t0 = ctx.currentTime;
     const { layerOn } = effectiveTrackAudibility();
     Layer.gainNode.gain.cancelScheduledValues(t0);
     if (!layerOn) { Layer.gainNode.gain.setValueAtTime(0, t0); return; }
-    const baseGain = Math.pow(10, (Layer.gainDb || 0) / 20);
-    if (!Layer.duck || !Layer.duckCurve || !Layer.duckCurve.length) {
-      Layer.gainNode.gain.setValueAtTime(baseGain, t0);
-      return;
-    }
-    const step = Layer.duckStepSec || 0.02;
     const rate = P.rate || 1;
-    const idx0 = clamp(Math.floor(fromSec / step), 0, Layer.duckCurve.length - 1);
-    const idx1 = clamp(Math.ceil(hiSec / step), idx0, Layer.duckCurve.length - 1);
-    Layer.gainNode.gain.setValueAtTime(baseGain * Layer.duckCurve[idx0], t0);
-    const stride = Math.max(1, Math.floor((idx1 - idx0) / 240));
-    for (let i = idx0 + stride; i <= idx1; i += stride) {
-      const sec = i * step;
-      if (sec > fromSec && sec <= hiSec) {
-        Layer.gainNode.gain.linearRampToValueAtTime(baseGain * Layer.duckCurve[i], t0 + (sec - fromSec) / rate);
+    const baseGain = Math.pow(10, (Layer.gainDb || 0) / 20);
+    const hasDuck = !!(Layer.duck && Layer.duckCurve && Layer.duckCurve.length);
+    const hasVolEnv = !!(Layer.volEnv && Layer.volEnv.length >= 2);
+    const { playDur } = layerTrimmedSpan();
+    const fiS = Math.min((Layer.fadeInMs || 0) / 1000, playDur * 0.48);
+    const foS = Math.min((Layer.fadeOutMs || 0) / 1000, playDur * 0.48);
+    const hasFades = !Layer.loopBed && (fiS > 0.005 || foS > 0.005);
+
+    const evalGainAt = (sec) => {
+      let g = baseGain;
+      if (hasDuck) {
+        const step = Layer.duckStepSec || 0.02;
+        const di = clamp(Math.floor(sec / step), 0, Layer.duckCurve.length - 1);
+        g *= Layer.duckCurve[di];
+      }
+      if (hasVolEnv) {
+        g *= Math.pow(10, clamp(evalAutomationPoints(Layer.volEnv, sec, 0, 'db'), -36, 12) / 20);
+      }
+      if (hasFades) {
+        const rel = sec - (Layer.offset || 0);
+        if (rel < 0 || rel > playDur) g = 0;
+        else {
+          if (fiS > 0.005 && rel < fiS) g *= 0.5 * (1 - Math.cos(Math.PI * (rel / fiS)));
+          if (foS > 0.005 && rel > playDur - foS) g *= 0.5 * (1 - Math.cos(Math.PI * ((playDur - rel) / foS)));
+        }
+      }
+      return Math.max(0.0001, g);
+    };
+
+    if (!hasDuck && !hasVolEnv && !hasFades) {
+      Layer.gainNode.gain.setValueAtTime(baseGain, t0);
+    } else {
+      const span = Math.max(0.02, hiSec - fromSec);
+      const steps = clamp(Math.ceil(span / 0.04), 8, 220);
+      Layer.gainNode.gain.setValueAtTime(evalGainAt(fromSec), t0);
+      for (let i = 1; i <= steps; i++) {
+        const sec = fromSec + (span * i) / steps;
+        Layer.gainNode.gain.linearRampToValueAtTime(evalGainAt(sec), t0 + (sec - fromSec) / rate);
+      }
+    }
+
+    if (Layer.panNode && Layer.panNode.pan) {
+      Layer.panNode.pan.cancelScheduledValues(t0);
+      if (Layer.panEnv && Layer.panEnv.length >= 2) {
+        const span = Math.max(0.02, hiSec - fromSec);
+        const steps = clamp(Math.ceil(span / 0.05), 6, 160);
+        Layer.panNode.pan.setValueAtTime(clamp(evalAutomationPoints(Layer.panEnv, fromSec, Layer.pan || 0, 'pan') / 100, -1, 1), t0);
+        for (let i = 1; i <= steps; i++) {
+          const sec = fromSec + (span * i) / steps;
+          Layer.panNode.pan.linearRampToValueAtTime(clamp(evalAutomationPoints(Layer.panEnv, sec, Layer.pan || 0, 'pan') / 100, -1, 1), t0 + (sec - fromSec) / rate);
+        }
+      } else {
+        Layer.panNode.pan.setValueAtTime(clamp((Layer.pan || 0) / 100, -1, 1), t0);
       }
     }
   }
+  function scheduleLayerDuck(fromSec, hiSec) { scheduleLayerEnvelopes(fromSec, hiSec); }
   function startStemPlayback(when, fromSec, hiSec) {
     if (!Stems.clips.length || Stems.mute || !ctx) return;
     const c = ctx;
@@ -20105,19 +20488,19 @@ self.onmessage = function (e) {
     const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
     for (const clip of Stems.clips) {
       if (!clip.buffer || clip.mute) continue;
-      const clipDur = clip.buffer.duration;
+      const { inS, playDur: clipDur } = stemTrimmedSpan(clip);
       const off = clip.offsetSec || 0;
       const rel = fromSec - off;
-      let startWhen = when, bufOff = 0, playDur = 0;
+      let startWhen = when, bufOff = inS, playDur = 0;
       if (rel >= 0) {
         if (rel >= clipDur) continue;
-        bufOff = rel;
+        bufOff = inS + rel;
         playDur = Math.min((clipDur - rel) / rate, maxWin);
       } else {
         const delay = (-rel) / rate;
         if (delay >= maxWin) continue;
         startWhen = when + delay;
-        bufOff = 0;
+        bufOff = inS;
         playDur = Math.min(clipDur / rate, maxWin - delay);
       }
       if (playDur <= 0.005) continue;
@@ -20128,7 +20511,7 @@ self.onmessage = function (e) {
       const baseG = Math.pow(10, (clip.gainDb || 0) / 20);
       const fi = Math.min((clip.fadeInMs || 0) / 1000 / rate, playDur * 0.45);
       const fo = Math.min((clip.fadeOutMs || 0) / 1000 / rate, playDur * 0.45);
-      if (fi > 0.004 && bufOff < fi) {
+      if (fi > 0.004 && (bufOff - inS) < fi) {
         g.gain.setValueAtTime(0.0001, startWhen);
         g.gain.linearRampToValueAtTime(baseG, startWhen + fi);
       } else {
@@ -20139,11 +20522,20 @@ self.onmessage = function (e) {
         g.gain.linearRampToValueAtTime(0.0001, startWhen + playDur);
       }
       const pNode = c.createStereoPanner ? c.createStereoPanner() : null;
+      const outNode = pNode || g;
       if (pNode) {
         pNode.pan.value = clamp((clip.pan || 0) / 100, -1, 1);
-        s.connect(g); g.connect(pNode); pNode.connect(master);
+        s.connect(g); g.connect(pNode); pNode.connect(mixBusNode || master);
       } else {
-        s.connect(g); g.connect(master);
+        s.connect(g); g.connect(mixBusNode || master);
+      }
+      if ((clip.revSend || 0) > 0.5 && sendRevIn) {
+        const rs = c.createGain(); rs.gain.value = clamp((clip.revSend || 0) / 100, 0, 1);
+        outNode.connect(rs); rs.connect(sendRevIn);
+      }
+      if ((clip.delSend || 0) > 0.5 && sendDelIn) {
+        const ds = c.createGain(); ds.gain.value = clamp((clip.delSend || 0) / 100, 0, 1);
+        outNode.connect(ds); ds.connect(sendDelIn);
       }
       s.start(startWhen, bufOff, playDur);
       Stems.sources.push(s);
@@ -20199,7 +20591,10 @@ self.onmessage = function (e) {
   }
 
   function startLayerPlayback(when, fromSec, hiSec) {
-    killLayerSource();
+    if (Layer.src) {
+      try { Layer.src.onended = null; Layer.src.stop(); Layer.src.disconnect(); } catch (e) {}
+      Layer.src = null;
+    }
     if (!Layer.active || !Layer.buffer || !ctx) return;
     const c = ctx;
     const lsrc = c.createBufferSource();
@@ -20208,27 +20603,43 @@ self.onmessage = function (e) {
     lsrc.loop = !!Layer.loopBed;
     lsrc.connect(Layer.gainNode);
     const rate = P.rate || 1;
-    const bedDur = Layer.buffer.duration;
+    const { inS, playDur: bedDur } = layerTrimmedSpan();
     const relStart = fromSec - Layer.offset;
     const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
     if (Layer.loopBed) {
-      const offsetInLoop = ((relStart % bedDur) + bedDur) % bedDur;
+      const offsetInLoop = inS + (((relStart % bedDur) + bedDur) % bedDur);
       if (P.loop && !comparing) lsrc.start(when, offsetInLoop);
       else lsrc.start(when, offsetInLoop, maxWin);
     } else if (relStart >= 0) {
       if (relStart < bedDur) {
         const rem = Math.min((bedDur - relStart) / rate, maxWin);
-        if (rem > 0.005) lsrc.start(when, relStart, P.loop && !comparing ? undefined : rem);
+        if (rem > 0.005) lsrc.start(when, inS + relStart, P.loop && !comparing ? undefined : rem);
       }
     } else {
       const delay = (-relStart) / rate;
       if (delay < maxWin) {
         const playLen = Math.min(bedDur / rate, maxWin - delay);
-        if (playLen > 0.005) lsrc.start(when + delay, 0, playLen);
+        if (playLen > 0.005) lsrc.start(when + delay, inS, playLen);
       }
     }
     Layer.src = lsrc;
-    scheduleLayerDuck(fromSec, hiSec);
+    scheduleLayerEnvelopes(fromSec, hiSec);
+  }
+  function startRefPlayback(when, fromSec, hiSec) {
+    if (RefTrack.src) {
+      try { RefTrack.src.onended = null; RefTrack.src.stop(); RefTrack.src.disconnect(); } catch (e) {}
+      RefTrack.src = null;
+    }
+    if (!RefTrack.active || !RefTrack.buffer || !ctx || !RefTrack.gainNode) return;
+    const rDur = RefTrack.buffer.duration;
+    if (fromSec >= rDur - 0.01) return;
+    const rsrc = ctx.createBufferSource();
+    rsrc.buffer = RefTrack.buffer;
+    rsrc.playbackRate.value = P.rate || 1;
+    rsrc.connect(RefTrack.gainNode);
+    const playLen = Math.min(rDur - fromSec, Math.max(0.01, hiSec - fromSec));
+    rsrc.start(when, fromSec, playLen);
+    RefTrack.src = rsrc;
   }
   function play() {
     if (!hasAudio || processing || importing) return;
@@ -20247,6 +20658,7 @@ self.onmessage = function (e) {
     src.playbackRate.value = P.rate;
     syncLiveFxNodes();
     scheduleLiveEnvelope(from, hi);
+    scheduleLivePanEnvelope(from, hi);
     src.connect(comparing ? master : mainTrackGainNode);
     src.loop = P.loop && !comparing;
     src.loopStart = lo; src.loopEnd = hi;
@@ -20281,6 +20693,7 @@ self.onmessage = function (e) {
     }
     if (Layer.active && Layer.buffer && !comparing) startLayerPlayback(when, from, hi);
     if (Stems.clips.length && !comparing) startStemPlayback(when, from, hi);
+    if (RefTrack.active && RefTrack.buffer && !comparing) startRefPlayback(when, from, hi);
     P.playing = true;
     syncTransport();
   }
@@ -20570,6 +20983,89 @@ self.onmessage = function (e) {
       D.applyEnvelope(S.data, S.rate, pts);
       Env.points = []; Env.enabled = false; syncEnvUI();
     }).then(() => syncLiveFxNodes());
+  }
+  function syncPanEnvUI() {
+    if ($('#fxPanEnvToggle')) {
+      $('#fxPanEnvToggle').setAttribute('aria-pressed', PanEnv.enabled);
+      $('#fxPanEnvToggle').classList.toggle('on', PanEnv.enabled);
+      $('#fxPanEnvToggle').textContent = PanEnv.enabled ? 'Pan Curve: ON' : 'Edit Pan';
+    }
+    if ($('#fxPanEnvClear')) $('#fxPanEnvClear').disabled = PanEnv.points.length === 0;
+    if ($('#fxPanEnvCount')) $('#fxPanEnvCount').textContent = PanEnv.points.length + (PanEnv.points.length === 1 ? ' point' : ' points');
+    fxDirty = true;
+  }
+  function doBakeMasterLimit() {
+    if (!hasAudio) return;
+    edit('Master Imager & Brickwall Limiter', async () => {
+      S.data = await runTask({ act: 'masterLimit', data: S.data, rate: S.rate, opts: { ...MasterBus } });
+      MasterBus.widthPct = 100; MasterBus.monoBelowHz = 0; MasterBus.brickEnable = false; MasterBus.driveDb = 0; MasterBus.ceilingDb = -0.5;
+      if ($('#fxMasterWidth')) { $('#fxMasterWidth').value = 100; $('#fxMasterWidthOut').textContent = '100%'; }
+      if ($('#fxMasterMonoHz')) { $('#fxMasterMonoHz').value = 0; $('#fxMasterMonoHzOut').textContent = 'Off'; }
+      if ($('#fxBrickEnable')) $('#fxBrickEnable').checked = false;
+      if ($('#fxBrickDrive')) { $('#fxBrickDrive').value = 0; $('#fxBrickDriveOut').textContent = '0.0 dB'; }
+      if ($('#fxBrickCeil')) { $('#fxBrickCeil').value = -0.5; $('#fxBrickCeilOut').textContent = '-0.5 dBTP'; }
+      syncLiveFxNodes();
+    }, 'Applying Brickwall Limiter');
+  }
+  function syncRefUI() {
+    if ($('#refNameOut')) $('#refNameOut').textContent = RefTrack.active ? RefTrack.name : 'No reference loaded';
+    if ($('#refMetaRow')) $('#refMetaRow').hidden = !RefTrack.active;
+    if ($('#refLufsOut')) $('#refLufsOut').textContent = RefTrack.active ? (RefTrack.lufs.toFixed(1) + ' LUFS') : '—';
+    if ($('#refMatchDeltaOut')) {
+      const dDb = RefTrack.matchLoudness ? (RefTrack.matchDb || 0) : 0;
+      $('#refMatchDeltaOut').textContent = (dDb > 0 ? '+' : '') + dDb.toFixed(1) + ' dB';
+    }
+    if ($('#btnRefToggleAB')) {
+      $('#btnRefToggleAB').disabled = !RefTrack.active;
+      $('#btnRefToggleAB').classList.toggle('on', RefTrack.active && RefTrack.listeningRef);
+      $('#btnRefToggleAB').setAttribute('aria-pressed', RefTrack.active && RefTrack.listeningRef);
+      $('#btnRefToggleAB').textContent = !RefTrack.active ? 'Listening: A (Mix)' : (RefTrack.listeningRef ? 'Listening: B (Reference)' : 'Listening: A (Mix)');
+    }
+    if ($('#btnRefClear')) $('#btnRefClear').hidden = !RefTrack.active;
+    if ($('#chkRefMatchLufs')) $('#chkRefMatchLufs').checked = !!RefTrack.matchLoudness;
+    if ($('#chkRefShowEq')) $('#chkRefShowEq').checked = !!RefTrack.showOnEq;
+    if (typeof drawEqCurve === 'function') drawEqCurve();
+  }
+  function clearReferenceTrack() {
+    if (RefTrack.src) { try { RefTrack.src.stop(); RefTrack.src.disconnect(); } catch (e) {} RefTrack.src = null; }
+    RefTrack.active = false; RefTrack.name = ''; RefTrack.data = null; RefTrack.buffer = null;
+    RefTrack.spectrumDb = null; RefTrack.listeningRef = false; RefTrack.matchDb = 0;
+    syncRefSwitchNodes();
+    syncRefUI();
+  }
+  async function loadReferenceTrackFile(file) {
+    if (!file || !hasAudio) return;
+    importing = true; busy(true, 'Analyzing Reference');
+    try {
+      const dec = await decodeToData(await file.arrayBuffer(), file.name);
+      let d = dec.data;
+      if (dec.rate !== S.rate) d = await runTask({ act: 'resample', data: d, rate: dec.rate, to: S.rate });
+      const c = AC();
+      const buf = c.createBuffer(d.length, d[0].length, S.rate);
+      for (let i = 0; i < d.length; i++) buf.copyToChannel(d[i], i);
+      const refLufs = D.lufs(d, S.rate);
+      const mixStats = D.stats(S.data, S.rate);
+      const mixLufs = isFinite(mixStats.lufs) ? mixStats.lufs : -16;
+      const spec = D.bandSpectrumDb(d, S.rate, 32);
+      RefTrack.active = true;
+      RefTrack.name = file.name.replace(/\.[^.]+$/, '');
+      RefTrack.data = d;
+      RefTrack.buffer = buf;
+      RefTrack.rate = S.rate;
+      RefTrack.lufs = isFinite(refLufs) ? refLufs : -14;
+      RefTrack.mixLufs = mixLufs;
+      RefTrack.matchDb = clamp(mixLufs - RefTrack.lufs, -18, 18);
+      RefTrack.spectrumDb = spec;
+      RefTrack.listeningRef = false;
+      syncRefSwitchNodes();
+      syncRefUI();
+      if (P.playing) { P.t = curTime(); play(); }
+      toast(`Reference "${RefTrack.name}" (${RefTrack.lufs.toFixed(1)} LUFS, Δ ${RefTrack.matchDb.toFixed(1)} dB)`, 'ok', 2800);
+    } catch (err) {
+      toast('Reference load failed: ' + err.message, 'err', 3800);
+    } finally {
+      importing = false; busy(false);
+    }
   }
   function doDC() {
     const [a, b] = effRange();
@@ -21275,6 +21771,9 @@ self.onmessage = function (e) {
     S.name = name || 'audio';
     S.meta = Object.assign({ title: '', artist: '', album: '' }, meta || {});
     S.spec = null; S.specCanvas = null; S.noiseProfile = null; Env.points = []; Env.enabled = false; syncEnvUI();
+    PanEnv.points = []; PanEnv.enabled = false; MainMix.autoMode = 'off';
+    if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
+    if (typeof clearReferenceTrack === 'function') clearReferenceTrack();
     if (typeof computeDuckCurve === 'function') computeDuckCurve();
     if (typeof renderLayersUI === 'function') renderLayersUI();
     H.undo.length = 0; H.redo.length = 0; syncHistory();
@@ -21694,7 +22193,7 @@ self.onmessage = function (e) {
       c.strokeStyle = 'rgba(48,209,88,.32)';
       c.beginPath(); c.moveTo(0, t2Top + 0.5); c.lineTo(canvasW, t2Top + 0.5); c.stroke();
       const ch2 = Layer.data[0];
-      const bedDur = ch2.length / Layer.rate;
+      const { inS, playDur: bedDur } = layerTrimmedSpan();
       const clipX0 = Layer.loopBed ? 0 : tToX(Layer.offset);
       const clipX1 = Layer.loopBed ? canvasW : tToX(Layer.offset + bedDur);
       const clipW = Math.max(8, clipX1 - clipX0);
@@ -21718,7 +22217,7 @@ self.onmessage = function (e) {
         let rel = wt - Layer.offset;
         if (Layer.loopBed && bedDur > 0) rel = ((rel % bedDur) + bedDur) % bedDur;
         if (rel >= 0 && rel < bedDur) {
-          const sIdx = Math.floor(rel * Layer.rate);
+          const sIdx = Math.floor((inS + rel) * Layer.rate);
           const span = Math.max(1, Math.floor((1 / V.pps) * Layer.rate));
           let mn = 0, mx = 0;
           const step = Math.max(1, Math.floor(span / 8));
@@ -21880,6 +22379,116 @@ self.onmessage = function (e) {
     }
 
     const lanesFx = getTimelineLanes();
+    // Track 1 Pan Automation Curve overlay (inside Track 1 lane)
+    if ((PanEnv.enabled || PanEnv.points.length >= 2) && PanEnv.points.length >= 2) {
+      c.save();
+      c.beginPath(); c.rect(0, top, canvasW, lanesFx.mainH); c.clip();
+      const panPts = PanEnv.points;
+      const pPad = 8;
+      const panToY = (pv) => top + pPad + ((1 - clamp(pv / 100, -1, 1)) * 0.5) * Math.max(12, lanesFx.mainH - pPad * 2);
+      c.strokeStyle = 'rgba(255,214,10,.25)';
+      c.lineWidth = 1;
+      c.setLineDash([4, 4]);
+      c.beginPath(); c.moveTo(0, panToY(0)); c.lineTo(canvasW, panToY(0)); c.stroke();
+      c.setLineDash([]);
+      c.strokeStyle = '#ffd60a';
+      c.lineWidth = 2;
+      c.shadowColor = 'rgba(255,214,10,.45)'; c.shadowBlur = 7;
+      c.beginPath();
+      for (let i = 0; i < panPts.length; i++) {
+        const ex = tToX(panPts[i].t), ey = panToY(panPts[i].pan);
+        i === 0 ? c.moveTo(ex, ey) : c.lineTo(ex, ey);
+      }
+      c.stroke();
+      c.shadowBlur = 0;
+      for (let i = 0; i < panPts.length; i++) {
+        const ex = tToX(panPts[i].t), ey = panToY(panPts[i].pan);
+        if (ex < -16 || ex > canvasW + 16) continue;
+        const active = drag && drag.mode === 'panEnv' && drag.envIdx === i;
+        c.fillStyle = active ? '#ffffff' : '#ffd60a';
+        c.strokeStyle = '#08090d'; c.lineWidth = 2;
+        c.beginPath(); c.arc(ex, ey, active ? 7.5 : 5.8, 0, TAU); c.fill(); c.stroke();
+        if (active) {
+          const pv = panPts[i].pan;
+          const lbl = Math.abs(pv) < 3 ? 'C' : (pv < 0 ? Math.round(-pv) + 'L' : Math.round(pv) + 'R');
+          c.fillStyle = '#fef3c7';
+          c.font = '600 10.5px ui-monospace, monospace';
+          c.textAlign = 'center';
+          c.fillText('Pan ' + lbl, ex, Math.max(top + 12, ey - 13));
+          c.textAlign = 'left';
+        }
+      }
+      c.restore();
+    }
+
+    // Track 2 Non-destructive Fades, Trim Edge Handles & Vol/Pan Automation Curve
+    if (lanesFx.hasT2 && Layer.data) {
+      c.save();
+      c.beginPath(); c.rect(0, lanesFx.t2Top, canvasW, lanesFx.t2H); c.clip();
+      const { playDur } = layerTrimmedSpan();
+      const t2x0 = Layer.loopBed ? 0 : tToX(Layer.offset);
+      const t2x1 = Layer.loopBed ? canvasW : tToX(Layer.offset + playDur);
+      const t2y0 = lanesFx.t2Top + 2, t2h = Math.max(18, lanesFx.t2H - 4);
+      if (!Layer.loopBed && t2x1 >= 0 && t2x0 <= canvasW) {
+        const fiPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeInMs || 0) / 1000) * V.pps);
+        const foPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeOutMs || 0) / 1000) * V.pps);
+        if (fiPx > 2) {
+          c.fillStyle = 'rgba(4, 10, 8, .55)';
+          c.beginPath(); c.moveTo(t2x0, t2y0); c.lineTo(t2x0 + fiPx, t2y0); c.lineTo(t2x0, t2y0 + t2h); c.closePath(); c.fill();
+          c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
+          c.beginPath(); c.moveTo(t2x0, t2y0 + t2h); c.lineTo(t2x0 + fiPx, t2y0); c.stroke();
+        }
+        if (foPx > 2) {
+          c.fillStyle = 'rgba(4, 10, 8, .55)';
+          c.beginPath(); c.moveTo(t2x1, t2y0); c.lineTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.closePath(); c.fill();
+          c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
+          c.beginPath(); c.moveTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.stroke();
+        }
+        // Left & right trim edge grips
+        for (const [edgeX, activeEdge] of [[t2x0, 't2TrimL'], [t2x1, 't2TrimR']]) {
+          if (edgeX < -10 || edgeX > canvasW + 10) continue;
+          const isHot = drag && drag.mode === activeEdge;
+          c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
+          roundRect(c, edgeX - 2.5, t2y0 + 8, 5, Math.max(12, t2h - 16), 2.5);
+          c.fill();
+        }
+        // Top-corner Fade-In / Fade-Out dots
+        for (const [fx, activeFade] of [[t2x0 + fiPx, 't2FadeIn'], [t2x1 - foPx, 't2FadeOut']]) {
+          if (fx < -10 || fx > canvasW + 10) continue;
+          const isHot = drag && drag.mode === activeFade;
+          c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
+          c.strokeStyle = '#08090d'; c.lineWidth = 1.6;
+          c.beginPath(); c.arc(fx, t2y0 + 5, isHot ? 6 : 4.5, 0, TAU); c.fill(); c.stroke();
+        }
+      }
+      // Track 2 Automation Curve (Volume or Pan)
+      const isT2Pan = Layer.autoMode === 'pan' || (Layer.autoMode === 'off' && Layer.panEnv && Layer.panEnv.length >= 2 && (!Layer.volEnv || Layer.volEnv.length < 2));
+      const t2Pts = isT2Pan ? Layer.panEnv : Layer.volEnv;
+      if ((Layer.autoMode !== 'off' || (t2Pts && t2Pts.length >= 2)) && t2Pts && t2Pts.length >= 2) {
+        const pad2 = 6;
+        const valToY2 = (pt) => isT2Pan
+          ? (t2y0 + pad2 + ((1 - clamp(pt.pan / 100, -1, 1)) * 0.5) * Math.max(10, t2h - pad2 * 2))
+          : (t2y0 + pad2 + (1 - clamp((pt.db - (-24)) / 36, 0, 1)) * Math.max(10, t2h - pad2 * 2));
+        c.strokeStyle = isT2Pan ? '#ffd60a' : '#22d3ee';
+        c.lineWidth = 1.85;
+        c.beginPath();
+        for (let i = 0; i < t2Pts.length; i++) {
+          const ex = tToX(t2Pts[i].t), ey = valToY2(t2Pts[i]);
+          i === 0 ? c.moveTo(ex, ey) : c.lineTo(ex, ey);
+        }
+        c.stroke();
+        for (let i = 0; i < t2Pts.length; i++) {
+          const ex = tToX(t2Pts[i].t), ey = valToY2(t2Pts[i]);
+          if (ex < -14 || ex > canvasW + 14) continue;
+          const active = drag && drag.mode === 't2Auto' && drag.envIdx === i;
+          c.fillStyle = active ? '#ffffff' : (isT2Pan ? '#ffd60a' : '#22d3ee');
+          c.strokeStyle = '#08090d'; c.lineWidth = 1.8;
+          c.beginPath(); c.arc(ex, ey, active ? 6.8 : 5.2, 0, TAU); c.fill(); c.stroke();
+        }
+      }
+      c.restore();
+    }
+
     // Non-destructive Split Regions overlay (inside Main Track 1 lane)
     if (Regions.list.length) {
       c.save();
@@ -21909,7 +22518,7 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // Track 3 Stems / Soundboard Clips overlay (dedicated T3 lane with mini-waveforms)
+    // Track 3 Stems / Soundboard Clips overlay (dedicated T3 lane with mini-waveforms, trims & fades)
     if (lanesFx.hasT3) {
       c.save();
       c.beginPath(); c.rect(0, lanesFx.t3Top, canvasW, lanesFx.t3H); c.clip();
@@ -21917,12 +22526,12 @@ self.onmessage = function (e) {
       for (let i = 0; i < Stems.clips.length; i++) {
         const st = Stems.clips[i];
         if (st.mute) continue;
+        const { inS, playDur: sDur } = stemTrimmedSpan(st);
         const sx0 = tToX(st.offsetSec);
-        const sDur = st.data[0].length / st.rate;
         const sx1 = tToX(st.offsetSec + sDur);
         if (sx1 < 0 || sx0 > canvasW) continue;
         const sw = Math.max(12, sx1 - sx0);
-        const isDragStem = drag && drag.mode === 'stem' && drag.stemIdx === i;
+        const isDragStem = drag && (drag.mode === 'stem' || drag.mode === 'stemTrimL' || drag.mode === 'stemTrimR' || drag.mode === 'stemFadeIn' || drag.mode === 'stemFadeOut') && drag.stemIdx === i;
         c.save();
         roundRect(c, sx0, sy, sw, sh, 7);
         c.fillStyle = isDragStem ? 'rgba(191, 90, 242, .42)' : 'rgba(191, 90, 242, .22)';
@@ -21931,17 +22540,32 @@ self.onmessage = function (e) {
         c.lineWidth = isDragStem ? 1.6 : 1.1;
         c.stroke();
         c.clip();
-        // Mini-waveform inside T3 clip
+        // Mini-waveform inside trimmed T3 clip
         const ch3 = st.data[0];
         const mid3 = sy + sh * 0.56, amp3 = Math.max(4, sh * 0.34);
         const pxStart = Math.max(0, Math.floor(sx0)), pxEnd = Math.min(canvasW, Math.ceil(sx0 + sw));
         c.fillStyle = 'rgba(235, 195, 255, .52)';
         for (let px = pxStart; px < pxEnd; px += 2) {
           const frac = (px - sx0) / Math.max(1, sx1 - sx0);
-          const s0 = clamp(Math.floor(frac * ch3.length), 0, ch3.length - 1);
+          const s0 = clamp(Math.floor((inS + frac * sDur) * st.rate), 0, ch3.length - 1);
           const pk = Math.abs(ch3[s0]);
           const bh = Math.max(1.5, pk * amp3 * 2);
           c.fillRect(px, mid3 - bh * 0.5, 1.4, bh);
+        }
+        // Fade-in & Fade-out ramps
+        const fiPx = Math.min(sw * 0.48, Math.max(0, (st.fadeInMs || 0) / 1000) * V.pps);
+        const foPx = Math.min(sw * 0.48, Math.max(0, (st.fadeOutMs || 0) / 1000) * V.pps);
+        if (fiPx > 2) {
+          c.fillStyle = 'rgba(10, 6, 16, .55)';
+          c.beginPath(); c.moveTo(sx0, sy); c.lineTo(sx0 + fiPx, sy); c.lineTo(sx0, sy + sh); c.closePath(); c.fill();
+          c.strokeStyle = '#e6b8ff'; c.lineWidth = 1.25;
+          c.beginPath(); c.moveTo(sx0, sy + sh); c.lineTo(sx0 + fiPx, sy); c.stroke();
+        }
+        if (foPx > 2) {
+          c.fillStyle = 'rgba(10, 6, 16, .55)';
+          c.beginPath(); c.moveTo(sx1, sy); c.lineTo(sx1 - foPx, sy); c.lineTo(sx1, sy + sh); c.closePath(); c.fill();
+          c.strokeStyle = '#e6b8ff'; c.lineWidth = 1.25;
+          c.beginPath(); c.moveTo(sx1 - foPx, sy); c.lineTo(sx1, sy + sh); c.stroke();
         }
         if (sw >= 26) {
           c.fillStyle = '#f8ebff';
@@ -21950,25 +22574,73 @@ self.onmessage = function (e) {
           c.fillText(`T3 · ${st.name.slice(0, 12)} · +${st.offsetSec.toFixed(1)}s`, Math.max(4, sx0 + 6), sy + 3, Math.max(8, sw - 10));
         }
         c.restore();
+        // Trim edge grips + Fade dots outside clip
+        if (sw >= 22) {
+          for (const [edgeX, edgeMode] of [[sx0, 'stemTrimL'], [sx1, 'stemTrimR']]) {
+            if (edgeX < -8 || edgeX > canvasW + 8) continue;
+            const hot = drag && drag.mode === edgeMode && drag.stemIdx === i;
+            c.fillStyle = hot ? '#ffffff' : '#e6b8ff';
+            roundRect(c, edgeX - 2, sy + 7, 4, Math.max(10, sh - 14), 2);
+            c.fill();
+          }
+          for (const [fx, fadeMode] of [[sx0 + fiPx, 'stemFadeIn'], [sx1 - foPx, 'stemFadeOut']]) {
+            if (fx < -8 || fx > canvasW + 8) continue;
+            const hot = drag && drag.mode === fadeMode && drag.stemIdx === i;
+            c.fillStyle = hot ? '#ffffff' : '#e6b8ff';
+            c.strokeStyle = '#08090d'; c.lineWidth = 1.4;
+            c.beginPath(); c.arc(fx, sy + 4.5, hot ? 5.2 : 3.8, 0, TAU); c.fill(); c.stroke();
+          }
+        }
       }
       c.restore();
     }
 
-    // Live alignment guide + tooltip while dragging Track 2 or Track 3 layer
-    if (drag && (drag.mode === 't2' || drag.mode === 'stem')) {
-      const offSec = drag.mode === 't2' ? Layer.offset : (Stems.clips[drag.stemIdx]?.offsetSec || 0);
-      const gx = clamp(tToX(offSec), 1, canvasW - 1);
+    // Live alignment / trim / fade guide + tooltip while dragging Track 2 or Track 3 layer
+    if (drag && /^(t2|stem)/.test(drag.mode)) {
+      const isT2 = drag.mode.startsWith('t2');
+      const st = !isT2 ? Stems.clips[drag.stemIdx] : null;
+      let guideT = isT2 ? Layer.offset : (st ? st.offsetSec : 0);
+      let lbl = (isT2 ? 'T2 Start: ' : 'Clip Start: ') + (guideT >= 0 ? '+' : '') + guideT.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
+      if (drag.mode === 't2TrimL') {
+        guideT = Layer.offset;
+        lbl = `T2 In: ${(Layer.trimInSec || 0).toFixed(2)}s`;
+      } else if (drag.mode === 't2TrimR') {
+        const span = layerTrimmedSpan();
+        guideT = Layer.offset + span.playDur;
+        lbl = `T2 Dur: ${span.playDur.toFixed(2)}s`;
+      } else if (drag.mode === 't2FadeIn') {
+        guideT = Layer.offset + (Layer.fadeInMs || 0) / 1000;
+        lbl = `T2 Fade In: ${Math.round(Layer.fadeInMs || 0)}ms`;
+      } else if (drag.mode === 't2FadeOut') {
+        const span = layerTrimmedSpan();
+        guideT = Layer.offset + span.playDur - (Layer.fadeOutMs || 0) / 1000;
+        lbl = `T2 Fade Out: ${Math.round(Layer.fadeOutMs || 0)}ms`;
+      } else if (st && drag.mode === 'stemTrimL') {
+        guideT = st.offsetSec;
+        lbl = `Clip In: ${(st.trimInSec || 0).toFixed(2)}s`;
+      } else if (st && drag.mode === 'stemTrimR') {
+        const span = stemTrimmedSpan(st);
+        guideT = st.offsetSec + span.playDur;
+        lbl = `Clip Dur: ${span.playDur.toFixed(2)}s`;
+      } else if (st && drag.mode === 'stemFadeIn') {
+        guideT = st.offsetSec + (st.fadeInMs || 0) / 1000;
+        lbl = `Fade In: ${Math.round(st.fadeInMs || 0)}ms`;
+      } else if (st && drag.mode === 'stemFadeOut') {
+        const span = stemTrimmedSpan(st);
+        guideT = st.offsetSec + span.playDur - (st.fadeOutMs || 0) / 1000;
+        lbl = `Fade Out: ${Math.round(st.fadeOutMs || 0)}ms`;
+      }
+      const gx = clamp(tToX(guideT), 1, canvasW - 1);
       c.save();
       c.strokeStyle = drag.snapT != null ? '#ffd60a' : '#64d2ff';
       c.lineWidth = 1.5;
       c.setLineDash([4, 3]);
       c.beginPath(); c.moveTo(gx, top); c.lineTo(gx, top + h); c.stroke();
       c.setLineDash([]);
-      const lbl = (drag.mode === 't2' ? 'T2 Start: ' : 'Clip Start: ') + (offSec >= 0 ? '+' : '') + offSec.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
       c.font = '700 10.5px ui-monospace, monospace';
       const tw = c.measureText(lbl).width + 14;
       const bx = clamp(gx + 6, 6, Math.max(6, canvasW - tw - 6));
-      const by = drag.mode === 't2' ? Math.max(top + 4, lanesFx.t2Top - 22) : Math.max(top + 4, lanesFx.t3Top - 22);
+      const by = isT2 ? Math.max(top + 4, lanesFx.t2Top - 22) : Math.max(top + 4, lanesFx.t3Top - 22);
       c.fillStyle = 'rgba(10, 12, 18, .92)';
       c.strokeStyle = drag.snapT != null ? '#ffd60a' : '#64d2ff';
       c.lineWidth = 1;
@@ -22205,11 +22877,50 @@ self.onmessage = function (e) {
     for (let i = Stems.clips.length - 1; i >= 0; i--) {
       const st = Stems.clips[i];
       if (st.mute) continue;
+      const { playDur } = stemTrimmedSpan(st);
       const sx0 = tToX(st.offsetSec);
-      const sx1 = tToX(st.offsetSec + st.data[0].length / st.rate);
-      if (x >= sx0 - 8 && x <= Math.max(sx0 + 18, sx1 + 8)) return i;
+      const sx1 = tToX(st.offsetSec + playDur);
+      if (x >= sx0 - 10 && x <= Math.max(sx0 + 18, sx1 + 10)) return i;
     }
     return -1;
+  }
+  function hitTestStemTarget(x, y) {
+    const lanes = getTimelineLanes();
+    if (!lanes.hasT3 || y < lanes.t3Top || y > lanes.t3Top + lanes.t3H) return null;
+    const sy = lanes.t3Top + 3;
+    for (let i = Stems.clips.length - 1; i >= 0; i--) {
+      const st = Stems.clips[i];
+      if (st.mute) continue;
+      const { playDur } = stemTrimmedSpan(st);
+      const sx0 = tToX(st.offsetSec);
+      const sx1 = tToX(st.offsetSec + playDur);
+      if (x < sx0 - 10 || x > Math.max(sx0 + 18, sx1 + 10)) continue;
+      const fiPx = Math.min((sx1 - sx0) * 0.48, Math.max(0, (st.fadeInMs || 0) / 1000) * V.pps);
+      const foPx = Math.min((sx1 - sx0) * 0.48, Math.max(0, (st.fadeOutMs || 0) / 1000) * V.pps);
+      if (y <= sy + 14 && Math.abs(x - (sx0 + fiPx)) <= 10 && sx1 - sx0 >= 22) return { mode: 'stemFadeIn', stemIdx: i };
+      if (y <= sy + 14 && Math.abs(x - (sx1 - foPx)) <= 10 && sx1 - sx0 >= 22) return { mode: 'stemFadeOut', stemIdx: i };
+      if (Math.abs(x - sx0) <= 9 && sx1 - sx0 >= 22) return { mode: 'stemTrimL', stemIdx: i };
+      if (Math.abs(x - sx1) <= 9 && sx1 - sx0 >= 22) return { mode: 'stemTrimR', stemIdx: i };
+      return { mode: 'stem', stemIdx: i };
+    }
+    return null;
+  }
+  function hitTestT2Target(x, y) {
+    const lanes = getTimelineLanes();
+    if (!lanes.hasT2 || !Layer.data || y < lanes.t2Top || y > lanes.t2Top + lanes.t2H) return null;
+    if (!Layer.loopBed) {
+      const { playDur } = layerTrimmedSpan();
+      const t2x0 = tToX(Layer.offset);
+      const t2x1 = tToX(Layer.offset + playDur);
+      const t2y0 = lanes.t2Top + 2;
+      const fiPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeInMs || 0) / 1000) * V.pps);
+      const foPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeOutMs || 0) / 1000) * V.pps);
+      if (y <= t2y0 + 15 && Math.abs(x - (t2x0 + fiPx)) <= 11 && t2x1 - t2x0 >= 24) return 't2FadeIn';
+      if (y <= t2y0 + 15 && Math.abs(x - (t2x1 - foPx)) <= 11 && t2x1 - t2x0 >= 24) return 't2FadeOut';
+      if (Math.abs(x - t2x0) <= 10 && t2x1 - t2x0 >= 24) return 't2TrimL';
+      if (Math.abs(x - t2x1) <= 10 && t2x1 - t2x0 >= 24) return 't2TrimR';
+    }
+    return 't2';
   }
   function snapLayerTime(rawT) {
     const tolSec = 8 / Math.max(1, V.pps);
@@ -22229,9 +22940,10 @@ self.onmessage = function (e) {
     const px = tToX(P.t);
     if (typeof y === 'number') {
       if (y <= 34) return 'scrub';
-      const lanes = getTimelineLanes();
-      if (lanes.hasT2 && y >= lanes.t2Top && y <= lanes.t2Top + lanes.t2H) return 't2';
-      if (hitTestStemAt(x, y) >= 0) return 'stem';
+      const t2Hit = hitTestT2Target(x, y);
+      if (t2Hit) return t2Hit;
+      const stHit = hitTestStemTarget(x, y);
+      if (stHit) return stHit.mode;
     }
     if (Math.abs(x - px) <= 18 && Math.abs(x - xa) > 14 && Math.abs(x - xb) > 14) return 'scrub';
     if (Math.abs(x - xa) <= tol) return 'a';
@@ -22253,9 +22965,11 @@ self.onmessage = function (e) {
     }
     const p = canvasXY(e);
     const rulerH = 22, top = rulerH + 2, h = canvasH - top - 6;
+    const lanesDown = getTimelineLanes();
     const envToY = (db) => top + h * (1 - (clamp(db, -24, 12) + 24) / 36);
     const yToEnvDb = (y) => clamp((1 - (y - top) / Math.max(1, h)) * 36 - 24, -24, 12);
-    if (Env.enabled && Env.points.length >= 2) {
+    // Track 1 Volume Automation (only when editing T1 Vol in main lane)
+    if (Env.enabled && Env.points.length >= 2 && MainMix.autoMode !== 'pan' && p.y <= top + lanesDown.mainH) {
       let hitIdx = -1, bestD = 22;
       for (let i = 0; i < Env.points.length; i++) {
         const ex = tToX(Env.points[i].t), ey = envToY(Env.points[i].db);
@@ -22266,12 +22980,71 @@ self.onmessage = function (e) {
         drag = { mode: 'env', envIdx: hitIdx, id: e.pointerId, sx: p.x, sy: p.y, moved: false };
         haptic(6); fxDirty = true; return;
       }
-      if (p.y > top + 4 && p.y < top + h - 4) {
+      if (p.y > top + 4 && p.y < top + lanesDown.mainH - 4) {
         addEnvPoint(xToT(p.x), yToEnvDb(p.y));
         const idx = Env.points.findIndex((pt) => Math.abs(pt.t - clamp(xToT(p.x), 0, dur())) < 0.05);
         drag = { mode: 'env', envIdx: Math.max(0, idx), id: e.pointerId, sx: p.x, sy: p.y, moved: true };
         haptic(6); fxDirty = true; return;
       }
+    }
+    // Track 1 Pan Automation (when editing T1 Pan in main lane)
+    if (MainMix.autoMode === 'pan' && p.y > top + 4 && p.y < top + lanesDown.mainH - 4) {
+      if (!PanEnv.points.length) {
+        PanEnv.points = [{ t: 0, pan: MainMix.pan || 0 }, { t: dur() || 1, pan: MainMix.pan || 0 }];
+      }
+      PanEnv.enabled = true;
+      const pPad = 8;
+      const panToY = (pv) => top + pPad + ((1 - clamp(pv / 100, -1, 1)) * 0.5) * Math.max(12, lanesDown.mainH - pPad * 2);
+      const yToPan = (y) => clamp((1 - ((y - (top + pPad)) / Math.max(12, lanesDown.mainH - pPad * 2)) * 2) * 100, -100, 100);
+      let hitIdx = -1, bestD = 22;
+      for (let i = 0; i < PanEnv.points.length; i++) {
+        const ex = tToX(PanEnv.points[i].t), ey = panToY(PanEnv.points[i].pan);
+        const dist = Math.hypot(p.x - ex, p.y - ey);
+        if (dist < bestD) { bestD = dist; hitIdx = i; }
+      }
+      if (hitIdx >= 0) {
+        drag = { mode: 'panEnv', envIdx: hitIdx, id: e.pointerId, sx: p.x, sy: p.y, moved: false };
+        haptic(6); fxDirty = true; return;
+      }
+      const clickT = clamp(xToT(p.x), 0, dur());
+      const pv = Math.round(yToPan(p.y));
+      PanEnv.points.push({ t: clickT, pan: pv });
+      PanEnv.points.sort((a, b) => a.t - b.t);
+      const idx = PanEnv.points.findIndex((pt) => Math.abs(pt.t - clickT) < 0.02);
+      drag = { mode: 'panEnv', envIdx: Math.max(0, idx), id: e.pointerId, sx: p.x, sy: p.y, moved: true };
+      haptic(6); fxDirty = true; return;
+    }
+    // Track 2 Vol / Pan Automation (when Layer.autoMode !== 'off')
+    if (lanesDown.hasT2 && Layer.data && Layer.autoMode !== 'off' && p.y >= lanesDown.t2Top + 14 && p.y <= lanesDown.t2Top + lanesDown.t2H - 4) {
+      const isT2Pan = Layer.autoMode === 'pan';
+      const arr = isT2Pan ? Layer.panEnv : Layer.volEnv;
+      const total2 = totalDur() || dur() || 1;
+      if (!arr.length) {
+        if (isT2Pan) arr.push({ t: 0, pan: Layer.pan || 0 }, { t: total2, pan: Layer.pan || 0 });
+        else arr.push({ t: 0, db: Layer.gainDb || 0 }, { t: total2, db: Layer.gainDb || 0 });
+      }
+      const t2y0 = lanesDown.t2Top + 2, t2h = Math.max(18, lanesDown.t2H - 4), pad2 = 6;
+      const valToY2 = (pt) => isT2Pan
+        ? (t2y0 + pad2 + ((1 - clamp(pt.pan / 100, -1, 1)) * 0.5) * Math.max(10, t2h - pad2 * 2))
+        : (t2y0 + pad2 + (1 - clamp((pt.db - (-24)) / 36, 0, 1)) * Math.max(10, t2h - pad2 * 2));
+      let hitIdx = -1, bestD = 20;
+      for (let i = 0; i < arr.length; i++) {
+        const ex = tToX(arr[i].t), ey = valToY2(arr[i]);
+        const dist = Math.hypot(p.x - ex, p.y - ey);
+        if (dist < bestD) { bestD = dist; hitIdx = i; }
+      }
+      if (hitIdx >= 0) {
+        drag = { mode: 't2Auto', envIdx: hitIdx, id: e.pointerId, sx: p.x, sy: p.y, moved: false };
+        haptic(6); fxDirty = true; return;
+      }
+      const clickT = clamp(xToT(p.x), 0, total2);
+      const frac = clamp((p.y - (t2y0 + pad2)) / Math.max(10, t2h - pad2 * 2), 0, 1);
+      if (isT2Pan) arr.push({ t: clickT, pan: Math.round((1 - frac * 2) * 100) });
+      else arr.push({ t: clickT, db: Number(((1 - frac) * 36 - 24).toFixed(1)) });
+      arr.sort((a, b) => a.t - b.t);
+      const idx = arr.findIndex((pt) => Math.abs(pt.t - clickT) < 0.02);
+      drag = { mode: 't2Auto', envIdx: Math.max(0, idx), id: e.pointerId, sx: p.x, sy: p.y, moved: true };
+      haptic(6); fxDirty = true; return;
     }
     if (p.y <= 34 && Markers.list.length) {
       let bestM = -1, bestDist = 13;
@@ -22287,14 +23060,25 @@ self.onmessage = function (e) {
     closeMarkerPop();
     const mode = hitTest(p.x, p.y);
     const [a, b] = selRange();
-    if (mode === 't2') {
-      drag = { mode: 't2', id: e.pointerId, sx: p.x, t0: xToT(p.x), off0: Layer.offset, moved: false, snapT: null };
+    if (mode === 't2' || mode === 't2TrimL' || mode === 't2TrimR' || mode === 't2FadeIn' || mode === 't2FadeOut') {
+      drag = {
+        mode, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+        off0: Layer.offset, trimIn0: Layer.trimInSec || 0, trimOut0: Layer.trimOutSec || 0,
+        fadeIn0: (Layer.fadeInMs || 0) / 1000, fadeOut0: (Layer.fadeOutMs || 0) / 1000,
+        moved: false, snapT: null,
+      };
       haptic(6); fxDirty = true; return;
     }
-    if (mode === 'stem') {
-      const stemIdx = hitTestStemAt(p.x, p.y);
+    if (mode === 'stem' || mode === 'stemTrimL' || mode === 'stemTrimR' || mode === 'stemFadeIn' || mode === 'stemFadeOut') {
+      const hitSt = hitTestStemTarget(p.x, p.y);
+      const stemIdx = hitSt ? hitSt.stemIdx : hitTestStemAt(p.x, p.y);
       const st = Stems.clips[stemIdx];
-      drag = { mode: 'stem', stemIdx, id: e.pointerId, sx: p.x, t0: xToT(p.x), off0: st ? st.offsetSec : 0, moved: false, snapT: null };
+      drag = {
+        mode, stemIdx, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+        off0: st ? st.offsetSec : 0, trimIn0: st ? (st.trimInSec || 0) : 0, trimOut0: st ? (st.trimOutSec || 0) : 0,
+        fadeIn0: st ? ((st.fadeInMs || 0) / 1000) : 0, fadeOut0: st ? ((st.fadeOutMs || 0) / 1000) : 0,
+        moved: false, snapT: null,
+      };
       haptic(6); fxDirty = true; return;
     }
     drag = { mode, id: e.pointerId, sx: p.x, a, b, t0: xToT(p.x), moved: false, lastCoincide: null };
@@ -22307,7 +23091,7 @@ self.onmessage = function (e) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
         const h = hitTest(p.x, p.y);
-        baseCv.style.cursor = (h === 't2' || h === 'stem') ? 'grab' : (h === 'scrub' ? 'crosshair' : 'ew-resize');
+        baseCv.style.cursor = (h === 't2' || h === 'stem') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut') ? 'ew-resize' : (h === 'scrub' ? 'crosshair' : 'ew-resize'));
       }
       return;
     }
@@ -22347,6 +23131,31 @@ self.onmessage = function (e) {
       if ($('#t2OffsetOut')) $('#t2OffsetOut').textContent = (Layer.offset >= 0 ? '+' : '') + Layer.offset.toFixed(2) + ' s';
       baseDirty = true; fxDirty = true;
       return;
+    } else if (drag.mode === 't2TrimL' && Layer.data) {
+      const rawDur = Layer.data[0].length / Layer.rate;
+      const maxDelta = rawDur - (drag.trimIn0 + drag.trimOut0) - 0.1;
+      const delta = clamp(t - drag.t0, -drag.trimIn0, maxDelta);
+      Layer.trimInSec = Number((drag.trimIn0 + delta).toFixed(3));
+      Layer.offset = Number((drag.off0 + delta).toFixed(3));
+      baseDirty = true; fxDirty = true;
+      return;
+    } else if (drag.mode === 't2TrimR' && Layer.data) {
+      const rawDur = Layer.data[0].length / Layer.rate;
+      const maxTrimOut = rawDur - (Layer.trimInSec || 0) - 0.1;
+      const delta = t - drag.t0;
+      Layer.trimOutSec = Number(clamp(drag.trimOut0 - delta, 0, maxTrimOut).toFixed(3));
+      baseDirty = true; fxDirty = true;
+      return;
+    } else if (drag.mode === 't2FadeIn' && Layer.data) {
+      const { playDur } = layerTrimmedSpan();
+      Layer.fadeInMs = Math.round(clamp(drag.fadeIn0 + (t - drag.t0), 0, playDur * 0.48) * 1000);
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 't2FadeOut' && Layer.data) {
+      const { playDur } = layerTrimmedSpan();
+      Layer.fadeOutMs = Math.round(clamp(drag.fadeOut0 - (t - drag.t0), 0, playDur * 0.48) * 1000);
+      fxDirty = true;
+      return;
     } else if (drag.mode === 'stem') {
       const st = Stems.clips[drag.stemIdx];
       if (st) {
@@ -22356,6 +23165,42 @@ self.onmessage = function (e) {
         const sn = snapLayerTime(rawOff);
         st.offsetSec = Number(clamp(sn.t, 0, maxOff).toFixed(3));
         drag.snapT = sn.snapT;
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'stemTrimL') {
+      const st = Stems.clips[drag.stemIdx];
+      if (st) {
+        const rawDur = st.data[0].length / st.rate;
+        const maxDelta = rawDur - (drag.trimIn0 + drag.trimOut0) - 0.08;
+        const delta = clamp(t - drag.t0, -drag.trimIn0, maxDelta);
+        st.trimInSec = Number((drag.trimIn0 + delta).toFixed(3));
+        st.offsetSec = Number(Math.max(0, drag.off0 + delta).toFixed(3));
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'stemTrimR') {
+      const st = Stems.clips[drag.stemIdx];
+      if (st) {
+        const rawDur = st.data[0].length / st.rate;
+        const maxTrimOut = rawDur - (st.trimInSec || 0) - 0.08;
+        st.trimOutSec = Number(clamp(drag.trimOut0 - (t - drag.t0), 0, maxTrimOut).toFixed(3));
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'stemFadeIn') {
+      const st = Stems.clips[drag.stemIdx];
+      if (st) {
+        const { playDur } = stemTrimmedSpan(st);
+        st.fadeInMs = Math.round(clamp(drag.fadeIn0 + (t - drag.t0), 0, playDur * 0.48) * 1000);
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'stemFadeOut') {
+      const st = Stems.clips[drag.stemIdx];
+      if (st) {
+        const { playDur } = stemTrimmedSpan(st);
+        st.fadeOutMs = Math.round(clamp(drag.fadeOut0 - (t - drag.t0), 0, playDur * 0.48) * 1000);
         fxDirty = true;
       }
       return;
@@ -22373,6 +23218,46 @@ self.onmessage = function (e) {
           pt.t = clamp(t, minT, Math.max(minT, maxT));
         }
         pt.db = clamp((1 - (p.y - top) / Math.max(1, h)) * 36 - 24, -24, 12);
+      }
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 'panEnv') {
+      drag.moved = true;
+      const lanes = getTimelineLanes();
+      const top = 24, pPad = 8;
+      const pt = PanEnv.points[drag.envIdx];
+      if (pt) {
+        const total = dur() || 1;
+        if (drag.envIdx === 0) pt.t = 0;
+        else if (drag.envIdx === PanEnv.points.length - 1) pt.t = total;
+        else {
+          const minT = PanEnv.points[drag.envIdx - 1].t + 0.02;
+          const maxT = PanEnv.points[drag.envIdx + 1].t - 0.02;
+          pt.t = clamp(t, minT, Math.max(minT, maxT));
+        }
+        pt.pan = Math.round(clamp((1 - ((p.y - (top + pPad)) / Math.max(12, lanes.mainH - pPad * 2)) * 2) * 100, -100, 100));
+      }
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 't2Auto') {
+      drag.moved = true;
+      const lanes = getTimelineLanes();
+      const isT2Pan = Layer.autoMode === 'pan';
+      const arr = isT2Pan ? Layer.panEnv : Layer.volEnv;
+      const pt = arr[drag.envIdx];
+      if (pt) {
+        const total2 = totalDur() || dur() || 1;
+        if (drag.envIdx === 0) pt.t = 0;
+        else if (drag.envIdx === arr.length - 1) pt.t = total2;
+        else {
+          const minT = arr[drag.envIdx - 1].t + 0.02;
+          const maxT = arr[drag.envIdx + 1].t - 0.02;
+          pt.t = clamp(t, minT, Math.max(minT, maxT));
+        }
+        const t2y0 = lanes.t2Top + 2, t2h = Math.max(18, lanes.t2H - 4), pad2 = 6;
+        const frac = clamp((p.y - (t2y0 + pad2)) / Math.max(10, t2h - pad2 * 2), 0, 1);
+        if (isT2Pan) pt.pan = Math.round((1 - frac * 2) * 100);
+        else pt.db = Number(((1 - frac) * 36 - 24).toFixed(1));
       }
       fxDirty = true;
       return;
@@ -22442,13 +23327,16 @@ self.onmessage = function (e) {
           Markers.list.sort((a, b) => a.t - b.t);
           renderMarkers(); fxDirty = true; scheduleSave();
         }
-      } else if (drag.mode === 't2' || drag.mode === 'stem') {
+      } else if (/^(t2|stem)/.test(drag.mode) && drag.mode !== 't2Auto') {
         clampView();
         renderLayersUI();
         baseDirty = fxDirty = true;
         scheduleSave();
         haptic(5);
-      } else if (drag.mode === 'env') syncLiveFxNodes();
+      } else if (drag.mode === 'env' || drag.mode === 'panEnv' || drag.mode === 't2Auto') {
+        syncLiveFxNodes();
+        scheduleSave();
+      }
       else if (!drag.moved && e.type !== 'pointercancel') seek(clamp(xToT(drag.sx), 0, totalDur()), false);
       if (drag.mode === 'a' || drag.mode === 'b' || drag.mode === 'move') haptic(5);
       drag = null;
@@ -22616,15 +23504,25 @@ self.onmessage = function (e) {
       </div>
       <div class="env-bar">
         <div class="row-top">
-          <b>Volume ducking / envelope</b>
+          <b>Volume &amp; Pan keyframe automation</b>
           <span class="chip mono" id="fxEnvCount">0 points</span>
         </div>
-        <p class="hint" style="margin:0">Toggle envelope mode to drag volume keyframes directly over the waveform and audition live.</p>
+        <p class="hint" style="margin:0">Edit keyframe curves directly on Track 1 to automate volume swells or L/R stereo panning live.</p>
         <div class="btn-row">
           <button type="button" class="btn sm" id="fxEnvToggle" aria-pressed="false">Edit curve</button>
           <button type="button" class="btn sm" id="fxEnvAdd">+ Point</button>
           <button type="button" class="btn sm primary" id="fxEnvApply" disabled>Apply</button>
           <button type="button" class="btn sm ghost" id="fxEnvClear" disabled>Clear</button>
+        </div>
+        <div class="divider"></div>
+        <div class="row-top">
+          <b>Stereo Pan Automation</b>
+          <span class="chip mono" id="fxPanEnvCount">0 points</span>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn sm" id="fxPanEnvToggle" aria-pressed="false">Edit Pan</button>
+          <button type="button" class="btn sm" id="fxPanEnvAdd">+ Pan Pt</button>
+          <button type="button" class="btn sm ghost" id="fxPanEnvClear" disabled>Clear</button>
         </div>
       </div>
     </div></div></div>
@@ -22747,6 +23645,42 @@ self.onmessage = function (e) {
       <div class="btn-row">
         <button class="btn sm" data-act="scanClip">Scan clips</button>
         <button class="btn sm accent" data-act="declip">Repair clipping</button>
+      </div>
+    </div></div></div>
+  </div>
+
+  <div class="acc" data-acc id="masterLimAcc">
+    <button class="acc-h" type="button"><span class="dot"></span>Master Imager, Brickwall &amp; Reference A/B<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <div class="acc-b"><div><div class="inner">
+      <div class="grid-2">
+        <div><div class="range-row"><label for="fxMasterWidth">M/S Stereo Width</label><output id="fxMasterWidthOut">100%</output></div><input type="range" id="fxMasterWidth" min="0" max="200" step="5" value="100"></div>
+        <div><div class="range-row"><label for="fxMasterMonoHz">Mono Maker &lt; Hz</label><output id="fxMasterMonoHzOut">Off</output></div><input type="range" id="fxMasterMonoHz" min="0" max="240" step="10" value="0"></div>
+      </div>
+      <label class="checkrow"><input type="checkbox" id="fxBrickEnable"><span>Enable Lookahead True-Peak Brickwall Limiter (live + export)</span></label>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="fxBrickDrive">Limiter Drive</label><output id="fxBrickDriveOut">0.0 dB</output></div><input type="range" id="fxBrickDrive" min="0" max="12" step="0.5" value="0"></div>
+        <div><div class="range-row"><label for="fxBrickCeil">True-Peak Ceiling</label><output id="fxBrickCeilOut">-0.5 dBTP</output></div><input type="range" id="fxBrickCeil" min="-3" max="-0.1" step="0.1" value="-0.5"></div>
+      </div>
+      <button type="button" class="btn sm primary wide" data-act="masterLimit">Bake M/S Imager &amp; Brickwall Limiter</button>
+      <div class="divider"></div>
+      <div class="ref-ab-card" id="refAbCard">
+        <div class="ref-ab-bar">
+          <div>
+            <b>Reference Track A/B</b>
+            <div class="hint" id="refNameOut" style="margin:2px 0 0">No reference loaded</div>
+          </div>
+          <button type="button" class="btn sm" id="btnRefLoad">Load Ref…</button>
+        </div>
+        <div class="grid-2" id="refMetaRow" hidden>
+          <div class="range-row"><label>Ref LUFS</label><output id="refLufsOut">—</output></div>
+          <div class="range-row"><label>Match Δ</label><output id="refMatchDeltaOut">0.0 dB</output></div>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn sm wide" id="btnRefToggleAB" disabled>Listening: A (Mix)</button>
+          <button type="button" class="btn sm ghost" id="btnRefClear" hidden>×</button>
+        </div>
+        <label class="checkrow"><input type="checkbox" id="chkRefMatchLufs" checked><span>Auto loudness-match Reference to Mix (LUFS)</span></label>
+        <label class="checkrow"><input type="checkbox" id="chkRefShowEq" checked><span>Overlay Reference spectrum on Parametric EQ RTA</span></label>
       </div>
     </div></div></div>
   </div>
@@ -23322,9 +24256,30 @@ self.onmessage = function (e) {
         <button type="button" class="ms-btn" id="t1Solo" title="Solo Track 1">S</button>
       </div>
     </div>
-    <div>
-      <div class="range-row"><label for="t1Gain">Track 1 gain</label><output id="t1GainOut">0.0 dB</output></div>
-      <input type="range" id="t1Gain" min="-24" max="12" step="0.5" value="0">
+    <div class="grid-2">
+      <div>
+        <div class="range-row"><label for="t1Gain">Track 1 gain</label><output id="t1GainOut">0.0 dB</output></div>
+        <input type="range" id="t1Gain" min="-24" max="12" step="0.5" value="0">
+      </div>
+      <div>
+        <div class="range-row"><label for="t1Pan">Track 1 pan</label><output id="t1PanOut">Center</output></div>
+        <input type="range" id="t1Pan" min="-100" max="100" step="5" value="0">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="range-row"><label for="t1RevSend">Reverb send</label><output id="t1RevSendOut">0%</output></div>
+        <input type="range" id="t1RevSend" min="0" max="100" step="2" value="0">
+      </div>
+      <div>
+        <div class="range-row"><label for="t1DelSend">Delay send</label><output id="t1DelSendOut">0%</output></div>
+        <input type="range" id="t1DelSend" min="0" max="100" step="2" value="0">
+      </div>
+    </div>
+    <div class="auto-seg" id="t1AutoSeg" role="group" aria-label="Track 1 timeline automation">
+      <button type="button" data-t1auto="off" aria-pressed="true">Auto: Off</button>
+      <button type="button" data-t1auto="vol" aria-pressed="false">Edit Vol</button>
+      <button type="button" data-t1auto="pan" aria-pressed="false">Edit Pan</button>
     </div>
   </div>
 
@@ -23352,6 +24307,42 @@ self.onmessage = function (e) {
           <div class="range-row"><label for="t2Pan">Pan</label><output id="t2PanOut">Center</output></div>
           <input type="range" id="t2Pan" min="-100" max="100" step="5" value="0">
         </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="range-row"><label for="t2TrimIn">Trim start</label><output id="t2TrimInOut">0.00 s</output></div>
+          <input type="range" id="t2TrimIn" min="0" max="30" step="0.05" value="0">
+        </div>
+        <div>
+          <div class="range-row"><label for="t2TrimOut">Trim end</label><output id="t2TrimOutOut">0.00 s</output></div>
+          <input type="range" id="t2TrimOut" min="0" max="30" step="0.05" value="0">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="range-row"><label for="t2FadeIn">Fade in</label><output id="t2FadeInOut">0 ms</output></div>
+          <input type="range" id="t2FadeIn" min="0" max="5000" step="20" value="0">
+        </div>
+        <div>
+          <div class="range-row"><label for="t2FadeOut">Fade out</label><output id="t2FadeOutOut">0 ms</output></div>
+          <input type="range" id="t2FadeOut" min="0" max="5000" step="20" value="0">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="range-row"><label for="t2RevSend">Reverb send</label><output id="t2RevSendOut">0%</output></div>
+          <input type="range" id="t2RevSend" min="0" max="100" step="2" value="0">
+        </div>
+        <div>
+          <div class="range-row"><label for="t2DelSend">Delay send</label><output id="t2DelSendOut">0%</output></div>
+          <input type="range" id="t2DelSend" min="0" max="100" step="2" value="0">
+        </div>
+      </div>
+      <div class="auto-seg" id="t2AutoSeg" role="group" aria-label="Track 2 timeline automation">
+        <button type="button" data-t2auto="off" aria-pressed="true">Auto: Off</button>
+        <button type="button" data-t2auto="vol" aria-pressed="false">Edit Vol</button>
+        <button type="button" data-t2auto="pan" aria-pressed="false">Edit Pan</button>
+        <button type="button" id="t2AutoClear" style="flex:0 0 auto;padding:0 10px">Clear</button>
       </div>
       <div>
         <div class="range-row"><label for="t2Offset">Position / Start offset</label><output id="t2OffsetOut">0.00 s</output></div>
@@ -23412,6 +24403,38 @@ self.onmessage = function (e) {
       <button type="button" class="btn sm accent" id="btnQuickOverdub">● Punch-In Overdub</button>
     </div>
     <div class="stem-list" id="stemList"><p class="empty-note">Drop jingles, SFX stings, or vocal ad-libs here and place them anywhere on the timeline.</p></div>
+  </div>
+
+  <div class="send-bus-box" id="sendBusBox">
+    <div class="track-head" style="margin-bottom:2px">
+      <span class="track-pill" style="background:rgba(100,210,255,.16);color:#64d2ff">BUS</span>
+      <span class="track-title">Shared Send / Return Buses</span>
+    </div>
+    <p class="hint" style="margin:0">Route Reverb &amp; Stereo Delay sends from T1, T2, and T3 clips into unified live &amp; export studio returns.</p>
+    <div class="grid-2">
+      <div>
+        <div class="range-row"><label for="sendRevSize">Reverb Room</label><output id="sendRevSizeOut">1.9 s</output></div>
+        <input type="range" id="sendRevSize" min="0.4" max="4.5" step="0.1" value="1.9">
+      </div>
+      <div>
+        <div class="range-row"><label for="sendRevDamp">Reverb Damp</label><output id="sendRevDampOut">0.48</output></div>
+        <input type="range" id="sendRevDamp" min="0" max="0.95" step="0.02" value="0.48">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="range-row"><label for="sendDelTime">Delay Time</label><output id="sendDelTimeOut">320 ms</output></div>
+        <input type="range" id="sendDelTime" min="60" max="900" step="10" value="320">
+      </div>
+      <div>
+        <div class="range-row"><label for="sendDelFb">Delay Feedback</label><output id="sendDelFbOut">35%</output></div>
+        <input type="range" id="sendDelFb" min="0" max="80" step="2" value="35">
+      </div>
+    </div>
+    <div>
+      <div class="range-row"><label for="sendDelTone">Delay Tone Filter</label><output id="sendDelToneOut">4.2 kHz</output></div>
+      <input type="range" id="sendDelTone" min="800" max="12000" step="100" value="4200">
+    </div>
   </div>
 
   <div class="acc" data-acc>
@@ -23487,7 +24510,16 @@ self.onmessage = function (e) {
     if ($('#t1Solo')) $('#t1Solo').classList.toggle('solo-on', MainMix.solo);
     if ($('#t1Gain')) $('#t1Gain').value = MainMix.gainDb || 0;
     if ($('#t1GainOut')) $('#t1GainOut').textContent = (MainMix.gainDb > 0 ? '+' : '') + (MainMix.gainDb || 0).toFixed(1) + ' dB';
-    if ($('#t2Name')) $('#t2Name').textContent = Layer.active ? (Layer.name + ' (' + fmtTime(Layer.data[0].length / Layer.rate, true) + ')') : 'Layer Track 2 (Empty)';
+    if ($('#t1Pan')) $('#t1Pan').value = MainMix.pan || 0;
+    if ($('#t1PanOut')) $('#t1PanOut').textContent = !MainMix.pan ? 'Center' : (MainMix.pan < 0 ? Math.abs(Math.round(MainMix.pan)) + '% L' : Math.round(MainMix.pan) + '% R');
+    if ($('#t1RevSend')) $('#t1RevSend').value = MainMix.revSend || 0;
+    if ($('#t1RevSendOut')) $('#t1RevSendOut').textContent = Math.round(MainMix.revSend || 0) + '%';
+    if ($('#t1DelSend')) $('#t1DelSend').value = MainMix.delSend || 0;
+    if ($('#t1DelSendOut')) $('#t1DelSendOut').textContent = Math.round(MainMix.delSend || 0) + '%';
+    $$('#t1AutoSeg [data-t1auto]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t1auto === MainMix.autoMode));
+
+    const { rawDur: t2RawDur, playDur: t2PlayDur } = layerTrimmedSpan();
+    if ($('#t2Name')) $('#t2Name').textContent = Layer.active ? (Layer.name + ' (' + fmtTime(t2PlayDur, true) + ')') : 'Layer Track 2 (Empty)';
     if ($('#btnLayerPick')) $('#btnLayerPick').textContent = Layer.active ? '⇄ Replace Track 2' : '＋ Load Track 2';
     if ($('#btnAddTrackAuto')) $('#btnAddTrackAuto').textContent = Layer.active ? '＋ Add Track 3 layer' : '＋ Add Track 2 layer';
     if ($('#t2MsGrp')) $('#t2MsGrp').hidden = !Layer.active;
@@ -23500,6 +24532,20 @@ self.onmessage = function (e) {
     if ($('#t2GainOut')) $('#t2GainOut').textContent = (Layer.gainDb > 0 ? '+' : '') + Layer.gainDb.toFixed(1) + ' dB';
     if ($('#t2Pan')) $('#t2Pan').value = Layer.pan;
     if ($('#t2PanOut')) $('#t2PanOut').textContent = Layer.pan === 0 ? 'Center' : (Layer.pan < 0 ? Math.abs(Math.round(Layer.pan)) + '% L' : Math.round(Layer.pan) + '% R');
+    const maxTrim2 = Math.max(0.2, Number((t2RawDur - 0.1).toFixed(2)));
+    if ($('#t2TrimIn')) { $('#t2TrimIn').max = String(maxTrim2); $('#t2TrimIn').value = String(clamp(Layer.trimInSec || 0, 0, maxTrim2)); }
+    if ($('#t2TrimInOut')) $('#t2TrimInOut').textContent = (Layer.trimInSec || 0).toFixed(2) + ' s';
+    if ($('#t2TrimOut')) { $('#t2TrimOut').max = String(maxTrim2); $('#t2TrimOut').value = String(clamp(Layer.trimOutSec || 0, 0, maxTrim2)); }
+    if ($('#t2TrimOutOut')) $('#t2TrimOutOut').textContent = (Layer.trimOutSec || 0).toFixed(2) + ' s';
+    if ($('#t2FadeIn')) $('#t2FadeIn').value = String(Math.round(Layer.fadeInMs || 0));
+    if ($('#t2FadeInOut')) $('#t2FadeInOut').textContent = Math.round(Layer.fadeInMs || 0) + ' ms';
+    if ($('#t2FadeOut')) $('#t2FadeOut').value = String(Math.round(Layer.fadeOutMs || 0));
+    if ($('#t2FadeOutOut')) $('#t2FadeOutOut').textContent = Math.round(Layer.fadeOutMs || 0) + ' ms';
+    if ($('#t2RevSend')) $('#t2RevSend').value = String(Math.round(Layer.revSend || 0));
+    if ($('#t2RevSendOut')) $('#t2RevSendOut').textContent = Math.round(Layer.revSend || 0) + '%';
+    if ($('#t2DelSend')) $('#t2DelSend').value = String(Math.round(Layer.delSend || 0));
+    if ($('#t2DelSendOut')) $('#t2DelSendOut').textContent = Math.round(Layer.delSend || 0) + '%';
+    $$('#t2AutoSeg [data-t2auto]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t2auto === Layer.autoMode));
     if ($('#t2Offset')) {
       const t2Dur = Layer.data ? (Layer.data[0].length / Layer.rate) : 10;
       const minOff = -Math.max(10, Math.ceil(t2Dur));
@@ -23513,8 +24559,21 @@ self.onmessage = function (e) {
     if ($('#t2Duck')) $('#t2Duck').checked = !!Layer.duck;
     if ($('#t2DuckParams')) $('#t2DuckParams').style.display = Layer.duck ? '' : 'none';
     if ($('#t2DuckRelWrap')) $('#t2DuckRelWrap').style.display = Layer.duck ? '' : 'none';
+    if ($('#sendRevSize')) $('#sendRevSize').value = SendBus.revSize;
+    if ($('#sendRevSizeOut')) $('#sendRevSizeOut').textContent = Number(SendBus.revSize).toFixed(1) + ' s';
+    if ($('#sendRevDamp')) $('#sendRevDamp').value = SendBus.revDamp;
+    if ($('#sendRevDampOut')) $('#sendRevDampOut').textContent = Number(SendBus.revDamp).toFixed(2);
+    if ($('#sendDelTime')) $('#sendDelTime').value = SendBus.delTimeMs;
+    if ($('#sendDelTimeOut')) $('#sendDelTimeOut').textContent = Math.round(SendBus.delTimeMs) + ' ms';
+    if ($('#sendDelFb')) $('#sendDelFb').value = SendBus.delFeedback;
+    if ($('#sendDelFbOut')) $('#sendDelFbOut').textContent = Math.round(SendBus.delFeedback) + '%';
+    if ($('#sendDelTone')) $('#sendDelTone').value = SendBus.delToneHz;
+    if ($('#sendDelToneOut')) $('#sendDelToneOut').textContent = (SendBus.delToneHz >= 1000 ? (SendBus.delToneHz / 1000).toFixed(1) + ' kHz' : Math.round(SendBus.delToneHz) + ' Hz');
+
     const totalLayers = 1 + (Layer.active ? 1 : 0) + Stems.clips.length;
-    const hasStudioEdits = Layer.active || Stems.clips.length > 0 || Regions.list.length > 0 || liveFxDirty();
+    const hasStudioEdits = Layer.active || Stems.clips.length > 0 || Regions.list.length > 0 || liveFxDirty()
+      || (PanEnv.enabled && PanEnv.points.length >= 2) || Math.abs(MainMix.pan || 0) > 1
+      || (MainMix.revSend || 0) > 0 || (MainMix.delSend || 0) > 0;
     if ($('#layersCountTag')) $('#layersCountTag').textContent = totalLayers + (totalLayers === 1 ? ' track' : ' tracks');
     if ($('#btnLayers')) {
       $('#btnLayers').textContent = totalLayers > 1 ? ('Tracks · ' + totalLayers) : 'Tracks';
@@ -23538,25 +24597,33 @@ self.onmessage = function (e) {
       if (Math.abs(val('#eqLow')) > 0.05) parts.push('L ' + val('#eqLow').toFixed(1));
       if (Math.abs(val('#eqMid')) > 0.05) parts.push('M ' + val('#eqMid').toFixed(1));
       if (Math.abs(val('#eqHigh')) > 0.05) parts.push('H ' + val('#eqHigh').toFixed(1));
-      return { name: 'Low-cut & 3-Band EQ', sub: parts.length ? parts.join(' · ') : 'Neutral', accIdx: 2 };
+      return { name: 'Low-cut & 5-Band EQ', sub: parts.length ? parts.join(' · ') : 'Neutral', accIdx: 2 };
     }
     if (id === 'gainEnv') {
       const parts = [];
       if (Math.abs(val('#fxGain')) > 0.05) parts.push((val('#fxGain') > 0 ? '+' : '') + val('#fxGain').toFixed(1) + ' dB');
       if (Env.enabled && Env.points.length >= 2) parts.push(Env.points.length + ' env pts');
-      return { name: 'Gain & Volume Envelope', sub: parts.length ? parts.join(' · ') : '0.0 dB', accIdx: 0 };
+      if (PanEnv.enabled && PanEnv.points.length >= 2) parts.push(PanEnv.points.length + ' pan pts');
+      return { name: 'Gain, Vol & Pan Automation', sub: parts.length ? parts.join(' · ') : '0.0 dB', accIdx: 0 };
     }
     if (id === 'compLim') {
       return {
         name: 'Compressor & Limiter',
         sub: compActive() ? Math.round(val('#fxCompThr')) + ' dB · ' + val('#fxCompRatio').toFixed(1) + ':1' : 'Off',
-        accIdx: 3
+        accIdx: 4
       };
+    }
+    if (id === 'masterMsLim') {
+      const parts = [];
+      if (Math.abs((MasterBus.widthPct ?? 100) - 100) > 1) parts.push('W ' + Math.round(MasterBus.widthPct) + '%');
+      if ((MasterBus.monoBelowHz || 0) >= 20) parts.push('Mono<' + Math.round(MasterBus.monoBelowHz) + 'Hz');
+      if (MasterBus.brickEnable) parts.push('Ceil ' + (MasterBus.ceilingDb ?? -0.5).toFixed(1) + 'dB');
+      return { name: 'M/S Imager & Brickwall Limiter', sub: parts.length ? parts.join(' · ') : 'Neutral', accIdx: 5 };
     }
     return {
       name: 'De-esser',
       sub: val('#fxDeEssAmt') > 0.2 ? (val('#fxDeEssFreq') / 1000).toFixed(1) + 'k −' + val('#fxDeEssAmt').toFixed(1) + 'dB' : '0.0 dB',
-      accIdx: 3
+      accIdx: 4
     };
   }
 
@@ -23628,6 +24695,8 @@ self.onmessage = function (e) {
     killLayerSource();
     Layer.active = false; Layer.data = null; Layer.buffer = null; Layer.duckCurve = null;
     Layer.name = ''; Layer.mute = false; Layer.solo = false;
+    Layer.trimInSec = 0; Layer.trimOutSec = 0; Layer.fadeInMs = 0; Layer.fadeOutMs = 0;
+    Layer.volEnv = []; Layer.panEnv = []; Layer.autoMode = 'off'; Layer.revSend = 0; Layer.delSend = 0;
     syncMixNodes();
     renderLayersUI();
     baseDirty = fxDirty = true;
@@ -23657,42 +24726,93 @@ self.onmessage = function (e) {
   function renderMixedRange(a, b) {
     const n = Math.max(1, b - a);
     const { mainOn, layerOn } = effectiveTrackAudibility();
+    const hasT1Pan = Math.abs(MainMix.pan || 0) > 1 || (PanEnv.enabled && PanEnv.points.length >= 2);
+    const hasLayerPan = layerOn && (Math.abs(Layer.pan || 0) > 1 || (Layer.panEnv && Layer.panEnv.length >= 2));
+    const hasSends = (MainMix.revSend || 0) > 0.5 || (MainMix.delSend || 0) > 0.5
+      || (layerOn && ((Layer.revSend || 0) > 0.5 || (Layer.delSend || 0) > 0.5))
+      || (!Stems.mute && Stems.clips.some((st) => !st.mute && ((st.revSend || 0) > 0.5 || (st.delSend || 0) > 0.5)));
     const stemStereo = Stems.clips.some((st) => st.data.length > 1 || Math.abs(st.pan || 0) > 1);
-    const outCh = ((layerOn && Layer.data && Layer.data.length > 1) || S.data.length > 1 || stemStereo) ? 2 : 1;
+    const outCh = ((layerOn && Layer.data && Layer.data.length > 1) || S.data.length > 1 || stemStereo || hasT1Pan || hasLayerPan || hasSends) ? 2 : 1;
     const out = Array.from({ length: outCh }, () => new Float32Array(n));
+    const anyRev = (MainMix.revSend || 0) > 0.5 || (layerOn && (Layer.revSend || 0) > 0.5) || (!Stems.mute && Stems.clips.some((st) => !st.mute && (st.revSend || 0) > 0.5));
+    const anyDel = (MainMix.delSend || 0) > 0.5 || (layerOn && (Layer.delSend || 0) > 0.5) || (!Stems.mute && Stems.clips.some((st) => !st.mute && (st.delSend || 0) > 0.5));
+    const revBuf = anyRev ? [new Float32Array(n), new Float32Array(n)] : null;
+    const delBuf = anyDel ? [new Float32Array(n), new Float32Array(n)] : null;
+
     const mg = mainOn ? Math.pow(10, (MainMix.gainDb || 0) / 20) : 0;
+    const t1RevG = mainOn ? clamp((MainMix.revSend || 0) / 100, 0, 1) : 0;
+    const t1DelG = mainOn ? clamp((MainMix.delSend || 0) / 100, 0, 1) : 0;
+    const t1PanPts = (PanEnv.enabled && PanEnv.points.length >= 2) ? PanEnv.points.slice().sort((x, y) => x.t - y.t) : null;
+
     if (Regions.list.length) {
       renderRegionsInto(a, b, out, mg);
     } else {
-      for (let c = 0; c < outCh; c++) {
-        const src1 = S.data[c % S.data.length];
-        const dst = out[c];
-        for (let i = 0; i < n; i++) dst[i] = ((a + i) < src1.length ? src1[a + i] : 0) * mg;
+      const s0 = S.data[0], s1 = S.data[S.data.length > 1 ? 1 : 0];
+      for (let i = 0; i < n; i++) {
+        const gIdx = a + i;
+        let l = (gIdx < s0.length ? s0[gIdx] : 0) * mg;
+        let r = (gIdx < s1.length ? s1[gIdx] : 0) * mg;
+        if (outCh > 1 && hasT1Pan) {
+          const pv = clamp((t1PanPts ? evalAutomationPoints(t1PanPts, gIdx / S.rate, MainMix.pan || 0, 'pan') : (MainMix.pan || 0)) / 100, -1, 1);
+          const pL = Math.cos((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+          const pR = Math.sin((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+          l *= pL; r *= pR;
+        }
+        if (outCh === 1) out[0][i] = l;
+        else { out[0][i] = l; out[1][i] = r; }
       }
     }
+    if (revBuf && t1RevG > 0.005) {
+      for (let i = 0; i < n; i++) { revBuf[0][i] += out[0][i] * t1RevG; revBuf[1][i] += out[outCh > 1 ? 1 : 0][i] * t1RevG; }
+    }
+    if (delBuf && t1DelG > 0.005) {
+      for (let i = 0; i < n; i++) { delBuf[0][i] += out[0][i] * t1DelG; delBuf[1][i] += out[outCh > 1 ? 1 : 0][i] * t1DelG; }
+    }
+
     if (layerOn && Layer.data && Layer.data[0].length) {
       const lData = Layer.data;
-      const lLen = lData[0].length;
+      const { inS, playDur } = layerTrimmedSpan();
+      const inSamp = Math.round(inS * S.rate);
+      const lPlayLen = Math.max(1, Math.round(playDur * S.rate));
       const baseG = Math.pow(10, (Layer.gainDb || 0) / 20);
-      const pan = clamp((Layer.pan || 0) / 100, -1, 1);
-      const panL = outCh > 1 ? Math.cos((pan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
-      const panR = outCh > 1 ? Math.sin((pan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
       const offS = Math.round((Layer.offset || 0) * S.rate);
       const stepS = Math.max(1, Math.round((Layer.duckStepSec || 0.02) * S.rate));
+      const fiS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeInMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
+      const foS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeOutMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
+      const t2VolPts = (Layer.volEnv && Layer.volEnv.length >= 2) ? Layer.volEnv.slice().sort((x, y) => x.t - y.t) : null;
+      const t2PanPts = (Layer.panEnv && Layer.panEnv.length >= 2) ? Layer.panEnv.slice().sort((x, y) => x.t - y.t) : null;
+      const t2RevG = clamp((Layer.revSend || 0) / 100, 0, 1);
+      const t2DelG = clamp((Layer.delSend || 0) / 100, 0, 1);
+      const staticPan = clamp((Layer.pan || 0) / 100, -1, 1);
+      const sPanL = outCh > 1 ? Math.cos((staticPan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
+      const sPanR = outCh > 1 ? Math.sin((staticPan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
+
       for (let i = 0; i < n; i++) {
         const gIdx = a + i;
         let li = gIdx - offS;
-        if (Layer.loopBed) li = ((li % lLen) + lLen) % lLen;
-        if (li < 0 || li >= lLen) continue;
+        if (Layer.loopBed) li = ((li % lPlayLen) + lPlayLen) % lPlayLen;
+        if (li < 0 || li >= lPlayLen) continue;
+        const srcIdx = clamp(inSamp + li, 0, lData[0].length - 1);
         let dg = baseG;
         if (Layer.duck && Layer.duckCurve) {
           const di = clamp(Math.floor(gIdx / stepS), 0, Layer.duckCurve.length - 1);
           dg *= Layer.duckCurve[di];
         }
-        const sL = lData[0][li] * dg;
-        const sR = lData[lData.length > 1 ? 1 : 0][li] * dg;
+        if (t2VolPts) dg *= Math.pow(10, clamp(evalAutomationPoints(t2VolPts, gIdx / S.rate, 0, 'db'), -36, 12) / 20);
+        if (fiS > 1 && li < fiS) dg *= 0.5 * (1 - Math.cos(Math.PI * (li / fiS)));
+        if (foS > 1 && li > lPlayLen - foS) dg *= 0.5 * (1 - Math.cos(Math.PI * ((lPlayLen - li) / foS)));
+        let pL = sPanL, pR = sPanR;
+        if (outCh > 1 && t2PanPts) {
+          const pv = clamp(evalAutomationPoints(t2PanPts, gIdx / S.rate, Layer.pan || 0, 'pan') / 100, -1, 1);
+          pL = Math.cos((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+          pR = Math.sin((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+        }
+        const sL = lData[0][srcIdx] * dg * pL;
+        const sR = lData[lData.length > 1 ? 1 : 0][srcIdx] * dg * pR;
         if (outCh === 1) out[0][i] += (sL + sR) * 0.5;
-        else { out[0][i] += sL * panL; out[1][i] += sR * panR; }
+        else { out[0][i] += sL; out[1][i] += sR; }
+        if (revBuf && t2RevG > 0.005) { revBuf[0][i] += sL * t2RevG; revBuf[1][i] += sR * t2RevG; }
+        if (delBuf && t2DelG > 0.005) { delBuf[0][i] += sL * t2DelG; delBuf[1][i] += sR * t2DelG; }
       }
     }
     if (!Stems.mute && Stems.clips.length) {
@@ -23700,93 +24820,132 @@ self.onmessage = function (e) {
         if (st.mute) continue;
         const offS = Math.round((st.offsetSec || 0) * S.rate);
         const sData = st.data;
-        const sLen = sData[0].length;
+        const { inS, playDur } = stemTrimmedSpan(st);
+        const inSamp = Math.round(inS * S.rate);
+        const sLen = Math.max(1, Math.round(playDur * S.rate));
         const baseG = Math.pow(10, (st.gainDb || 0) / 20);
         const pan = clamp((st.pan || 0) / 100, -1, 1);
         const panL = outCh > 1 ? Math.cos((pan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
         const panR = outCh > 1 ? Math.sin((pan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
         const fi = Math.min(Math.round(((st.fadeInMs || 0) / 1000) * S.rate), Math.floor(sLen * 0.45));
         const fo = Math.min(Math.round(((st.fadeOutMs || 0) / 1000) * S.rate), Math.floor(sLen * 0.45));
+        const stRevG = clamp((st.revSend || 0) / 100, 0, 1);
+        const stDelG = clamp((st.delSend || 0) / 100, 0, 1);
         for (let i = 0; i < n; i++) {
           const si = (a + i) - offS;
           if (si < 0 || si >= sLen) continue;
+          const srcIdx = clamp(inSamp + si, 0, sData[0].length - 1);
           let fg = baseG;
           if (fi > 1 && si < fi) fg *= 0.5 * (1 - Math.cos(Math.PI * (si / fi)));
           if (fo > 1 && si > sLen - fo) fg *= 0.5 * (1 - Math.cos(Math.PI * ((sLen - si) / fo)));
-          const sL = sData[0][si] * fg;
-          const sR = sData[sData.length > 1 ? 1 : 0][si] * fg;
+          const sL = sData[0][srcIdx] * fg * panL;
+          const sR = sData[sData.length > 1 ? 1 : 0][srcIdx] * fg * panR;
           if (outCh === 1) out[0][i] += (sL + sR) * 0.5;
-          else { out[0][i] += sL * panL; out[1][i] += sR * panR; }
+          else { out[0][i] += sL; out[1][i] += sR; }
+          if (revBuf && stRevG > 0.005) { revBuf[0][i] += sL * stRevG; revBuf[1][i] += sR * stRevG; }
+          if (delBuf && stDelG > 0.005) { delBuf[0][i] += sL * stDelG; delBuf[1][i] += sR * stDelG; }
         }
+      }
+    }
+    if (revBuf) {
+      const wetRev = revBuf.map((ch) => {
+        const w = D.reverb(ch, S.rate, { seconds: SendBus.revSize || 1.9, decay: 2.4, damp: SendBus.revDamp ?? 0.48, wet: 1 });
+        for (let i = 0; i < n; i++) w[i] -= ch[i];
+        return w;
+      });
+      for (let i = 0; i < n; i++) {
+        out[0][i] += wetRev[0][i];
+        if (outCh > 1) out[1][i] += wetRev[1][i];
+      }
+    }
+    if (delBuf) {
+      const wetDel = D.stereoDelay(delBuf, S.rate, {
+        delayMs: SendBus.delTimeMs || 320,
+        feedback: (SendBus.delFeedback ?? 35) / 100,
+        toneHz: SendBus.delToneHz || 4200,
+        wetOnly: true,
+        wet: 1
+      });
+      for (let i = 0; i < n; i++) {
+        out[0][i] += wetDel[0][i];
+        if (outCh > 1) out[1][i] += wetDel[1][i];
       }
     }
     return out;
   }
 
   async function renderLiveFxOffline(data, rate) {
-    if (!liveFxDirty() || typeof OfflineAudioContext === 'undefined') return data;
-    const len = data[0].length;
-    const off = new OfflineAudioContext(data.length, len, rate);
-    const buf = off.createBuffer(data.length, len, rate);
-    for (let c = 0; c < data.length; c++) buf.copyToChannel(data[c], c);
-    const s = off.createBufferSource();
-    s.buffer = buf;
+    if (!liveFxDirty()) return data;
+    let out = data;
+    const hasWebAudioFx = FXRack.order.some((id) => id !== 'masterMsLim' && !FXRack.bypass[id] && fxModuleDirty(id));
+    if (hasWebAudioFx && typeof OfflineAudioContext !== 'undefined') {
+      const len = out[0].length;
+      const off = new OfflineAudioContext(out.length, len, rate);
+      const buf = off.createBuffer(out.length, len, rate);
+      for (let c = 0; c < out.length; c++) buf.copyToChannel(out[c], c);
+      const s = off.createBufferSource();
+      s.buffer = buf;
 
-    const hp = off.createBiquadFilter(); hp.type = 'highpass';
-    hp.frequency.value = !FXRack.bypass.hpEq ? (val('#eqHp') || 20) : 20; hp.Q.value = 0.707;
-    const g = off.createGain();
-    g.gain.value = !FXRack.bypass.gainEnv ? Math.pow(10, (val('#fxGain') || 0) / 20) : 1;
-    const low = off.createBiquadFilter(); low.type = 'lowshelf'; low.frequency.value = 120;
-    low.gain.value = !FXRack.bypass.hpEq ? (val('#eqLow') || 0) : 0;
-    const lowMid = off.createBiquadFilter(); lowMid.type = 'peaking';
-    lowMid.frequency.value = val('#eqLowMidF') || 320; lowMid.Q.value = 1.1;
-    lowMid.gain.value = !FXRack.bypass.hpEq ? (val('#eqLowMid') || 0) : 0;
-    const mid = off.createBiquadFilter(); mid.type = 'peaking';
-    mid.frequency.value = val('#eqMidF') || 1200; mid.Q.value = val('#eqMidQ') || 1;
-    mid.gain.value = !FXRack.bypass.hpEq ? (val('#eqMid') || 0) : 0;
-    const pres = off.createBiquadFilter(); pres.type = 'peaking';
-    pres.frequency.value = val('#eqPresF') || 3600; pres.Q.value = 1.2;
-    pres.gain.value = !FXRack.bypass.hpEq ? (val('#eqPres') || 0) : 0;
-    const high = off.createBiquadFilter(); high.type = 'highshelf'; high.frequency.value = 9000;
-    high.gain.value = !FXRack.bypass.hpEq ? (val('#eqHigh') || 0) : 0;
+      const hp = off.createBiquadFilter(); hp.type = 'highpass';
+      hp.frequency.value = !FXRack.bypass.hpEq ? (val('#eqHp') || 20) : 20; hp.Q.value = 0.707;
+      const g = off.createGain();
+      g.gain.value = !FXRack.bypass.gainEnv ? Math.pow(10, (val('#fxGain') || 0) / 20) : 1;
+      const low = off.createBiquadFilter(); low.type = 'lowshelf'; low.frequency.value = 120;
+      low.gain.value = !FXRack.bypass.hpEq ? (val('#eqLow') || 0) : 0;
+      const lowMid = off.createBiquadFilter(); lowMid.type = 'peaking';
+      lowMid.frequency.value = val('#eqLowMidF') || 320; lowMid.Q.value = 1.1;
+      lowMid.gain.value = !FXRack.bypass.hpEq ? (val('#eqLowMid') || 0) : 0;
+      const mid = off.createBiquadFilter(); mid.type = 'peaking';
+      mid.frequency.value = val('#eqMidF') || 1200; mid.Q.value = val('#eqMidQ') || 1;
+      mid.gain.value = !FXRack.bypass.hpEq ? (val('#eqMid') || 0) : 0;
+      const pres = off.createBiquadFilter(); pres.type = 'peaking';
+      pres.frequency.value = val('#eqPresF') || 3600; pres.Q.value = 1.2;
+      pres.gain.value = !FXRack.bypass.hpEq ? (val('#eqPres') || 0) : 0;
+      const high = off.createBiquadFilter(); high.type = 'highshelf'; high.frequency.value = 9000;
+      high.gain.value = !FXRack.bypass.hpEq ? (val('#eqHigh') || 0) : 0;
 
-    const de = off.createBiquadFilter(); de.type = 'peaking'; de.frequency.value = val('#fxDeEssFreq') || 6500; de.Q.value = 2.2;
-    de.gain.value = !FXRack.bypass.deess ? -(val('#fxDeEssAmt') || 0) * 0.65 : 0;
+      const de = off.createBiquadFilter(); de.type = 'peaking'; de.frequency.value = val('#fxDeEssFreq') || 6500; de.Q.value = 2.2;
+      de.gain.value = !FXRack.bypass.deess ? -(val('#fxDeEssAmt') || 0) * 0.65 : 0;
 
-    const comp = off.createDynamicsCompressor(); comp.knee.value = 6;
-    const mk = off.createGain();
-    const lim = off.createDynamicsCompressor(); lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.05;
-    if (!FXRack.bypass.compLim && compActive()) {
-      comp.threshold.value = val('#fxCompThr') || -18; comp.ratio.value = val('#fxCompRatio') || 3;
-      comp.attack.value = (val('#fxCompAtt') || 12) / 1000; comp.release.value = (val('#fxCompRel') || 160) / 1000;
-      mk.gain.value = Math.pow(10, (val('#fxCompMakeup') || 0) / 20);
-      lim.threshold.value = val('#fxLimCeil') || -1.0;
-    } else {
-      comp.threshold.value = 0; comp.ratio.value = 1; mk.gain.value = 1; lim.threshold.value = 0;
+      const comp = off.createDynamicsCompressor(); comp.knee.value = 6;
+      const mk = off.createGain();
+      const lim = off.createDynamicsCompressor(); lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.05;
+      if (!FXRack.bypass.compLim && compActive()) {
+        comp.threshold.value = val('#fxCompThr') || -18; comp.ratio.value = val('#fxCompRatio') || 3;
+        comp.attack.value = (val('#fxCompAtt') || 12) / 1000; comp.release.value = (val('#fxCompRel') || 160) / 1000;
+        mk.gain.value = Math.pow(10, (val('#fxCompMakeup') || 0) / 20);
+        lim.threshold.value = val('#fxLimCeil') || -1.0;
+      } else {
+        comp.threshold.value = 0; comp.ratio.value = 1; mk.gain.value = 1; lim.threshold.value = 0;
+      }
+      const env = off.createGain();
+      if (!FXRack.bypass.gainEnv && Env.enabled && Env.points.length >= 2) {
+        const pts = Env.points.slice().sort((a, b) => a.t - b.t);
+        env.gain.setValueAtTime(Math.pow(10, pts[0].db / 20), 0);
+        for (const pt of pts) env.gain.linearRampToValueAtTime(Math.pow(10, pt.db / 20), clamp(pt.t, 0, len / rate));
+      } else env.gain.value = 1;
+
+      hp.connect(low); low.connect(lowMid); lowMid.connect(mid); mid.connect(pres); pres.connect(high);
+      g.connect(env);
+      comp.connect(mk); mk.connect(lim);
+      const modIo = { hpEq: [hp, high], gainEnv: [g, env], compLim: [comp, lim], deess: [de, de] };
+      let prev = s;
+      for (const id of FXRack.order) {
+        const pair = modIo[id];
+        if (!pair) continue;
+        prev.connect(pair[0]);
+        prev = pair[1];
+      }
+      prev.connect(off.destination);
+      s.start(0);
+      const rendered = await off.startRendering();
+      const tmp = [];
+      for (let c = 0; c < rendered.numberOfChannels; c++) tmp.push(Float32Array.from(rendered.getChannelData(c)));
+      out = tmp;
     }
-    const env = off.createGain();
-    if (!FXRack.bypass.gainEnv && Env.enabled && Env.points.length >= 2) {
-      const pts = Env.points.slice().sort((a, b) => a.t - b.t);
-      env.gain.setValueAtTime(Math.pow(10, pts[0].db / 20), 0);
-      for (const pt of pts) env.gain.linearRampToValueAtTime(Math.pow(10, pt.db / 20), clamp(pt.t, 0, len / rate));
-    } else env.gain.value = 1;
-
-    hp.connect(low); low.connect(lowMid); lowMid.connect(mid); mid.connect(pres); pres.connect(high);
-    g.connect(env);
-    comp.connect(mk); mk.connect(lim);
-    const modIo = { hpEq: [hp, high], gainEnv: [g, env], compLim: [comp, lim], deess: [de, de] };
-    let prev = s;
-    for (const id of FXRack.order) {
-      const pair = modIo[id];
-      if (!pair) continue;
-      prev.connect(pair[0]);
-      prev = pair[1];
+    if (!FXRack.bypass.masterMsLim && fxModuleDirty('masterMsLim')) {
+      out = D.masterImagerAndLimit(out, rate, MasterBus);
     }
-    prev.connect(off.destination);
-    s.start(0);
-    const rendered = await off.startRendering();
-    const out = [];
-    for (let c = 0; c < rendered.numberOfChannels; c++) out.push(Float32Array.from(rendered.getChannelData(c)));
     return out;
   }
 
@@ -23796,7 +24955,14 @@ self.onmessage = function (e) {
     if ($('#fxCompEnable')) $('#fxCompEnable').checked = false;
     if ($('#fxDeEssAmt')) { $('#fxDeEssAmt').value = 0; $('#fxDeEssAmtOut').textContent = '0.0 dB'; }
     Env.points = []; Env.enabled = false; syncEnvUI();
-    FXRack.bypass = { hpEq: false, gainEnv: false, compLim: false, deess: false };
+    PanEnv.points = []; PanEnv.enabled = false; syncPanEnvUI();
+    MasterBus.widthPct = 100; MasterBus.monoBelowHz = 0; MasterBus.brickEnable = false; MasterBus.driveDb = 0; MasterBus.ceilingDb = -0.5;
+    if ($('#fxMasterWidth')) { $('#fxMasterWidth').value = 100; $('#fxMasterWidthOut').textContent = '100%'; }
+    if ($('#fxMasterMonoHz')) { $('#fxMasterMonoHz').value = 0; $('#fxMasterMonoHzOut').textContent = 'Off'; }
+    if ($('#fxBrickEnable')) $('#fxBrickEnable').checked = false;
+    if ($('#fxBrickDrive')) { $('#fxBrickDrive').value = 0; $('#fxBrickDriveOut').textContent = '0.0 dB'; }
+    if ($('#fxBrickCeil')) { $('#fxBrickCeil').value = -0.5; $('#fxBrickCeilOut').textContent = '-0.5 dBTP'; }
+    FXRack.bypass = { hpEq: false, gainEnv: false, compLim: false, deess: false, masterMsLim: false };
     syncLiveFxNodes();
   }
 
@@ -23812,7 +24978,9 @@ self.onmessage = function (e) {
       name: name || ('Stem ' + (Stems.clips.length + 1)),
       data: d, buffer: b, rate: S.rate,
       offsetSec: Math.max(0, offsetSec == null ? P.t : offsetSec),
-      gainDb: 0, pan: 0, fadeInMs: 15, fadeOutMs: 25, mute: false,
+      trimInSec: 0, trimOutSec: 0,
+      gainDb: 0, pan: 0, fadeInMs: 15, fadeOutMs: 25,
+      revSend: 0, delSend: 0, mute: false,
     });
     fitView();
     renderStemList(); renderLayersUI(); baseDirty = fxDirty = true;
@@ -23832,12 +25000,13 @@ self.onmessage = function (e) {
     Stems.clips.forEach((st, idx) => {
       const card = document.createElement('div');
       card.className = 'stem-card';
-      const durS = st.data[0].length / st.rate;
-      const maxOff = Math.max(10, Math.ceil(Math.max(dur(), st.offsetSec + durS) + 10));
+      const { rawDur, playDur } = stemTrimmedSpan(st);
+      const maxTrim = Math.max(0.2, Number((rawDur - 0.08).toFixed(2)));
+      const maxOff = Math.max(10, Math.ceil(Math.max(dur(), st.offsetSec + playDur) + 10));
       card.innerHTML = `
         <div class="stem-card-h">
           <b></b>
-          <span>${fmtTime(durS, true)}</span>
+          <span>${fmtTime(playDur, true)}</span>
           <button type="button" class="btn sm" data-sact="start0" data-idx="${idx}" title="Overlap from 0:00">Overlap</button>
           <button type="button" class="btn sm" data-sact="after" data-idx="${idx}" title="Place right after previous track">After prev</button>
           <button type="button" class="btn sm" data-sact="cue" data-idx="${idx}" title="Move start to playhead">@ Playhead</button>
@@ -23849,7 +25018,19 @@ self.onmessage = function (e) {
         </div>
         <div class="stem-grid">
           <div><div class="range-row"><label>Pan</label><output>${st.pan === 0 ? 'C' : (st.pan < 0 ? Math.abs(st.pan) + 'L' : st.pan + 'R')}</output></div><input type="range" data-sfld="pan" data-idx="${idx}" min="-100" max="100" step="5" value="${st.pan}"></div>
-          <div><div class="range-row"><label>Fades</label><output>${st.fadeOutMs} ms</output></div><input type="range" data-sfld="fadeOutMs" data-idx="${idx}" min="0" max="500" step="10" value="${st.fadeOutMs}"></div>
+          <div><div class="range-row"><label>Fade In</label><output>${Math.round(st.fadeInMs || 0)} ms</output></div><input type="range" data-sfld="fadeInMs" data-idx="${idx}" min="0" max="2000" step="10" value="${Math.round(st.fadeInMs || 0)}"></div>
+        </div>
+        <div class="stem-grid">
+          <div><div class="range-row"><label>Fade Out</label><output>${Math.round(st.fadeOutMs || 0)} ms</output></div><input type="range" data-sfld="fadeOutMs" data-idx="${idx}" min="0" max="2000" step="10" value="${Math.round(st.fadeOutMs || 0)}"></div>
+          <div><div class="range-row"><label>Trim In</label><output>${(st.trimInSec || 0).toFixed(2)} s</output></div><input type="range" data-sfld="trimInSec" data-idx="${idx}" min="0" max="${maxTrim}" step="0.02" value="${(st.trimInSec || 0).toFixed(2)}"></div>
+        </div>
+        <div class="stem-grid">
+          <div><div class="range-row"><label>Trim Out</label><output>${(st.trimOutSec || 0).toFixed(2)} s</output></div><input type="range" data-sfld="trimOutSec" data-idx="${idx}" min="0" max="${maxTrim}" step="0.02" value="${(st.trimOutSec || 0).toFixed(2)}"></div>
+          <div><div class="range-row"><label>Rev Send</label><output>${Math.round(st.revSend || 0)}%</output></div><input type="range" data-sfld="revSend" data-idx="${idx}" min="0" max="100" step="2" value="${Math.round(st.revSend || 0)}"></div>
+        </div>
+        <div class="stem-grid">
+          <div><div class="range-row"><label>Delay Send</label><output>${Math.round(st.delSend || 0)}%</output></div><input type="range" data-sfld="delSend" data-idx="${idx}" min="0" max="100" step="2" value="${Math.round(st.delSend || 0)}"></div>
+          <div></div>
         </div>`;
       card.querySelector('b').textContent = st.name;
       host.appendChild(card);
@@ -24115,6 +25296,48 @@ self.onmessage = function (e) {
       $('#t1GainOut').textContent = (MainMix.gainDb > 0 ? '+' : '') + MainMix.gainDb.toFixed(1) + ' dB';
       syncMixNodes();
     });
+    if ($('#t1Pan')) {
+      $('#t1Pan').addEventListener('input', (e) => {
+        MainMix.pan = parseFloat(e.target.value) || 0;
+        $('#t1PanOut').textContent = !MainMix.pan ? 'Center' : (MainMix.pan < 0 ? Math.abs(Math.round(MainMix.pan)) + '% L' : Math.round(MainMix.pan) + '% R');
+        syncMixNodes();
+      });
+    }
+    if ($('#t1RevSend')) {
+      $('#t1RevSend').addEventListener('input', (e) => {
+        MainMix.revSend = parseFloat(e.target.value) || 0;
+        $('#t1RevSendOut').textContent = Math.round(MainMix.revSend) + '%';
+        syncMixNodes();
+      });
+    }
+    if ($('#t1DelSend')) {
+      $('#t1DelSend').addEventListener('input', (e) => {
+        MainMix.delSend = parseFloat(e.target.value) || 0;
+        $('#t1DelSendOut').textContent = Math.round(MainMix.delSend) + '%';
+        syncMixNodes();
+      });
+    }
+    if ($('#t1AutoSeg')) {
+      $('#t1AutoSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-t1auto]');
+        if (!b) return;
+        const m = b.dataset.t1auto;
+        MainMix.autoMode = m;
+        if (m === 'vol') {
+          Env.enabled = true;
+          if (!Env.points.length && hasAudio) Env.points = [{ t: 0, db: 0 }, { t: dur() || 1, db: 0 }];
+          syncEnvUI();
+        } else if (m === 'pan') {
+          PanEnv.enabled = true;
+          if (!PanEnv.points.length && hasAudio) PanEnv.points = [{ t: 0, pan: MainMix.pan || 0 }, { t: dur() || 1, pan: MainMix.pan || 0 }];
+          if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
+        }
+        renderLayersUI();
+        syncLiveFxNodes();
+        fxDirty = true;
+        haptic(5);
+      });
+    }
     $('#btnLayerPick').addEventListener('click', () => $('#layerInput').click());
     $('#btnLayerFromRec').addEventListener('click', () => {
       const tk = recTakes[recActiveTake >= 0 ? recActiveTake : recTakes.length - 1];
@@ -24133,6 +25356,106 @@ self.onmessage = function (e) {
       $('#t2PanOut').textContent = Layer.pan === 0 ? 'Center' : (Layer.pan < 0 ? Math.abs(Math.round(Layer.pan)) + '% L' : Math.round(Layer.pan) + '% R');
       syncMixNodes();
     });
+    if ($('#t2TrimIn')) {
+      $('#t2TrimIn').addEventListener('input', (e) => {
+        const rawDur = Layer.data ? Layer.data[0].length / Layer.rate : 10;
+        Layer.trimInSec = clamp(parseFloat(e.target.value) || 0, 0, Math.max(0, rawDur - (Layer.trimOutSec || 0) - 0.1));
+        $('#t2TrimInOut').textContent = Layer.trimInSec.toFixed(2) + ' s';
+        baseDirty = fxDirty = true;
+      });
+      $('#t2TrimIn').addEventListener('change', () => { if (P.playing) { P.t = curTime(); play(); } renderLayersUI(); scheduleSave(); });
+    }
+    if ($('#t2TrimOut')) {
+      $('#t2TrimOut').addEventListener('input', (e) => {
+        const rawDur = Layer.data ? Layer.data[0].length / Layer.rate : 10;
+        Layer.trimOutSec = clamp(parseFloat(e.target.value) || 0, 0, Math.max(0, rawDur - (Layer.trimInSec || 0) - 0.1));
+        $('#t2TrimOutOut').textContent = Layer.trimOutSec.toFixed(2) + ' s';
+        baseDirty = fxDirty = true;
+      });
+      $('#t2TrimOut').addEventListener('change', () => { if (P.playing) { P.t = curTime(); play(); } renderLayersUI(); scheduleSave(); });
+    }
+    if ($('#t2FadeIn')) {
+      $('#t2FadeIn').addEventListener('input', (e) => {
+        Layer.fadeInMs = Math.max(0, parseFloat(e.target.value) || 0);
+        $('#t2FadeInOut').textContent = Math.round(Layer.fadeInMs) + ' ms';
+        fxDirty = true;
+      });
+    }
+    if ($('#t2FadeOut')) {
+      $('#t2FadeOut').addEventListener('input', (e) => {
+        Layer.fadeOutMs = Math.max(0, parseFloat(e.target.value) || 0);
+        $('#t2FadeOutOut').textContent = Math.round(Layer.fadeOutMs) + ' ms';
+        fxDirty = true;
+      });
+    }
+    if ($('#t2RevSend')) {
+      $('#t2RevSend').addEventListener('input', (e) => {
+        Layer.revSend = parseFloat(e.target.value) || 0;
+        $('#t2RevSendOut').textContent = Math.round(Layer.revSend) + '%';
+        syncMixNodes();
+      });
+    }
+    if ($('#t2DelSend')) {
+      $('#t2DelSend').addEventListener('input', (e) => {
+        Layer.delSend = parseFloat(e.target.value) || 0;
+        $('#t2DelSendOut').textContent = Math.round(Layer.delSend) + '%';
+        syncMixNodes();
+      });
+    }
+    if ($('#t2AutoSeg')) {
+      $('#t2AutoSeg').addEventListener('click', (e) => {
+        const clr = e.target.closest('#t2AutoClear');
+        if (clr) {
+          Layer.volEnv = []; Layer.panEnv = []; Layer.autoMode = 'off';
+          renderLayersUI(); fxDirty = true; scheduleSave(); haptic(5); return;
+        }
+        const b = e.target.closest('[data-t2auto]');
+        if (!b) return;
+        Layer.autoMode = b.dataset.t2auto;
+        const total2 = totalDur() || dur() || 1;
+        if (Layer.autoMode === 'vol' && (!Layer.volEnv || !Layer.volEnv.length)) {
+          Layer.volEnv = [{ t: 0, db: 0 }, { t: total2, db: 0 }];
+        } else if (Layer.autoMode === 'pan' && (!Layer.panEnv || !Layer.panEnv.length)) {
+          Layer.panEnv = [{ t: 0, pan: Layer.pan || 0 }, { t: total2, pan: Layer.pan || 0 }];
+        }
+        renderLayersUI(); fxDirty = true; haptic(5);
+      });
+    }
+    if ($('#sendRevSize')) {
+      $('#sendRevSize').addEventListener('input', (e) => {
+        SendBus.revSize = parseFloat(e.target.value) || 1.9;
+        $('#sendRevSizeOut').textContent = SendBus.revSize.toFixed(1) + ' s';
+      });
+      $('#sendRevSize').addEventListener('change', () => { buildSendReverbIR(); scheduleSave(); });
+    }
+    if ($('#sendRevDamp')) {
+      $('#sendRevDamp').addEventListener('input', (e) => {
+        SendBus.revDamp = parseFloat(e.target.value) ?? 0.48;
+        $('#sendRevDampOut').textContent = SendBus.revDamp.toFixed(2);
+      });
+      $('#sendRevDamp').addEventListener('change', () => { buildSendReverbIR(); scheduleSave(); });
+    }
+    if ($('#sendDelTime')) {
+      $('#sendDelTime').addEventListener('input', (e) => {
+        SendBus.delTimeMs = parseFloat(e.target.value) || 320;
+        $('#sendDelTimeOut').textContent = Math.round(SendBus.delTimeMs) + ' ms';
+        syncMixNodes();
+      });
+    }
+    if ($('#sendDelFb')) {
+      $('#sendDelFb').addEventListener('input', (e) => {
+        SendBus.delFeedback = parseFloat(e.target.value) || 0;
+        $('#sendDelFbOut').textContent = Math.round(SendBus.delFeedback) + '%';
+        syncMixNodes();
+      });
+    }
+    if ($('#sendDelTone')) {
+      $('#sendDelTone').addEventListener('input', (e) => {
+        SendBus.delToneHz = parseFloat(e.target.value) || 4200;
+        $('#sendDelToneOut').textContent = SendBus.delToneHz >= 1000 ? (SendBus.delToneHz / 1000).toFixed(1) + ' kHz' : Math.round(SendBus.delToneHz) + ' Hz';
+        syncMixNodes();
+      });
+    }
     $('#t2Offset').addEventListener('input', (e) => {
       Layer.offset = parseFloat(e.target.value) || 0;
       $('#t2OffsetOut').textContent = (Layer.offset > 0 ? '+' : '') + Layer.offset.toFixed(2) + ' s';
@@ -24220,16 +25543,27 @@ self.onmessage = function (e) {
         if (!fld) return;
         const st = Stems.clips[Number(inp.dataset.idx)];
         if (!st) return;
-        const v = parseFloat(inp.value) || 0;
+        let v = parseFloat(inp.value) || 0;
+        if (fld === 'trimInSec' || fld === 'trimOutSec') {
+          const rawDur = st.data[0].length / st.rate;
+          const other = fld === 'trimInSec' ? (st.trimOutSec || 0) : (st.trimInSec || 0);
+          v = clamp(v, 0, Math.max(0, rawDur - other - 0.06));
+          inp.value = v.toFixed(2);
+        }
         st[fld] = v;
         const out = inp.parentElement.querySelector('output');
         if (out) {
-          if (fld === 'offsetSec') out.textContent = v.toFixed(2) + ' s';
+          if (fld === 'offsetSec' || fld === 'trimInSec' || fld === 'trimOutSec') out.textContent = v.toFixed(2) + ' s';
           else if (fld === 'gainDb') out.textContent = (v > 0 ? '+' : '') + v.toFixed(1) + ' dB';
           else if (fld === 'pan') out.textContent = v === 0 ? 'C' : (v < 0 ? Math.abs(Math.round(v)) + 'L' : Math.round(v) + 'R');
+          else if (fld === 'revSend' || fld === 'delSend') out.textContent = Math.round(v) + '%';
           else out.textContent = Math.round(v) + ' ms';
         }
-        fxDirty = true;
+        if (fld === 'trimInSec' || fld === 'trimOutSec') {
+          const hdrDur = inp.closest('.stem-card')?.querySelector('.stem-card-h span');
+          if (hdrDur) hdrDur.textContent = fmtTime(stemTrimmedSpan(st).playDur, true);
+        }
+        baseDirty = true; fxDirty = true;
       });
     }
     if ($('#btnSplitAtPlayheadRegion')) $('#btnSplitAtPlayheadRegion').addEventListener('click', splitAtPlayheadRegion);
@@ -24290,6 +25624,7 @@ self.onmessage = function (e) {
         compress: doCompress, deess: doDeEss, scanClip: doScanClip, declip: doDeclip, dereverb: doDereverb, capRoom: captureProfile, fillRoom: doFillRoomTone, patchSilence: doPatchSilentGaps,
         mono: doMono, stereo: doStereo, keepL: () => doKeepChannel(0), keepR: () => doKeepChannel(1), swapLR: doSwapLR, stereoShape: doStereoShape,
         vocRemove: () => doVocalTool('remove'), vocIsolate: () => doVocalTool('isolate'), creativeFx: doCreativeFx, mix: doMix,
+        masterLimit: doBakeMasterLimit,
       };
       const fn = map[act.dataset.act];
       if (fn) fn();
@@ -24304,6 +25639,10 @@ self.onmessage = function (e) {
         fxCompAtt: (v) => Math.round(v) + ' ms', fxCompRel: (v) => Math.round(v) + ' ms',
         fxCompMakeup: (v) => v.toFixed(1) + ' dB', fxLimCeil: (v) => v.toFixed(1) + ' dB',
         fxDeEssFreq: (v) => (v / 1000).toFixed(1) + ' kHz', fxDeEssAmt: (v) => v.toFixed(1) + ' dB',
+        fxMasterWidth: (v) => Math.round(v) + '%',
+        fxMasterMonoHz: (v) => v < 20 ? 'Off' : Math.round(v) + ' Hz',
+        fxBrickDrive: (v) => v.toFixed(1) + ' dB',
+        fxBrickCeil: (v) => v.toFixed(1) + ' dBTP',
         eqLowMid: (v) => v.toFixed(1), eqLowMidF: (v) => fmtHz(v), eqPres: (v) => v.toFixed(1), eqPresF: (v) => fmtHz(v), eqHigh: (v) => v.toFixed(1), eqMidF: (v) => fmtHz(v), eqMidQ: (v) => v.toFixed(1), fxDeRevAmt: (v) => Math.round(v) + '%',
         fxRevSize: (v) => v.toFixed(1) + ' s', fxRevWet: (v) => Math.round(v) + '%',
         fxRevDecay: (v) => v.toFixed(1), fxRevDamp: (v) => v.toFixed(2),
@@ -24328,7 +25667,7 @@ self.onmessage = function (e) {
         cfxPanRate: (v) => v.toFixed(1) + ' Hz',
         cfxPanDepth: (v) => Math.round(v) + '%',
       };
-      const labelIds = { fxGain: 'fxGainOut', fxFadeIn: 'fxFadeInOut', fxFadeOut: 'fxFadeOutOut', fxNormTarget: 'fxNormTargetOut', eqLow: 'eqLowOut', eqLowMid: 'eqLowMidOut', eqLowMidF: 'eqLowMidFVal', eqMid: 'eqMidOut', eqPres: 'eqPresOut', eqPresF: 'eqPresFVal', eqHigh: 'eqHighOut', eqHp: 'eqHpOut', eqMidF: 'eqMidFVal', eqMidQ: 'eqMidQVal', fxDeRevAmt: 'fxDeRevAmtOut', fxCompThr: 'fxCompThrOut', fxCompRatio: 'fxCompRatioOut', fxCompAtt: 'fxCompAttOut', fxCompRel: 'fxCompRelOut', fxCompMakeup: 'fxCompMakeupOut', fxLimCeil: 'fxLimCeilOut', fxDeEssFreq: 'fxDeEssFreqOut', fxDeEssAmt: 'fxDeEssAmtOut', fxRevSize: 'fxRevSizeOut', fxRevWet: 'fxRevWetOut', fxRevDecay: 'fxRevDecayOut', fxRevDamp: 'fxRevDampOut', fxStretchAmt: 'fxStretchAmtOut', fxPitch: 'fxPitchOut', fxFormant: 'fxFormantOut', fxMatchAmt: 'fxMatchAmtOut', fxDnAmt: 'fxDnAmtOut', fxDnFloor: 'fxDnFloorOut', fxDnSmooth: 'fxDnSmoothOut', fxSilLen: 'fxSilLenOut', fxStWidth: 'fxStWidthOut', fxStPan: 'fxStPanOut', fxDeclipThr: 'fxDeclipThrOut', fxDeclipHead: 'fxDeclipHeadOut', fxVocStrength: 'fxVocStrengthOut', cfxChoRate: 'cfxChoRateOut', cfxChoDepth: 'cfxChoDepthOut', cfxChoMix: 'cfxChoMixOut', cfxDelMs: 'cfxDelMsOut', cfxDelFb: 'cfxDelFbOut', cfxDelMix: 'cfxDelMixOut', cfxLofiBits: 'cfxLofiBitsOut', cfxLofiDown: 'cfxLofiDownOut', cfxLofiDrive: 'cfxLofiDriveOut', cfxPanRate: 'cfxPanRateOut', cfxPanDepth: 'cfxPanDepthOut' };
+      const labelIds = { fxGain: 'fxGainOut', fxFadeIn: 'fxFadeInOut', fxFadeOut: 'fxFadeOutOut', fxNormTarget: 'fxNormTargetOut', eqLow: 'eqLowOut', eqLowMid: 'eqLowMidOut', eqLowMidF: 'eqLowMidFVal', eqMid: 'eqMidOut', eqPres: 'eqPresOut', eqPresF: 'eqPresFVal', eqHigh: 'eqHighOut', eqHp: 'eqHpOut', eqMidF: 'eqMidFVal', eqMidQ: 'eqMidQVal', fxDeRevAmt: 'fxDeRevAmtOut', fxCompThr: 'fxCompThrOut', fxCompRatio: 'fxCompRatioOut', fxCompAtt: 'fxCompAttOut', fxCompRel: 'fxCompRelOut', fxCompMakeup: 'fxCompMakeupOut', fxLimCeil: 'fxLimCeilOut', fxDeEssFreq: 'fxDeEssFreqOut', fxDeEssAmt: 'fxDeEssAmtOut', fxMasterWidth: 'fxMasterWidthOut', fxMasterMonoHz: 'fxMasterMonoHzOut', fxBrickDrive: 'fxBrickDriveOut', fxBrickCeil: 'fxBrickCeilOut', fxRevSize: 'fxRevSizeOut', fxRevWet: 'fxRevWetOut', fxRevDecay: 'fxRevDecayOut', fxRevDamp: 'fxRevDampOut', fxStretchAmt: 'fxStretchAmtOut', fxPitch: 'fxPitchOut', fxFormant: 'fxFormantOut', fxMatchAmt: 'fxMatchAmtOut', fxDnAmt: 'fxDnAmtOut', fxDnFloor: 'fxDnFloorOut', fxDnSmooth: 'fxDnSmoothOut', fxSilLen: 'fxSilLenOut', fxStWidth: 'fxStWidthOut', fxStPan: 'fxStPanOut', fxDeclipThr: 'fxDeclipThrOut', fxDeclipHead: 'fxDeclipHeadOut', fxVocStrength: 'fxVocStrengthOut', cfxChoRate: 'cfxChoRateOut', cfxChoDepth: 'cfxChoDepthOut', cfxChoMix: 'cfxChoMixOut', cfxDelMs: 'cfxDelMsOut', cfxDelFb: 'cfxDelFbOut', cfxDelMix: 'cfxDelMixOut', cfxLofiBits: 'cfxLofiBitsOut', cfxLofiDown: 'cfxLofiDownOut', cfxLofiDrive: 'cfxLofiDriveOut', cfxPanRate: 'cfxPanRateOut', cfxPanDepth: 'cfxPanDepthOut' };
       if (outs[id]) {
         const v = parseFloat(e.target.value) || 0;
         const out = $('#' + labelIds[id]);
@@ -24337,8 +25676,12 @@ self.onmessage = function (e) {
         if (id === 'eqLowMidF' && $('#eqLowMidFOut')) $('#eqLowMidFOut').textContent = fmtHz(v);
         if (id === 'eqPresF' && $('#eqPresFOut')) $('#eqPresFOut').textContent = fmtHz(v);
         if (id === 'fxMatchAmt') drawMatchEqCanvas();
+        if (id === 'fxMasterWidth') MasterBus.widthPct = v;
+        if (id === 'fxMasterMonoHz') MasterBus.monoBelowHz = v;
+        if (id === 'fxBrickDrive') MasterBus.driveDb = v;
+        if (id === 'fxBrickCeil') MasterBus.ceilingDb = v;
         if (id.indexOf('eq') === 0) drawEqCurve();
-        if (id === 'fxGain' || id.indexOf('eq') === 0 || id.indexOf('fxComp') === 0 || id.indexOf('fxLim') === 0 || id.indexOf('fxDeEss') === 0) syncLiveFxNodes();
+        if (id === 'fxGain' || id.indexOf('eq') === 0 || id.indexOf('fxComp') === 0 || id.indexOf('fxLim') === 0 || id.indexOf('fxDeEss') === 0 || id.indexOf('fxMaster') === 0 || id.indexOf('fxBrick') === 0) syncLiveFxNodes();
       }
     });
     $('#fxStretchPct').addEventListener('click', () => setStretchMode('pct'));
@@ -24411,6 +25754,78 @@ self.onmessage = function (e) {
     $('#fxEnvAdd').addEventListener('click', () => { addEnvPoint(P.t, -6); haptic(6); });
     $('#fxEnvApply').addEventListener('click', doApplyEnvelope);
     $('#fxEnvClear').addEventListener('click', () => { Env.points = []; Env.enabled = false; syncEnvUI(); syncLiveFxNodes(); });
+    if ($('#fxPanEnvToggle')) {
+      $('#fxPanEnvToggle').addEventListener('click', () => {
+        PanEnv.enabled = !PanEnv.enabled;
+        MainMix.autoMode = PanEnv.enabled ? 'pan' : 'off';
+        if (PanEnv.enabled && !PanEnv.points.length && hasAudio) {
+          PanEnv.points = [{ t: 0, pan: MainMix.pan || 0 }, { t: dur() || 1, pan: MainMix.pan || 0 }];
+        }
+        syncPanEnvUI();
+        if (typeof renderLayersUI === 'function') renderLayersUI();
+        syncLiveFxNodes();
+        haptic(6);
+      });
+    }
+    if ($('#fxPanEnvAdd')) {
+      $('#fxPanEnvAdd').addEventListener('click', () => {
+        const total = dur() || 1;
+        if (!PanEnv.points.length) PanEnv.points.push({ t: 0, pan: MainMix.pan || 0 }, { t: total, pan: MainMix.pan || 0 });
+        const ptT = clamp(P.t, 0, total);
+        const ex = PanEnv.points.find((pt) => Math.abs(pt.t - ptT) < 0.05);
+        if (ex) ex.pan = 0;
+        else PanEnv.points.push({ t: ptT, pan: 0 });
+        PanEnv.points.sort((a, b) => a.t - b.t);
+        PanEnv.enabled = true;
+        MainMix.autoMode = 'pan';
+        syncPanEnvUI(); syncLiveFxNodes(); haptic(6);
+      });
+    }
+    if ($('#fxPanEnvClear')) {
+      $('#fxPanEnvClear').addEventListener('click', () => {
+        PanEnv.points = []; PanEnv.enabled = false;
+        if (MainMix.autoMode === 'pan') MainMix.autoMode = 'off';
+        syncPanEnvUI(); if (typeof renderLayersUI === 'function') renderLayersUI(); syncLiveFxNodes();
+      });
+    }
+    if ($('#fxBrickEnable')) {
+      $('#fxBrickEnable').addEventListener('change', (e) => {
+        MasterBus.brickEnable = !!e.target.checked;
+        syncLiveFxNodes(); haptic(5);
+      });
+    }
+    if ($('#btnRefLoad') && $('#refTrackInput')) {
+      $('#btnRefLoad').addEventListener('click', () => $('#refTrackInput').click());
+      $('#refTrackInput').addEventListener('change', (e) => {
+        const f = e.target.files[0]; e.target.value = '';
+        if (f) loadReferenceTrackFile(f);
+      });
+    }
+    if ($('#btnRefToggleAB')) {
+      $('#btnRefToggleAB').addEventListener('click', () => {
+        if (!RefTrack.active) return;
+        RefTrack.listeningRef = !RefTrack.listeningRef;
+        syncRefSwitchNodes();
+        syncRefUI();
+        haptic(8);
+      });
+    }
+    if ($('#chkRefMatchLufs')) {
+      $('#chkRefMatchLufs').addEventListener('change', (e) => {
+        RefTrack.matchLoudness = !!e.target.checked;
+        syncRefSwitchNodes();
+        syncRefUI();
+      });
+    }
+    if ($('#chkRefShowEq')) {
+      $('#chkRefShowEq').addEventListener('change', (e) => {
+        RefTrack.showOnEq = !!e.target.checked;
+        drawEqCurve();
+      });
+    }
+    if ($('#btnRefClear')) {
+      $('#btnRefClear').addEventListener('click', () => { clearReferenceTrack(); haptic(5); });
+    }
     const UP_KEY = 'sonicforge.userPresets.v1';
     const readUserPresets = () => { try { return JSON.parse(localStorage.getItem(UP_KEY) || '[]'); } catch (e) { return []; } };
     const writeUserPresets = (arr) => { try { localStorage.setItem(UP_KEY, JSON.stringify(arr.slice(0, 12))); } catch (e) {} };
@@ -24478,6 +25893,8 @@ self.onmessage = function (e) {
     }
     syncLiveFxNodes();
     syncEnvUI();
+    syncPanEnvUI();
+    syncRefUI();
   }
   let stretchMode = 'pct';
   function setStretchMode(m) {
@@ -24603,6 +26020,31 @@ self.onmessage = function (e) {
       rg.addColorStop(0, 'rgba(48, 209, 88, .38)'); rg.addColorStop(1, 'rgba(100, 210, 255, .04)');
       c.fillStyle = rg; c.fill();
       c.strokeStyle = 'rgba(48, 209, 88, .55)'; c.lineWidth = 1.1; c.stroke();
+      c.restore();
+    }
+
+    // Reference Track Spectrum Overlay (when loaded and toggled on)
+    if (RefTrack.active && RefTrack.showOnEq && RefTrack.spectrumDb && RefTrack.spectrumDb.length) {
+      const sp = RefTrack.spectrumDb;
+      let sum = 0;
+      for (let i = 0; i < sp.length; i++) sum += sp[i];
+      const avg = sum / sp.length;
+      c.save();
+      c.strokeStyle = 'rgba(255, 159, 10, .82)';
+      c.lineWidth = 1.5;
+      c.setLineDash([4, 3]);
+      c.beginPath();
+      for (let i = 0; i < sp.length; i++) {
+        const rx = (i / Math.max(1, sp.length - 1)) * w;
+        const relDb = sp[i] - avg;
+        const ry = h / 2 - (clamp(relDb, -18, 18) / 18) * (h / 2 - 8);
+        i === 0 ? c.moveTo(rx, ry) : c.lineTo(rx, ry);
+      }
+      c.stroke();
+      c.setLineDash([]);
+      c.fillStyle = 'rgba(255, 159, 10, .9)';
+      c.font = '600 9px ui-monospace, monospace';
+      c.fillText('REF SPECTRUM', 6, 11);
       c.restore();
     }
 
@@ -25205,6 +26647,10 @@ self.onmessage = function (e) {
       },
       markers: Markers.list.map((m) => ({ ...m })),
       env: { enabled: !!Env.enabled, points: Env.points.map((pt) => ({ ...pt })) },
+      panEnv: { enabled: !!PanEnv.enabled, points: PanEnv.points.map((pt) => ({ ...pt })) },
+      mainMix: { ...MainMix },
+      sendBus: { ...SendBus },
+      masterBus: { ...MasterBus },
       fxRack: {
         order: FXRack.order.slice(),
         bypass: { ...FXRack.bypass },
@@ -25215,10 +26661,19 @@ self.onmessage = function (e) {
         name: Layer.name,
         rate: Layer.rate,
         offset: Layer.offset,
+        trimInSec: Layer.trimInSec || 0,
+        trimOutSec: Layer.trimOutSec || 0,
+        fadeInMs: Layer.fadeInMs || 0,
+        fadeOutMs: Layer.fadeOutMs || 0,
         gainDb: Layer.gainDb,
         pan: Layer.pan,
         mute: Layer.mute,
         solo: Layer.solo,
+        revSend: Layer.revSend || 0,
+        delSend: Layer.delSend || 0,
+        autoMode: Layer.autoMode || 'off',
+        volEnv: (Layer.volEnv || []).map((pt) => ({ ...pt })),
+        panEnv: (Layer.panEnv || []).map((pt) => ({ ...pt })),
         duck: Layer.duck,
         duckDepthDb: Layer.duckDepthDb,
         duckSensDb: Layer.duckSensDb,
@@ -25230,10 +26685,14 @@ self.onmessage = function (e) {
         name: c.name,
         rate: c.rate,
         offsetSec: c.offsetSec,
+        trimInSec: c.trimInSec || 0,
+        trimOutSec: c.trimOutSec || 0,
         gainDb: c.gainDb,
         pan: c.pan,
         fadeInMs: c.fadeInMs,
         fadeOutMs: c.fadeOutMs,
+        revSend: c.revSend || 0,
+        delSend: c.delSend || 0,
         mute: !!c.mute,
         data: includeAudio ? cloneData(c.data) : undefined,
       })),
@@ -25276,6 +26735,24 @@ self.onmessage = function (e) {
       Env.enabled = !!proj.env.enabled;
       syncEnvUI();
     }
+    if (proj.panEnv && Array.isArray(proj.panEnv.points)) {
+      PanEnv.points = proj.panEnv.points.map((pt) => ({ ...pt }));
+      PanEnv.enabled = !!proj.panEnv.enabled;
+      if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
+    }
+    if (proj.mainMix) Object.assign(MainMix, proj.mainMix);
+    if (proj.sendBus) {
+      Object.assign(SendBus, proj.sendBus);
+      buildSendReverbIR();
+    }
+    if (proj.masterBus) {
+      Object.assign(MasterBus, proj.masterBus);
+      if ($('#fxMasterWidth')) { $('#fxMasterWidth').value = MasterBus.widthPct ?? 100; $('#fxMasterWidthOut').textContent = Math.round(MasterBus.widthPct ?? 100) + '%'; }
+      if ($('#fxMasterMonoHz')) { $('#fxMasterMonoHz').value = MasterBus.monoBelowHz ?? 0; $('#fxMasterMonoHzOut').textContent = (MasterBus.monoBelowHz || 0) < 20 ? 'Off' : Math.round(MasterBus.monoBelowHz) + ' Hz'; }
+      if ($('#fxBrickEnable')) $('#fxBrickEnable').checked = !!MasterBus.brickEnable;
+      if ($('#fxBrickDrive')) { $('#fxBrickDrive').value = MasterBus.driveDb ?? 0; $('#fxBrickDriveOut').textContent = (MasterBus.driveDb ?? 0).toFixed(1) + ' dB'; }
+      if ($('#fxBrickCeil')) { $('#fxBrickCeil').value = MasterBus.ceilingDb ?? -0.5; $('#fxBrickCeilOut').textContent = (MasterBus.ceilingDb ?? -0.5).toFixed(1) + ' dBTP'; }
+    }
 
     if (proj.fxRack) {
       if (Array.isArray(proj.fxRack.order)) FXRack.order = proj.fxRack.order.slice();
@@ -25302,8 +26779,17 @@ self.onmessage = function (e) {
     const layerAudio = externalBuffers?.layer || (proj.layer && proj.layer.data ? { data: proj.layer.data, rate: proj.layer.rate } : null);
     if (proj.layer && layerAudio && layerAudio.data) {
       Layer.offset = proj.layer.offset || 0;
+      Layer.trimInSec = proj.layer.trimInSec || 0;
+      Layer.trimOutSec = proj.layer.trimOutSec || 0;
+      Layer.fadeInMs = proj.layer.fadeInMs || 0;
+      Layer.fadeOutMs = proj.layer.fadeOutMs || 0;
       Layer.gainDb = proj.layer.gainDb ?? -12;
       Layer.pan = proj.layer.pan || 0;
+      Layer.revSend = proj.layer.revSend || 0;
+      Layer.delSend = proj.layer.delSend || 0;
+      Layer.autoMode = proj.layer.autoMode || 'off';
+      Layer.volEnv = Array.isArray(proj.layer.volEnv) ? proj.layer.volEnv.map((pt) => ({ ...pt })) : [];
+      Layer.panEnv = Array.isArray(proj.layer.panEnv) ? proj.layer.panEnv.map((pt) => ({ ...pt })) : [];
       Layer.duck = proj.layer.duck !== false;
       Layer.duckDepthDb = proj.layer.duckDepthDb ?? -12;
       Layer.duckSensDb = proj.layer.duckSensDb ?? -32;
@@ -25329,10 +26815,14 @@ self.onmessage = function (e) {
         await addStemClip(cloneData(sAud.data), sAud.rate || S.rate, sm.name || ('Stem ' + (i + 1)), sm.offsetSec || 0);
         const added = Stems.clips[Stems.clips.length - 1];
         if (added) {
+          added.trimInSec = sm.trimInSec || 0;
+          added.trimOutSec = sm.trimOutSec || 0;
           added.gainDb = sm.gainDb ?? 0;
           added.pan = sm.pan ?? 0;
           added.fadeInMs = sm.fadeInMs ?? 15;
           added.fadeOutMs = sm.fadeOutMs ?? 15;
+          added.revSend = sm.revSend || 0;
+          added.delSend = sm.delSend || 0;
           added.mute = !!sm.mute;
         }
       }
