@@ -350,7 +350,7 @@ kbd {
 #wave { display: block; width: 100%; height: clamp(185px, 27dvh, 305px); touch-action: none; cursor: crosshair; transition: height .18s ease; }
 body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .wave-meta-bar {
-  display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: nowrap;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: nowrap;
   padding: 2px 2px 0;
 }
 .wave-meta-bar .meter {
@@ -359,14 +359,6 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
 }
 .wave-meta-bar .meter i { width: 3px; }
-.wave-meta-bar .stage-pip-btn {
-  width: 36px; height: 36px; border-radius: 50%; flex: none;
-  background: rgba(26, 26, 34, .82); border: 1px solid var(--rim-2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
-  color: var(--txt); display: grid; place-items: center;
-}
-.wave-meta-bar .stage-pip-btn:hover { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .32); }
-.wave-meta-bar .stage-pip-btn svg { width: 15px; height: 15px; }
 .wave-chip {
   display: flex; gap: 5px; flex-wrap: wrap; align-items: center; min-width: 0; flex: 1;
 }
@@ -1721,7 +1713,6 @@ body.overlay-open { overflow: hidden; }
 
         <div class="wave-meta-bar">
           <div class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <button type="button" class="tbtn sm stage-pip-btn" id="btnTransportPip" title="Pop out Picture-in-Picture mini player" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
           <div class="zoom-pill">
             <button class="btn icon" id="mZoomOut" title="Zoom out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
             <button class="btn icon" id="mZoomFit" title="Zoom to fit" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
@@ -2098,7 +2089,6 @@ body.overlay-open { overflow: hidden; }
     <b id="miniTitle">Track</b>
     <span class="mono" id="miniTime">0:00.000</span>
   </div>
-  <button type="button" class="tbtn sm" id="btnMiniPip" title="Pop out Picture-in-Picture" aria-label="Picture in Picture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2.5"/><rect x="11.5" y="10.5" width="7.5" height="5.5" rx="1.2" fill="currentColor" stroke="none"/></svg></button>
 </div>
 <input type="file" id="matchRefInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
 <input type="file" id="refTrackInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
@@ -2274,7 +2264,7 @@ body.overlay-open { overflow: hidden; }
 
 <div id="globalStatus" class="global-status" role="status" hidden></div><div id="recordStatus" class="record-status" role="status" hidden></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff,.sonora,.overtone,.sonicforge,.zip" hidden>
+<input type="file" id="fileInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff,.sonora,.overtone,.sonicforge,.zip" hidden>
 <input type="file" id="sessionInput" accept=".sonora,.overtone,.sonicforge,.zip,application/zip,audio/wav,.wav" hidden>
 <input type="file" id="mergeInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff" hidden>
 <input type="file" id="layerInput" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff" hidden>
@@ -22234,7 +22224,7 @@ self.onmessage = function (e) {
   /* ----------------------------------------------------------- file input */
   async function decodeToData(ab, name) {
     const c = AC();
-    if (c.state === 'suspended') await c.resume();
+    if (c.state === 'suspended') c.resume().catch(() => {});
     let buf;
     try {
       buf = await c.decodeAudioData(ab.slice(0));
@@ -22242,7 +22232,7 @@ self.onmessage = function (e) {
       throw new Error('That file could not be decoded. Try WAV, MP3, OGG, FLAC or M4A.');
     }
     if (!buf || !buf.length) throw new Error('Decoded buffer is empty.');
-    if (buf.length * buf.numberOfChannels > 48 * 1024 * 1024) throw new Error('This track is too large for safe browser editing. Please open a shorter audio clip.');
+    if (buf.length * buf.numberOfChannels > 96 * 1024 * 1024) throw new Error('This track is too large for safe browser editing. Please open a shorter audio clip.');
     const data = [];
     for (let i = 0; i < buf.numberOfChannels; i++) data.push(Float32Array.from(buf.getChannelData(i)));
     return { data, rate: buf.sampleRate };
@@ -22807,6 +22797,61 @@ self.onmessage = function (e) {
       c.restore();
     }
   }
+  function getTrackVolPillRects() {
+    if (!hasAudio) return [];
+    const lanes = getTimelineLanes();
+    const pills = [];
+    const pw = 92;
+    const rightX = Math.max(8, canvasW - pw - 22);
+    pills.push({
+      mode: 't1Vol', stemIdx: -1, label: 'T1',
+      x: rightX, y: lanes.top + 5, w: pw, h: 20,
+      db: MainMix.gainDb || 0, mute: !!MainMix.mute,
+      color: '#64d2ff', bg: 'rgba(8, 16, 28, .86)',
+    });
+    if (lanes.hasT2 && Layer.data) {
+      pills.push({
+        mode: 't2Vol', stemIdx: -1, label: 'T2',
+        x: rightX, y: lanes.t2Top + 4, w: pw, h: 18,
+        db: Layer.gainDb || 0, mute: !!Layer.mute,
+        color: '#30d158', bg: 'rgba(8, 18, 12, .86)',
+      });
+    }
+    if (lanes.hasT3 && Stems.clips.length) {
+      const placed = [];
+      for (let i = Stems.clips.length - 1; i >= 0; i--) {
+        const st = Stems.clips[i];
+        if (st.mute) continue;
+        const { playDur } = stemTrimmedSpan(st);
+        const sx0 = tToX(st.offsetSec);
+        const sx1 = tToX(st.offsetSec + playDur);
+        if (sx1 < 0 || sx0 > canvasW) continue;
+        const sw = Math.min(82, pw);
+        const px = clamp(sx1 - sw - 6, 8, Math.max(8, canvasW - sw - 22));
+        if (placed.some((ox) => Math.abs(ox - px) < sw + 4)) continue;
+        placed.push(px);
+        pills.push({
+          mode: 'stemVol', stemIdx: i, label: 'T3',
+          x: px, y: lanes.t3Top + 4, w: sw, h: 18,
+          db: st.gainDb || 0, mute: !!st.mute,
+          color: '#bf5af2', bg: 'rgba(18, 10, 26, .88)',
+        });
+      }
+      if (!placed.length) {
+        const idx = Stems.clips.findIndex((st) => !st.mute);
+        if (idx >= 0) {
+          const st = Stems.clips[idx];
+          pills.push({
+            mode: 'stemVol', stemIdx: idx, label: 'T3',
+            x: rightX, y: lanes.t3Top + 4, w: pw, h: 18,
+            db: st.gainDb || 0, mute: !!st.mute,
+            color: '#bf5af2', bg: 'rgba(18, 10, 26, .88)',
+          });
+        }
+      }
+    }
+    return pills;
+  }
   function drawFx() {
     // overlay only: the visible canvas was just blitted from baseLayer by render()
     const c = bctx;
@@ -23242,6 +23287,47 @@ self.onmessage = function (e) {
       c.restore();
     }
 
+    // Interactive per-track Volume Pills (works across Spectrogram, Wave, L·R & Mix)
+    const volPills = getTrackVolPillRects();
+    for (let i = 0; i < volPills.length; i++) {
+      const vp = volPills[i];
+      const active = drag && drag.mode === vp.mode && drag.stemIdx === vp.stemIdx;
+      const frac = vp.mute ? 0 : clamp((vp.db + 24) / 36, 0, 1);
+      c.save();
+      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2);
+      c.fillStyle = vp.bg; c.fill();
+      c.save();
+      c.clip();
+      c.fillStyle = vp.color;
+      c.globalAlpha = active ? 0.36 : 0.22;
+      c.fillRect(vp.x, vp.y, vp.w * frac, vp.h);
+      c.restore();
+      c.strokeStyle = active ? '#ffffff' : vp.color;
+      c.globalAlpha = active ? 1 : 0.72;
+      c.lineWidth = active ? 1.5 : 1;
+      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2);
+      c.stroke();
+      c.globalAlpha = 1;
+      c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f4f6fc';
+      c.font = '700 9.5px ui-monospace, monospace';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      const dbStr = vp.mute ? 'MUTE' : ((vp.db > 0 ? '+' : '') + vp.db.toFixed(1) + 'dB');
+      c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 8);
+      if (active) {
+        const hudTxt = `${vp.label} Vol: ${(vp.db > 0 ? '+' : '') + vp.db.toFixed(1)} dB`;
+        c.font = '700 10.5px ui-monospace, monospace';
+        const hw2 = c.measureText(hudTxt).width + 14;
+        const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
+        c.fillStyle = 'rgba(10, 12, 18, .94)';
+        c.strokeStyle = vp.color;
+        c.lineWidth = 1.2;
+        roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
+        c.fillStyle = '#ffffff';
+        c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
+      }
+      c.restore();
+    }
+
     // playhead (Voice Memos Crimson needle)
     const px = tToX(P.t);
     const anyCoincide = edgeAligned.a || edgeAligned.b;
@@ -23517,11 +23603,39 @@ self.onmessage = function (e) {
     if (x > xa && x < xb) return 'move';
     return 'scrub';
   }
+  let lastVolTapAt = 0, lastVolTapKey = '';
   baseCv.addEventListener('pointerdown', (e) => {
     if (!hasAudio || processing) return;
+    const p = canvasXY(e);
+    if (pointers.size === 0) {
+      const volPills = getTrackVolPillRects();
+      for (let i = 0; i < volPills.length; i++) {
+        const vp = volPills[i];
+        if (p.x >= vp.x - 6 && p.x <= vp.x + vp.w + 6 && p.y >= vp.y - 6 && p.y <= vp.y + vp.h + 6) {
+          baseCv.setPointerCapture(e.pointerId);
+          pointers.set(e.pointerId, p);
+          const tapKey = vp.mode + ':' + vp.stemIdx;
+          const nowMs = performance.now();
+          if (lastVolTapKey === tapKey && (nowMs - lastVolTapAt) < 320) {
+            if (vp.mode === 't1Vol') MainMix.gainDb = 0;
+            else if (vp.mode === 't2Vol') Layer.gainDb = 0;
+            else if (vp.mode === 'stemVol' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].gainDb = 0;
+            syncMixNodes(); renderLayersUI(); renderStemList();
+            fxDirty = true; haptic(8);
+            lastVolTapAt = 0;
+            drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: 0, moved: true };
+            return;
+          }
+          lastVolTapAt = nowMs; lastVolTapKey = tapKey;
+          drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: vp.db, moved: false };
+          haptic(6); fxDirty = true;
+          return;
+        }
+      }
+    }
     pausePlay();
     baseCv.setPointerCapture(e.pointerId);
-    pointers.set(e.pointerId, canvasXY(e));
+    pointers.set(e.pointerId, p);
     if (pointers.size === 2) {
       const pts = Array.from(pointers.values());
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
@@ -23529,7 +23643,6 @@ self.onmessage = function (e) {
       drag = null;
       return;
     }
-    const p = canvasXY(e);
     const rulerH = 22, top = rulerH + 2, h = canvasH - top - 6;
     const lanesDown = getTimelineLanes();
     const envToY = (db) => top + h * (1 - (clamp(db, -24, 12) + 24) / 36);
@@ -23676,9 +23789,26 @@ self.onmessage = function (e) {
     }
     if (!drag || drag.id !== e.pointerId) return;
     const p = canvasXY(e);
-    if (Math.abs(p.x - drag.sx) > 2) drag.moved = true;
+    if (Math.abs(p.x - drag.sx) > 2 || Math.abs(p.y - drag.sy) > 2) drag.moved = true;
     const t = xToT(p.x);
-    if (drag.mode === 'marker') {
+    if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol') {
+      const dx = p.x - drag.sx, dy = drag.sy - p.y;
+      const nextDb = Number(clamp(drag.db0 + dx * 0.16 + dy * 0.22, -24, 12).toFixed(1));
+      if (drag.mode === 't1Vol') {
+        MainMix.gainDb = nextDb;
+        if ($('#t1Gain')) $('#t1Gain').value = nextDb;
+        if ($('#t1GainOut')) $('#t1GainOut').textContent = (nextDb > 0 ? '+' : '') + nextDb.toFixed(1) + ' dB';
+      } else if (drag.mode === 't2Vol') {
+        Layer.gainDb = nextDb;
+        if ($('#t2Gain')) $('#t2Gain').value = nextDb;
+        if ($('#t2GainOut')) $('#t2GainOut').textContent = (nextDb > 0 ? '+' : '') + nextDb.toFixed(1) + ' dB';
+      } else if (drag.mode === 'stemVol' && Stems.clips[drag.stemIdx]) {
+        Stems.clips[drag.stemIdx].gainDb = nextDb;
+      }
+      syncMixNodes();
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 'marker') {
       const m = Markers.list[drag.markerIdx];
       if (m && drag.moved) {
         m.t = clamp(t, 0, dur());
@@ -23885,7 +24015,10 @@ self.onmessage = function (e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
     if (drag && drag.id === e.pointerId) {
-      if (drag.mode === 'marker') {
+      if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol') {
+        renderLayersUI(); renderStemList();
+        fxDirty = true; scheduleSave();
+      } else if (drag.mode === 'marker') {
         const mRef = Markers.list[drag.markerIdx];
         if (!drag.moved && e.type !== 'pointercancel' && mRef) {
           openMarkerPop(drag.markerIdx, drag.sx);
@@ -23913,6 +24046,7 @@ self.onmessage = function (e) {
   baseCv.addEventListener('dblclick', (e) => {
     if (!hasAudio || processing) return;
     const p = canvasXY(e);
+    if (getTrackVolPillRects().some((vp) => p.x >= vp.x - 6 && p.x <= vp.x + vp.w + 6 && p.y >= vp.y - 6 && p.y <= vp.y + vp.h + 6)) return;
     Sel.a = Math.round(xToT(p.x) * S.rate);
     Sel.b = S.data[0].length;
     syncSelectionUI(); baseDirty = fxDirty = true;
@@ -23952,7 +24086,6 @@ self.onmessage = function (e) {
       navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
       syncMediaSessionPosition();
     }
-    if (typeof syncPipState === 'function') syncPipState();
   }
   function updateTimecode() {
     $('#tcNow').textContent = fmtTime(P.t);
@@ -23961,7 +24094,6 @@ self.onmessage = function (e) {
     if ($('#miniTime')) $('#miniTime').textContent = fmtTime(P.t) + ' / ' + fmtTime(dur());
     if ($('#seekBar') && document.activeElement !== $('#seekBar')) $('#seekBar').value = dur() ? P.t / dur() * 10000 : 0;
     if ($('#seekBar')) $('#seekBar').setAttribute('aria-valuetext', fmtTime(P.t) + ' of ' + fmtTime(dur()));
-    if (typeof syncPipTime === 'function') syncPipTime();
   }
   function eCanonicalizeTime(id) { $('#' + id).value = fmtTime((id === 'inStart' ? Sel.a : Sel.b) / S.rate); }
   function syncSelectionUI() {
@@ -24445,7 +24577,6 @@ self.onmessage = function (e) {
     </div>
   </div>
   <div class="ex-checks">
-    <label class="checkrow"><input type="checkbox" id="exFade"><span>Smooth 120 ms fade-in &amp; fade-out</span></label>
     <label class="checkrow" id="exStudioWrap" hidden><input type="checkbox" id="exIncludeStudio" checked><span>Include Track 2 mix &amp; live FX rack</span></label>
   </div>
   <div class="prog" id="exProg"><i></i></div>
@@ -24647,7 +24778,6 @@ self.onmessage = function (e) {
         if (b - a < 64) continue;
         let seg = ($('#exIncludeStudio') && $('#exIncludeStudio').checked && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
         if ($('#exIncludeStudio') && $('#exIncludeStudio').checked && liveFxDirty()) seg = await renderLiveFxOffline(seg, S.rate);
-        if ($('#exFade') && $('#exFade').checked) D.fade(seg, S.rate, [0, seg[0].length], 120, 'cos', 'both');
         if (rate !== S.rate) seg = await runTask({ act: 'resample', data: cloneData(seg), rate: S.rate, to: rate });
         const mObj = Markers.list[idx - 1];
         const chTitle = (idx === 0 ? 'Intro' : (mObj && mObj.name) || ('Chapter ' + (idx + 1)));
@@ -24904,7 +25034,6 @@ self.onmessage = function (e) {
     Sel.a = Math.round(start * S.rate);
     Sel.b = Math.round(end * S.rate);
     P.loop = true;
-    if ($('#exFade')) $('#exFade').checked = true;
     syncTransport(); syncSelectionUI();
     ensureVisible(start, end);
     if ($('#ringInfoOut')) $('#ringInfoOut').textContent = fmtTime(end - start, true) + ' · Loop ON';
@@ -27168,10 +27297,6 @@ self.onmessage = function (e) {
       if (useStudio && liveFxDirty()) {
         data = await renderLiveFxOffline(data, S.rate);
       }
-      if ($('#exFade') && $('#exFade').checked) {
-        data = cloneData(data);
-        D.fade(data, S.rate, [0, data[0].length], 120, 'cos', 'both');
-      }
       if (rate !== S.rate) {
         data = await runTask({ act: 'resample', data: cloneData(data), rate: S.rate, to: rate });
       }
@@ -28884,6 +29009,7 @@ self.onmessage = function (e) {
       list.innerHTML = '<div class="merge-empty">No clips added yet. Tap <b>Choose 2+ audio files</b> to load tracks.</div>';
       $('#mergeEstDur').textContent = 'Total: 0:00';
       $('#btnDoMerge').disabled = true;
+      $('#btnDoMerge').textContent = 'Merge & open in editor';
       return;
     }
     list.innerHTML = '';
@@ -28913,6 +29039,9 @@ self.onmessage = function (e) {
     });
     $('#mergeEstDur').textContent = 'Total: ' + fmtTime(Math.max(0, total), true);
     $('#btnDoMerge').disabled = Merge.clips.length < 2;
+    $('#btnDoMerge').textContent = Merge.clips.length < 2
+      ? 'Add 1 more track to merge'
+      : `Merge ${Merge.clips.length} tracks & open`;
   }
   function openMergeStudio() {
     pausePlay();
@@ -28937,19 +29066,29 @@ self.onmessage = function (e) {
     const arr = Array.from(files || []).filter(Boolean);
     if (!arr.length) return;
     importing = true;
+    const addBtn = $('#btnMergeAddFiles');
+    const origLabel = addBtn ? addBtn.textContent : '';
     try {
       for (let i = 0; i < arr.length; i++) {
-        busy(true, `Decoding clip ${i + 1}/${arr.length}`);
+        const msg = `Decoding ${i + 1}/${arr.length}…`;
+        busy(true, msg);
+        if (addBtn) { addBtn.disabled = true; addBtn.textContent = msg; }
+        if (!Merge.clips.length && $('#mergeList')) {
+          $('#mergeList').innerHTML = `<div class="merge-empty">${msg} (${escHtml(arr[i].name)})</div>`;
+        }
+        await yieldUI();
         try {
           const ab = await arr[i].arrayBuffer();
           const r = await decodeToData(ab, arr[i].name);
           Merge.clips.push({ name: arr[i].name.replace(/\.[^.]+$/, ''), data: r.data, rate: r.rate, mode: Merge.defaultMode, offsetSec: 0 });
+          renderMergeList();
         } catch (e) {
           toast(`Skipped ${arr[i].name}: ${e.message}`, 'err', 3500);
         }
       }
     } finally {
       importing = false; busy(false);
+      if (addBtn) { addBtn.disabled = false; addBtn.textContent = origLabel || '＋ Choose 2+ audio files'; }
       renderMergeList();
     }
   }
@@ -29125,7 +29264,6 @@ self.onmessage = function (e) {
     { t: 'Pitch & formant shift', cat: 'Effects', sub: 'Duration-preserving transpose + vocal formant lock', run: doPitch },
     { t: 'Formant shift (timbre)', cat: 'Effects', sub: 'Warp vocal tract resonance independently', run: doFormant },
     { t: 'Match EQ & Reference Mastering', cat: 'Effects', sub: 'Clone tonal balance from preset or reference file', run: () => { switchSideTab('fx'); if ($('#matchEqAcc')) { $('#matchEqAcc').classList.add('open'); if (!MatchEQ.trackBands && hasAudio) MatchEQ.analyzeTrack(); } } },
-    { t: 'Pop Out Picture-in-Picture Player', cat: 'Transport', sub: 'Floating OS-level mini transport & spectrum', run: () => openAudioPip() },
     { t: 'Add volume envelope point', cat: 'Effects', sub: 'Drop keyframe at playhead', run: () => { addEnvPoint(P.t, -6); } },
     { t: 'Apply volume envelope', cat: 'Effects', sub: 'Bake automation curve into audio', run: doApplyEnvelope },
     { t: 'Remove DC offset', cat: 'Effects', sub: 'Center waveform around zero', run: doDC },
@@ -29718,18 +29856,27 @@ self.onmessage = function (e) {
       c.fillRect(-w * 0.08, -h * 0.08, w * 1.16, h * 1.16);
       c.restore();
     } else if (agCoverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
-      c.save();
-      c.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
-      try { c.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
-      const scBg = Math.max(w / agCoverImg.width, h / agCoverImg.height) * 1.12;
-      const bgW = agCoverImg.width * scBg, bgH = agCoverImg.height * scBg;
-      c.drawImage(agCoverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
-      c.restore();
-      const vig = c.createLinearGradient(0, 0, 0, h);
-      vig.addColorStop(0, 'rgba(6,8,14,.55)');
-      vig.addColorStop(0.5, 'rgba(6,8,14,.32)');
-      vig.addColorStop(1, 'rgba(6,8,14,.78)');
-      c.fillStyle = vig; c.fillRect(0, 0, w, h);
+      const blurKey = `${w}x${h}:${artStyle}:${agCoverImg.src || ''}`;
+      if (!drawAudiogramFrame._blurCache || drawAudiogramFrame._blurKey !== blurKey) {
+        const bc = drawAudiogramFrame._blurCache || (drawAudiogramFrame._blurCache = document.createElement('canvas'));
+        bc.width = w; bc.height = h;
+        const bx = bc.getContext('2d');
+        bx.clearRect(0, 0, w, h);
+        bx.save();
+        bx.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
+        try { bx.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
+        const scBg = Math.max(w / agCoverImg.width, h / agCoverImg.height) * 1.12;
+        const bgW = agCoverImg.width * scBg, bgH = agCoverImg.height * scBg;
+        bx.drawImage(agCoverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
+        bx.restore();
+        const vig = bx.createLinearGradient(0, 0, 0, h);
+        vig.addColorStop(0, 'rgba(6,8,14,.55)');
+        vig.addColorStop(0.5, 'rgba(6,8,14,.32)');
+        vig.addColorStop(1, 'rgba(6,8,14,.78)');
+        bx.fillStyle = vig; bx.fillRect(0, 0, w, h);
+        drawAudiogramFrame._blurKey = blurKey;
+      }
+      c.drawImage(drawAudiogramFrame._blurCache, 0, 0);
     }
 
     // Ambient bass-reactive radial glow + beat flash
@@ -29802,10 +29949,10 @@ self.onmessage = function (e) {
     c.scale(pulse, pulse);
     if (artStyle === 'vinyl') {
       const vr = artSize * 0.5;
-      c.shadowColor = pal[2] + '55'; c.shadowBlur = Math.round(minDim * 0.045);
+      c.fillStyle = pal[2] + '26';
+      c.beginPath(); c.arc(0, 0, vr * 1.045, 0, Math.PI * 2); c.fill();
       c.fillStyle = '#0c0d12';
       c.beginPath(); c.arc(0, 0, vr, 0, Math.PI * 2); c.fill();
-      c.shadowBlur = 0;
       for (let g = 0.62; g <= 0.94; g += 0.08) {
         c.strokeStyle = 'rgba(255,255,255,.075)'; c.lineWidth = 1.5;
         c.beginPath(); c.arc(0, 0, vr * g, 0, Math.PI * 2); c.stroke();
@@ -29831,10 +29978,10 @@ self.onmessage = function (e) {
       c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1.5; c.stroke();
     } else {
       const rad = Math.round(artSize * 0.11);
-      c.shadowColor = pal[2] + '66'; c.shadowBlur = Math.round(minDim * 0.045);
+      roundRect(c, -artSize / 2 - 5, -artSize / 2 - 5, artSize + 10, artSize + 10, rad + 4);
+      c.fillStyle = pal[2] + '26'; c.fill();
       roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad);
       c.fillStyle = 'rgba(255,255,255,.08)'; c.fill();
-      c.shadowBlur = 0;
       c.save();
       roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad); c.clip();
       if (agCoverImg) {
@@ -29937,7 +30084,6 @@ self.onmessage = function (e) {
         c.strokeStyle = layer === 0 ? pal[2] : pal[3];
         c.lineWidth = Math.max(3, minDim * (layer === 0 ? 0.006 : 0.0038));
         c.globalAlpha = layer === 0 ? 0.95 : 0.62;
-        c.shadowColor = pal[2]; c.shadowBlur = 16;
         c.stroke();
         c.restore();
       }
@@ -30124,8 +30270,8 @@ self.onmessage = function (e) {
             <div class="field"><label for="agQuality">Resolution &amp; FPS</label>
               <select id="agQuality">
                 <option value="1080-60">1080p HD · 60 fps</option>
-                <option value="1080-30" selected>1080p HD · 30 fps</option>
-                <option value="720-30">720p Fast · 30 fps</option>
+                <option value="1080-30"${isLowEndDevice ? '' : ' selected'}>1080p HD · 30 fps</option>
+                <option value="720-30"${isLowEndDevice ? ' selected' : ''}>720p Fast · 30 fps</option>
               </select>
             </div>
           </div>
@@ -30136,7 +30282,7 @@ self.onmessage = function (e) {
               <option value="webm">WebM (VP9 / Opus)</option>
             </select>
           </div>
-          <label class="checkrow"><input type="checkbox" id="agFade" checked><span>Smooth 120 ms audio fade-in &amp; fade-out</span></label>
+          <label class="checkrow"><input type="checkbox" id="agFade"><span>Smooth 120 ms audio fade-in &amp; fade-out</span></label>
           <label class="checkrow"><input type="checkbox" id="agStudio" checked><span>Include Track 2 mix &amp; live FX rack</span></label>
         </div>
 
@@ -30344,18 +30490,253 @@ self.onmessage = function (e) {
     cancelAnimationFrame(agAnimRaf);
     redrawPreview();
 
+    function _ebmlReadVintSize(u8, pos) {
+      if (pos >= u8.length) return null;
+      const b0 = u8[pos];
+      if (!b0) return null;
+      let len = 1, mask = 0x80;
+      while (len <= 8 && !(b0 & mask)) { mask >>= 1; len++; }
+      if (len > 8 || pos + len > u8.length) return null;
+      let val = b0 & (mask - 1), allOnes = (val === (mask - 1));
+      for (let i = 1; i < len; i++) {
+        const b = u8[pos + i];
+        if (b !== 0xff) allOnes = false;
+        val = val * 256 + b;
+      }
+      return { val: allOnes ? null : val, len, unknown: allOnes };
+    }
+    function _ebmlWriteVintSize(u8, pos, len, val) {
+      let v = Math.max(0, Math.floor(val));
+      for (let i = len - 1; i >= 0; i--) {
+        u8[pos + i] = v & 0xff;
+        v = Math.floor(v / 256);
+      }
+      u8[pos] |= (1 << (8 - len));
+    }
+    function _ebmlReadId(u8, pos) {
+      if (pos >= u8.length) return null;
+      const b0 = u8[pos];
+      if (!b0) return null;
+      let len = 1, mask = 0x80;
+      while (len <= 4 && !(b0 & mask)) { mask >>= 1; len++; }
+      if (len > 4 || pos + len > u8.length) return null;
+      let id = 0;
+      for (let i = 0; i < len; i++) id = id * 256 + u8[pos + i];
+      return { id, len };
+    }
+    function fixWebmDuration(u8, durationMs) {
+      try {
+        if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
+        let pos = 0;
+        const ebml = _ebmlReadId(u8, pos);
+        if (!ebml || ebml.id !== 0x1A45DFA3) return u8;
+        const ebmlSz = _ebmlReadVintSize(u8, pos + ebml.len);
+        if (!ebmlSz || ebmlSz.unknown) return u8;
+        pos += ebml.len + ebmlSz.len + ebmlSz.val;
+        const seg = _ebmlReadId(u8, pos);
+        if (!seg || seg.id !== 0x18538067) return u8;
+        const segSizeStart = pos + seg.len;
+        const segSz = _ebmlReadVintSize(u8, segSizeStart);
+        if (!segSz) return u8;
+        const segDataStart = segSizeStart + segSz.len;
+        const segLimit = segSz.unknown ? u8.length : Math.min(u8.length, segDataStart + segSz.val);
+
+        let p = segDataStart;
+        let infoStart = -1, infoSizeStart = -1, infoSizeLen = 0, infoDataStart = -1, infoSizeVal = 0;
+        const seekHeads = [];
+        while (p < segLimit) {
+          const el = _ebmlReadId(u8, p);
+          if (!el) break;
+          const sz = _ebmlReadVintSize(u8, p + el.len);
+          if (!sz) break;
+          const dStart = p + el.len + sz.len;
+          if (el.id === 0x1F43B675) break;
+          if (el.id === 0x114D9B74 && !sz.unknown) seekHeads.push({ dStart, dEnd: dStart + sz.val });
+          if (el.id === 0x1549A966 && !sz.unknown) {
+            infoStart = p; infoSizeStart = p + el.len; infoSizeLen = sz.len;
+            infoDataStart = dStart; infoSizeVal = sz.val;
+            break;
+          }
+          if (sz.unknown) break;
+          p = dStart + sz.val;
+        }
+        if (infoStart < 0) return u8;
+        const infoDataEnd = Math.min(u8.length, infoDataStart + infoSizeVal);
+        let timecodeScale = 1000000;
+        let durElemDataStart = -1, durElemLen = 0;
+        let ip = infoDataStart;
+        while (ip < infoDataEnd) {
+          const el = _ebmlReadId(u8, ip);
+          if (!el) break;
+          const sz = _ebmlReadVintSize(u8, ip + el.len);
+          if (!sz || sz.unknown) break;
+          const dStart = ip + el.len + sz.len;
+          if (el.id === 0x2AD7B1 && sz.val > 0 && sz.val <= 8) {
+            let ts = 0;
+            for (let i = 0; i < sz.val; i++) ts = ts * 256 + u8[dStart + i];
+            if (ts > 0) timecodeScale = ts;
+          } else if (el.id === 0x4489) {
+            durElemDataStart = dStart; durElemLen = sz.val;
+          }
+          ip = dStart + sz.val;
+        }
+        const durUnits = (durationMs * 1000000) / timecodeScale;
+        if (durElemDataStart >= 0 && (durElemLen === 4 || durElemLen === 8)) {
+          const out = u8.slice();
+          const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
+          if (durElemLen === 8) dv.setFloat64(durElemDataStart, durUnits, false);
+          else dv.setFloat32(durElemDataStart, durUnits, false);
+          return out;
+        }
+        const durEl = new Uint8Array(11);
+        durEl[0] = 0x44; durEl[1] = 0x89; durEl[2] = 0x88;
+        new DataView(durEl.buffer).setFloat64(3, durUnits, false);
+        const newInfoVal = infoSizeVal + 11;
+        let newInfoSizeLen = infoSizeLen;
+        while (newInfoSizeLen < 8 && newInfoVal >= (Math.pow(2, 7 * newInfoSizeLen) - 1)) newInfoSizeLen++;
+        const delta = 11 + (newInfoSizeLen - infoSizeLen);
+        const out = new Uint8Array(u8.length + delta);
+        out.set(u8.subarray(0, infoSizeStart), 0);
+        _ebmlWriteVintSize(out, infoSizeStart, newInfoSizeLen, newInfoVal);
+        const newInfoDataStart = infoSizeStart + newInfoSizeLen;
+        out.set(u8.subarray(infoDataStart, infoDataEnd), newInfoDataStart);
+        out.set(durEl, newInfoDataStart + infoSizeVal);
+        out.set(u8.subarray(infoDataEnd), newInfoDataStart + infoSizeVal + 11);
+        if (!segSz.unknown) {
+          const newSegVal = segSz.val + delta;
+          if (newSegVal < (Math.pow(2, 7 * segSz.len) - 1)) _ebmlWriteVintSize(out, segSizeStart, segSz.len, newSegVal);
+        }
+        const infoRelEnd = infoDataEnd - segDataStart;
+        for (const sh of seekHeads) {
+          let sp = sh.dStart;
+          while (sp < sh.dEnd) {
+            const se = _ebmlReadId(out, sp); if (!se) break;
+            const ss = _ebmlReadVintSize(out, sp + se.len); if (!ss || ss.unknown) break;
+            const sd = sp + se.len + ss.len;
+            if (se.id === 0x4DBB) {
+              let cp = sd, cEnd = sd + ss.val;
+              while (cp < cEnd) {
+                const ce = _ebmlReadId(out, cp); if (!ce) break;
+                const cs = _ebmlReadVintSize(out, cp + ce.len); if (!cs || cs.unknown) break;
+                const cd = cp + ce.len + cs.len;
+                if (ce.id === 0x53AC && cs.val > 0 && cs.val <= 8) {
+                  let sv = 0;
+                  for (let i = 0; i < cs.val; i++) sv = sv * 256 + out[cd + i];
+                  if (sv >= infoRelEnd) {
+                    let nv = sv + delta;
+                    for (let i = cs.val - 1; i >= 0; i--) { out[cd + i] = nv & 0xff; nv = Math.floor(nv / 256); }
+                  }
+                }
+                cp = cd + cs.val;
+              }
+            }
+            sp = sd + ss.val;
+          }
+        }
+        return out;
+      } catch (e) { return u8; }
+    }
+    function fixMp4Duration(u8, durationMs) {
+      try {
+        if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
+        const out = u8.slice();
+        const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
+        const readBox = (start, limit) => {
+          if (start + 8 > limit) return null;
+          let size = dv.getUint32(start, false);
+          const type = String.fromCharCode(out[start + 4], out[start + 5], out[start + 6], out[start + 7]);
+          let hdr = 8;
+          if (size === 1) {
+            if (start + 16 > limit) return null;
+            size = Number(dv.getBigUint64(start + 8, false));
+            hdr = 16;
+          } else if (size === 0) {
+            size = limit - start;
+          }
+          if (size < hdr || start + size > limit) return null;
+          return { type, dStart: start + hdr, end: start + size };
+        };
+        let mvhdTs = 1000;
+        const walk = (start, limit) => {
+          let p = start;
+          while (p < limit) {
+            const box = readBox(p, limit);
+            if (!box) break;
+            if (box.type === 'moov' || box.type === 'trak' || box.type === 'mdia') {
+              walk(box.dStart, box.end);
+            } else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
+              const ver = out[box.dStart];
+              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+              const durOff = box.dStart + (ver === 1 ? 24 : 16);
+              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+                const ts = dv.getUint32(tsOff, false) || 1000;
+                mvhdTs = ts;
+                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+                if (cur === 0) {
+                  const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
+                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+                  else dv.setUint32(durOff, nd, false);
+                }
+              }
+            } else if (box.type === 'tkhd' && box.end - box.dStart >= 24) {
+              const ver = out[box.dStart];
+              const durOff = box.dStart + (ver === 1 ? 28 : 20);
+              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+                if (cur === 0) {
+                  const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
+                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+                  else dv.setUint32(durOff, nd, false);
+                }
+              }
+            } else if (box.type === 'mdhd' && box.end - box.dStart >= 20) {
+              const ver = out[box.dStart];
+              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+              const durOff = box.dStart + (ver === 1 ? 24 : 16);
+              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+                const ts = dv.getUint32(tsOff, false) || 1000;
+                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+                if (cur === 0) {
+                  const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
+                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+                  else dv.setUint32(durOff, nd, false);
+                }
+              }
+            }
+            p = box.end;
+          }
+        };
+        walk(0, out.length);
+        return out;
+      } catch (e) { return u8; }
+    }
+    async function fixVideoContainerDuration(blob, mime, durationMs) {
+      try {
+        if (!blob || !blob.size || durationMs <= 0) return blob;
+        const u8 = new Uint8Array(await blob.arrayBuffer());
+        const isMp4 = (mime && mime.includes('mp4')) || (u8.length > 8 && u8[4] === 0x66 && u8[5] === 0x74 && u8[6] === 0x79 && u8[7] === 0x70);
+        const patched = isMp4 ? fixMp4Duration(u8, durationMs) : fixWebmDuration(u8, durationMs);
+        return new Blob([patched], { type: mime || blob.type || (isMp4 ? 'video/mp4' : 'video/webm') });
+      } catch (e) { return blob; }
+    }
+
     let rendering = false;
     $('#btnRenderAudiogram').onclick = async () => {
       if (rendering) return;
       stopAudiogramPreview();
       rendering = true;
       let cancelled = false;
+      let wakeLock = null;
+      let renderTimer = 0;
       const btn = $('#btnRenderAudiogram');
       const cancelBtn = $('#btnCancelAudiogram');
       btn.disabled = true; btn.textContent = 'Rendering video…';
       if (cancelBtn) cancelBtn.hidden = false;
       $('#agProg').classList.add('on');
       try {
+        if (navigator.wakeLock && navigator.wakeLock.request) {
+          try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+        }
         const c = AC();
         if (c.state === 'suspended') await c.resume();
         const [a, b] = scopeRange();
@@ -30367,7 +30748,7 @@ self.onmessage = function (e) {
         const buf = c.createBuffer(data.length, data[0].length, S.rate);
         for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
 
-        const qVal = ($('#agQuality') && $('#agQuality').value) || '1080-30';
+        const qVal = ($('#agQuality') && $('#agQuality').value) || (isLowEndDevice ? '720-30' : '1080-30');
         const is1080 = qVal.startsWith('1080');
         const fps = qVal.endsWith('60') ? 60 : 30;
         const offCv = document.createElement('canvas');
@@ -30382,61 +30763,96 @@ self.onmessage = function (e) {
         srcN.connect(agAn); agAn.connect(dest);
 
         const vStream = offCv.captureStream(fps);
+        const vTrack = vStream.getVideoTracks()[0];
         const combo = new MediaStream([...vStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
         const pref = ($('#agFormat') && $('#agFormat').value) || 'auto';
         const mp4List = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4'];
         const webmList = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
         const mimes = pref === 'mp4' ? [...mp4List, ...webmList] : pref === 'webm' ? [...webmList, ...mp4List] : [...mp4List, ...webmList];
         const mime = mimes.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
-        const vBps = is1080 ? (fps === 60 ? 7500000 : 5200000) : 3200000;
+        const vBps = is1080 ? (fps === 60 ? 6000000 : 4200000) : 2500000;
         const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: vBps, audioBitsPerSecond: 192000 } : undefined);
         const chunks = [];
+        let recErrMsg = '';
         recV.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+        recV.onerror = (ev) => { recErrMsg = (ev && ev.error && ev.error.message) || 'Video encoder error'; };
 
         const startAt = c.currentTime;
         let stopDraw = false;
+        let lastFrameMs = -1000;
+        const frameGapMs = Math.max(12, Math.floor(1000 / fps));
         agCancelRender = () => {
           cancelled = true; stopDraw = true;
+          clearInterval(renderTimer);
           try { srcN.onended = null; srcN.stop(); } catch (e) {}
           try { if (recV.state !== 'inactive') recV.stop(); } catch (e) {}
         };
         if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
 
-        const stepRender = () => {
+        const drawNextFrame = () => {
           if (stopDraw || cancelled || !$('#modal').classList.contains('on')) return;
+          const nowMs = performance.now();
+          if (nowMs - lastFrameMs < frameGapMs * 0.65) return;
+          lastFrameMs = nowMs;
+          if (c.state === 'suspended') c.resume().catch(() => {});
           const el = Math.min(totalSec, Math.max(0, c.currentTime - startAt));
           agAn.getByteFrequencyData(agBins);
           opts.tSec = el; opts.progress = el / Math.max(0.01, totalSec); opts.bins = agBins;
           drawAudiogramFrame(offCv, opts);
+          if (vTrack && typeof vTrack.requestFrame === 'function') {
+            try { vTrack.requestFrame(); } catch (e) {}
+          }
           $('#agProg').firstElementChild.style.width = Math.round((el / Math.max(0.01, totalSec)) * 100) + '%';
           if ($('#agStatus')) $('#agStatus').textContent = `Rendering ${fmtTime(el, true)} / ${fmtTime(totalSec, true)} · ${is1080 ? '1080p' : '720p'} ${fps}fps…`;
-          requestAnimationFrame(stepRender);
+        };
+        const stepRaf = () => {
+          if (stopDraw || cancelled || !$('#modal').classList.contains('on')) return;
+          drawNextFrame();
+          requestAnimationFrame(stepRaf);
         };
 
-        const blob = await new Promise((resolve) => {
-          recV.onstop = () => { if (agBgVideo) try { agBgVideo.pause(); } catch (e) {} resolve(cancelled ? null : new Blob(chunks, { type: mime || 'video/webm' })); };
-          srcN.onended = () => { stopDraw = true; setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 100); };
+        const rawBlob = await new Promise((resolve) => {
+          recV.onstop = () => {
+            clearInterval(renderTimer);
+            if (agBgVideo) try { agBgVideo.pause(); } catch (e) {}
+            resolve(cancelled ? null : new Blob(chunks, { type: mime || 'video/webm' }));
+          };
+          srcN.onended = () => {
+            stopDraw = true;
+            clearInterval(renderTimer);
+            opts.tSec = totalSec; opts.progress = 1;
+            drawAudiogramFrame(offCv, opts);
+            if (vTrack && typeof vTrack.requestFrame === 'function') { try { vTrack.requestFrame(); } catch (e) {} }
+            try { if (recV.state === 'recording' && typeof recV.requestData === 'function') recV.requestData(); } catch (e) {}
+            setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 350);
+          };
           if (agBgVideo && isFinite(agBgVideo.duration) && agBgVideo.duration > 0) {
             try { agBgVideo.currentTime = 0; agBgVideo.play().catch(() => {}); } catch (e) {}
           }
-          recV.start(250);
+          recV.start(1000);
           srcN.start();
-          requestAnimationFrame(stepRender);
+          renderTimer = setInterval(drawNextFrame, frameGapMs);
+          requestAnimationFrame(stepRaf);
         });
         agCancelRender = null;
-        if (cancelled || !blob) {
+        if (recErrMsg) throw new Error(recErrMsg);
+        if (cancelled || !rawBlob) {
           toast('Video render cancelled', 'info', 2200);
           if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
         } else {
+          if ($('#agStatus')) $('#agStatus').textContent = 'Writing video duration metadata…';
+          const blob = await fixVideoContainerDuration(rawBlob, mime, totalSec * 1000);
           const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
           const fname = sanitizeName(opts.title || S.name) + '-video.' + ext;
           downloadBlob(blob, fname);
-          toast(`Exported ${fname} (${fmtBytes(blob.size)})`, 'ok', 3400);
-          if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)})`;
+          toast(`Exported ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`, 'ok', 3600);
+          if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`;
         }
       } catch (e) {
         toast('Video export failed: ' + e.message, 'err', 4200);
       } finally {
+        clearInterval(renderTimer);
+        if (wakeLock) try { await wakeLock.release(); } catch (e) {}
         agCancelRender = null;
         rendering = false;
         btn.disabled = false; btn.textContent = 'Render & Download Video';
@@ -30649,143 +31065,6 @@ self.onmessage = function (e) {
     } catch (e) {}
   }
 
-  const Pip = { win: null, video: null, canvas: null, raf: 0, pinnedMini: false };
-  function syncPipState() {
-    if (Pip.win && !Pip.win.closed) {
-      const b = Pip.win.document.getElementById('pipPlayBtn');
-      const t = Pip.win.document.getElementById('pipTitle');
-      if (b) b.textContent = P.playing ? '❚❚ Pause' : '▶ Play';
-      if (t) t.textContent = ($('#exTitle') && $('#exTitle').value) || S.name || 'Track';
-    }
-    if (Pip.video && !Pip.video.paused !== P.playing) {
-      try { if (P.playing) Pip.video.play().catch(() => {}); else Pip.video.pause(); } catch (e) {}
-    }
-  }
-  function syncPipTime() {
-    if (Pip.win && !Pip.win.closed) {
-      const tm = Pip.win.document.getElementById('pipTime');
-      const bar = Pip.win.document.getElementById('pipProg');
-      if (tm) tm.textContent = fmtTime(P.t) + ' / ' + fmtTime(dur());
-      if (bar) bar.style.width = (dur() ? clamp((P.t / dur()) * 100, 0, 100) : 0).toFixed(2) + '%';
-    }
-  }
-  function drawPipCanvas() {
-    if (!Pip.canvas) return;
-    const cv = Pip.canvas, ctx = cv.getContext('2d');
-    const w = cv.width, h = cv.height;
-    ctx.fillStyle = '#0a0e18';
-    ctx.fillRect(0, 0, w, h);
-    const grd = ctx.createLinearGradient(0, 0, w, h);
-    grd.addColorStop(0, 'rgba(100, 210, 255, 0.16)');
-    grd.addColorStop(1, 'rgba(10, 14, 24, 0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, w, h);
-
-    // Spectrum bars
-    if (analyser && P.playing) {
-      const bins = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(bins);
-      const count = 32, bw = (w - 48) / count;
-      for (let i = 0; i < count; i++) {
-        const v = bins[i * 2] / 255;
-        const bh = Math.max(4, v * 88);
-        ctx.fillStyle = `rgba(100, 210, 255, ${(0.35 + v * 0.65).toFixed(2)})`;
-        ctx.fillRect(24 + i * bw, 168 - bh, Math.max(2, bw - 3), bh);
-      }
-    } else {
-      ctx.fillStyle = 'rgba(100, 210, 255, 0.25)';
-      for (let i = 0; i < 32; i++) ctx.fillRect(24 + i * ((w - 48) / 32), 160, 8, 6);
-    }
-
-    ctx.fillStyle = '#f4f7fb';
-    ctx.font = '600 22px system-ui, sans-serif';
-    const title = (($('#exTitle') && $('#exTitle').value) || S.name || 'Sonora').slice(0, 30);
-    ctx.fillText(title, 24, 44);
-    ctx.fillStyle = '#64d2ff';
-    ctx.font = '600 26px ui-monospace, monospace';
-    ctx.fillText(fmtTime(P.t) + ' / ' + fmtTime(dur()), 24, 214);
-
-    // Progress bar
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    ctx.fillRect(24, 232, w - 48, 8);
-    ctx.fillStyle = '#64d2ff';
-    const frac = dur() ? clamp(P.t / dur(), 0, 1) : 0;
-    ctx.fillRect(24, 232, (w - 48) * frac, 8);
-  }
-  async function openAudioPip() {
-    if (!hasAudio) return toast('Load audio first to pop out mini player', 'info');
-    // 1. Modern Document Picture-in-Picture (interactive controls!)
-    if (window.documentPictureInPicture && typeof window.documentPictureInPicture.requestWindow === 'function') {
-      try {
-        if (Pip.win && !Pip.win.closed) { Pip.win.focus(); return; }
-        const pipWin = await window.documentPictureInPicture.requestWindow({ width: 340, height: 158 });
-        Pip.win = pipWin;
-        pipWin.document.head.innerHTML = `<style>
-          body{margin:0;padding:12px 14px;background:#0b0f19;color:#f3f6fc;font:13px/1.35 system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;height:100vh}
-          .row{display:flex;align-items:center;gap:10px}.art{width:42px;height:42px;border-radius:10px;background:#162235;object-fit:cover;flex:none}
-          .meta{flex:1;min-width:0}.meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.meta span{color:#64d2ff;font:600 12px ui-monospace,monospace}
-          .track{height:4px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}.prog{height:100%;background:#64d2ff;width:0%}
-          .btns{display:flex;gap:8px}.btns button{flex:1;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-weight:600;cursor:pointer}
-          .btns button.main{background:#64d2ff;color:#05101c;border-color:transparent}
-        </style>`;
-        const artUrl = (CoverArt && CoverArt.url) ? CoverArt.url : defaultMediaArtUrl();
-        pipWin.document.body.innerHTML = `
-          <div class="row">
-            <img class="art" src="${artUrl}" alt="">
-            <div class="meta"><b id="pipTitle"></b><span id="pipTime"></span></div>
-          </div>
-          <div class="track"><div class="prog" id="pipProg"></div></div>
-          <div class="btns">
-            <button type="button" id="pipBackBtn">−10s</button>
-            <button type="button" class="main" id="pipPlayBtn"></button>
-            <button type="button" id="pipFwdBtn">+10s</button>
-          </div>`;
-        pipWin.document.getElementById('pipPlayBtn').onclick = () => (P.playing ? pausePlay() : play());
-        pipWin.document.getElementById('pipBackBtn').onclick = () => seek(clamp(P.t - 10, 0, dur()));
-        pipWin.document.getElementById('pipFwdBtn').onclick = () => seek(clamp(P.t + 10, 0, dur()));
-        pipWin.addEventListener('pagehide', () => { Pip.win = null; });
-        syncPipState(); syncPipTime();
-        return;
-      } catch (e) {}
-    }
-    // 2. Canvas-Stream <video> Picture-in-Picture fallback (Chrome Android / Safari / Firefox)
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        return;
-      }
-      if (!Pip.canvas) {
-        Pip.canvas = document.createElement('canvas');
-        Pip.canvas.width = 480; Pip.canvas.height = 270;
-      }
-      if (!Pip.video) {
-        Pip.video = document.createElement('video');
-        Pip.video.muted = true; Pip.video.playsInline = true;
-        Pip.video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none';
-        document.body.appendChild(Pip.video);
-        Pip.video.addEventListener('play', () => { if (!P.playing && hasAudio) play(); });
-        Pip.video.addEventListener('pause', () => { if (P.playing) pausePlay(); });
-        Pip.video.addEventListener('leavepictureinpicture', () => { cancelAnimationFrame(Pip.raf); });
-      }
-      drawPipCanvas();
-      if (typeof Pip.canvas.captureStream === 'function' && typeof Pip.video.requestPictureInPicture === 'function') {
-        if (!Pip.video.srcObject) Pip.video.srcObject = Pip.canvas.captureStream(15);
-        await Pip.video.play();
-        await Pip.video.requestPictureInPicture();
-        const tickPip = () => {
-          if (!document.pictureInPictureElement) return;
-          drawPipCanvas();
-          Pip.raf = requestAnimationFrame(tickPip);
-        };
-        Pip.raf = requestAnimationFrame(tickPip);
-        return;
-      }
-    } catch (e) {}
-    // 3. In-app pinned floating mini transport fallback
-    Pip.pinnedMini = !Pip.pinnedMini;
-    if ($('#miniTransport')) $('#miniTransport').classList.toggle('on', Pip.pinnedMini && hasAudio);
-    toast(Pip.pinnedMini ? 'Floating mini transport pinned' : 'Floating mini transport auto-mode', 'info', 2000);
-  }
   function initMiniTransport() {
     const mini = $('#miniTransport');
     const tr = $('.transport');
@@ -30793,7 +31072,7 @@ self.onmessage = function (e) {
     let trOutOfView = false;
     const syncMiniVis = () => {
       const modalOpen = document.body.classList.contains('overlay-open');
-      mini.classList.toggle('on', hasAudio && !modalOpen && (trOutOfView || Pip.pinnedMini));
+      mini.classList.toggle('on', hasAudio && !modalOpen && trOutOfView);
     };
     if (tr && typeof IntersectionObserver === 'function') {
       const io = new IntersectionObserver((entries) => {
@@ -30805,8 +31084,6 @@ self.onmessage = function (e) {
     if ($('#miniPlay')) $('#miniPlay').addEventListener('click', () => { P.playing ? pausePlay() : play(); haptic(6); });
     if ($('#miniBack')) $('#miniBack').addEventListener('click', () => { seek(clamp(P.t - 10, 0, dur())); haptic(5); });
     if ($('#miniFwd')) $('#miniFwd').addEventListener('click', () => { seek(clamp(P.t + 10, 0, dur())); haptic(5); });
-    if ($('#btnMiniPip')) $('#btnMiniPip').addEventListener('click', () => { haptic(6); openAudioPip(); });
-    if ($('#btnTransportPip')) $('#btnTransportPip').addEventListener('click', () => { haptic(6); openAudioPip(); });
     if ($('#exTitle')) $('#exTitle').addEventListener('input', () => { syncTransport(); updateMediaSession(); });
     if ($('#exArtist')) $('#exArtist').addEventListener('input', () => updateMediaSession());
   }
@@ -30815,7 +31092,16 @@ self.onmessage = function (e) {
   function bind() {
     $('#btnPick').addEventListener('click', () => $('#fileInput').click());
     $('#btnOpen').addEventListener('click', () => $('#fileInput').click());
-    $('#fileInput').addEventListener('change', (e) => { openFile(e.target.files[0]); e.target.value = ''; });
+    $('#fileInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      if (files.length > 1) {
+        openMergeStudio();
+        await addMergeFiles(files);
+      } else if (files[0]) {
+        await openFile(files[0]);
+      }
+    });
     $('#btnUndo').addEventListener('click', undo);
     $('#btnRedo').addEventListener('click', redo);
     $('#btnHelp').addEventListener('click', showHelp);
@@ -30903,7 +31189,11 @@ self.onmessage = function (e) {
     }
     $('#btnMergeEditor').addEventListener('click', openMergeStudio);
     $('#btnMergeAddFiles').addEventListener('click', () => $('#mergeInput').click());
-    $('#mergeInput').addEventListener('change', (e) => { addMergeFiles(e.target.files); e.target.value = ''; });
+    $('#mergeInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      e.target.value = '';
+      if (files.length) await addMergeFiles(files);
+    });
     $('#btnMergeAddCurrent').addEventListener('click', () => {
       if (!hasAudio) return;
       Merge.clips.push({ name: S.name || 'Current track', data: cloneData(S.data), rate: S.rate, mode: Merge.defaultMode, offsetSec: 0 });
@@ -31525,22 +31815,49 @@ self.onmessage = function (e) {
     $('#btnSelAll').addEventListener('click', () => { Sel.a = 0; Sel.b = S.data[0].length; syncSelectionUI(); baseDirty = fxDirty = true; });
     $('#scopeAll').addEventListener('click', () => setScope('all'));
     $('#scopeSel').addEventListener('click', () => setScope('sel'));
-    for (const id of ['inStart', 'inEnd']) {
-      $('#' + id).addEventListener('change', () => {
-        const v = parseTime($('#' + id).value, (id === 'inStart' ? Sel.a : Sel.b) / S.rate);
-        const s = clamp(Math.round(v * S.rate), 0, S.data[0].length);
-        if (id === 'inStart') Sel.a = Math.min(s, Sel.b - 1); else Sel.b = Math.max(s, Sel.a + 1);
+    const applyRangeInput = (id, commit) => {
+      if (!hasAudio || !S.data) return;
+      const raw = $('#' + id).value;
+      const parsed = parseTime(raw, NaN);
+      if (!isFinite(parsed)) {
+        if (commit) eCanonicalizeTime(id);
+        return;
+      }
+      const s = clamp(Math.round(parsed * S.rate), 0, S.data[0].length);
+      if (id === 'inStart') {
+        Sel.a = Math.min(s, Math.max(0, Sel.b - 1));
+        if (!P.playing) {
+          P.t = Sel.a / S.rate;
+          updateTimecode();
+        }
+      } else {
+        Sel.b = Math.max(s, Math.min(S.data[0].length, Sel.a + 1));
+        if (!P.playing && (P.t > Sel.b / S.rate || P.t < Sel.a / S.rate)) {
+          P.t = clamp(P.t, Sel.a / S.rate, Sel.b / S.rate);
+          updateTimecode();
+        }
+      }
+      if (commit) {
         eCanonicalizeTime(id);
-        syncSelectionUI(); baseDirty = fxDirty = true;
-      });
+        ensureVisible(Sel.a / S.rate, Sel.b / S.rate);
+      }
+      syncSelectionUI();
+      baseDirty = fxDirty = true;
+      render(true);
+    };
+    for (const id of ['inStart', 'inEnd']) {
+      $('#' + id).addEventListener('input', () => applyRangeInput(id, false));
+      $('#' + id).addEventListener('change', () => applyRangeInput(id, true));
     }
     // drag & drop
     const dz = $('#dz');
     ['dragenter', 'dragover'].forEach((ev) => window.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('hot'); }));
     ['dragleave', 'drop'].forEach((ev) => window.addEventListener(ev, (e) => { e.preventDefault(); if (ev === 'dragleave' && e.relatedTarget) return; dz.classList.remove('hot'); }));
     window.addEventListener('drop', (e) => {
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) openFile(f);
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      if (files.length > 1) { openMergeStudio(); addMergeFiles(files); }
+      else openFile(files[0]);
     });
     // paste audio from the clipboard
     window.addEventListener('paste', async (e) => {
@@ -31900,5 +32217,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a601b195eef77ee8',t:'MTc5NTYyMDYxNg=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a601b195eef77ee8',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
