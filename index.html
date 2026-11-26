@@ -341,6 +341,32 @@ kbd {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24);
 }
 .wavemode-seg button[disabled] { opacity: .32; }
+#btnSpecBrush[aria-pressed="true"], #btnT1ClipEdit[aria-pressed="true"] {
+  background: rgba(100, 210, 255, .22); color: #aee9ff; border-color: rgba(100, 210, 255, .55);
+}
+.spec-repair-bar, .region-quick-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 7px 10px; border-radius: 12px;
+  background: rgba(16, 20, 30, .86); border: 1px solid rgba(100, 210, 255, .28);
+  font-size: 11.5px;
+}
+.region-quick-bar { border-color: rgba(100, 210, 255, .34); background: rgba(10, 18, 28, .86); }
+.spec-repair-bar[hidden], .region-quick-bar[hidden] { display: none; }
+.spec-repair-bar .seg-sm, .region-quick-bar .seg-sm {
+  display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1);
+}
+.spec-repair-bar .seg-sm button {
+  height: 24px; padding: 0 8px; border-radius: var(--r-pill); font-size: 11px; font-weight: 600; color: var(--txt-2);
+}
+.spec-repair-bar .seg-sm button[aria-pressed="true"] { background: rgba(100, 210, 255, .26); color: #fff; }
+.spec-repair-bar .att-wrap { display: inline-flex; align-items: center; gap: 6px; color: var(--txt-2); }
+.spec-repair-bar .att-wrap[hidden] { display: none; }
+.spec-repair-bar .att-wrap input[type="range"] { width: 76px; }
+.region-quick-bar .rq-tag {
+  font-size: 11px; font-weight: 700; color: #7ae0ff; padding: 2px 8px; border-radius: 99px;
+  background: rgba(100, 210, 255, .14); border: 1px solid rgba(100, 210, 255, .3);
+}
 
 .wave-wrap {
   position: relative; min-width: 0; border-radius: 16px; overflow: hidden;
@@ -725,7 +751,7 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   background: rgba(255,255,255,.06); border: 1px solid var(--rim); color: var(--txt-2);
 }
 .macro-step-chip[aria-pressed="true"] { background: rgba(48,209,88,.22); border-color: rgba(48,209,88,.55); color: #c8ffd6; }
-.ag-wrap { display: flex; flex-direction: column; gap: 12px; }
+.ag-wrap { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 100%; overflow-x: hidden; }
 .ag-preview-box {
   position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 9px;
   padding: 12px; border-radius: 20px;
@@ -741,7 +767,7 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .ag-preview-bar input[type=range] { flex: 1; min-width: 0; }
 .ag-preview-bar span { font: 600 11px/1 ui-monospace, monospace; color: var(--txt-2); white-space: nowrap; flex: none; }
 .ag-tabs {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px;
   border-radius: 14px; background: rgba(0, 0, 0, .34); border: 1px solid rgba(255, 255, 255, .1);
 }
 .ag-tab {
@@ -749,13 +775,15 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   background: transparent; transition: background var(--fast), color var(--fast);
 }
 .ag-tab[aria-selected="true"] { background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
-.ag-pane { display: flex; flex-direction: column; gap: 10px; }
+.ag-pane { display: flex; flex-direction: column; gap: 10px; min-width: 0; max-width: 100%; }
+.ag-pane .grid-2, .ag-pane .field { min-width: 0; max-width: 100%; }
+.ag-pane select, .ag-pane input[type="text"] { min-width: 0; width: 100%; box-sizing: border-box; }
 .ag-pane[hidden] { display: none !important; }
-.ag-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.ag-swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 7px; }
 .ag-swatch {
   display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 12px;
   background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.11);
-  color: var(--txt-2); font-size: 11.5px; font-weight: 580; text-align: left;
+  color: var(--txt-2); font-size: 11.5px; font-weight: 580; text-align: left; min-width: 0;
   transition: border-color var(--fast), background var(--fast), color var(--fast);
 }
 .ag-swatch i { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 1px solid rgba(255,255,255,.35); }
@@ -767,7 +795,7 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 }
 .ag-chip[aria-pressed="true"] { background: rgba(100,210,255,.2); border-color: rgba(100,210,255,.55); color: #e8f8ff; }
 .ag-art-row {
-  display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px;
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px; min-width: 0;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
 }
 .ag-art-thumb {
@@ -778,8 +806,31 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .ag-art-meta { flex: 1; min-width: 0; }
 .ag-art-meta b { display: block; font-size: 12px; font-weight: 620; color: var(--txt); }
 .ag-art-meta span { display: block; font-size: 11px; color: var(--txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ag-actions { display: flex; gap: 8px; }
-.ag-actions .btn.primary { flex: 1; min-height: 46px; }
+.ag-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; min-width: 0; }
+.ag-actions .btn { flex: 1 1 120px; min-width: 0; max-width: 100%; min-height: 44px; padding: 0 12px; text-align: center; }
+.ag-actions .btn.primary { flex: 1 1 100%; min-height: 46px; }
+.rq-queue-box {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 11px; border-radius: 14px; min-width: 0;
+  background: rgba(8, 12, 22, .62); border: 1px solid rgba(100, 210, 255, .2);
+}
+.rq-queue-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; font-weight: 680; color: #bfefff; }
+.rq-job-row {
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 9px; border-radius: 11px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); min-width: 0;
+}
+.rq-job-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.rq-job-top b { font-size: 12px; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rq-job-badge {
+  flex: none; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 680;
+  background: rgba(100,210,255,.16); color: #9de4ff; border: 1px solid rgba(100,210,255,.35);
+}
+.rq-job-badge.is-done { background: rgba(48,209,88,.18); color: #a7f5be; border-color: rgba(48,209,88,.4); }
+.rq-job-badge.is-paused { background: rgba(255,159,10,.18); color: #ffd48a; border-color: rgba(255,159,10,.4); }
+.rq-job-sub { font: 500 10.5px/1.3 ui-monospace, monospace; color: var(--txt-3); }
+.rq-job-bar { width: 100%; height: 4px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+.rq-job-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #64d2ff, #30d158); }
+.rq-job-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.rq-job-acts .btn { flex: 1 1 auto; min-width: 0; min-height: 30px; font-size: 11px; }
 .cut-list { display: flex; flex-direction: column; gap: 6px; max-height: 196px; overflow: auto; margin-top: 4px; }
 .cut-row {
   display: flex; align-items: center; gap: 7px; padding: 6px 9px; border-radius: 10px;
@@ -1203,7 +1254,8 @@ body.overlay-open { overflow: hidden; }
 
 .modal {
   position: fixed; z-index: 70; left: 50%; top: 50%; transform: translate(-50%, -46%) scale(.97);
-  width: min(600px, 92vw); max-height: 85dvh; overflow: auto;
+  width: min(600px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: 85dvh;
+  overflow-x: hidden; overflow-y: auto; box-sizing: border-box;
   background: var(--glass-grad), rgba(22, 22, 28, .84);
   backdrop-filter: blur(40px) saturate(210%); -webkit-backdrop-filter: blur(40px) saturate(210%);
   border: 1px solid var(--rim-2); border-radius: var(--r-xl);
@@ -1697,10 +1749,37 @@ body.overlay-open { overflow: hidden; }
             <button type="button" data-wmode="spec" aria-pressed="false">Spec</button>
             <button type="button" data-wmode="mix" aria-pressed="false" title="Spectrogram + Waveform overlay">Mix</button>
           </div>
+          <button type="button" class="btn sm ghost" id="btnSpecBrush" aria-pressed="false" title="Spectral Repair Brush / Spot Heal on Spectrogram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4-9.5 9.5a2 2 0 0 1-1.1.56L7 17l.94-4.4a2 2 0 0 1 .56-1.1z"/><path d="M4 20h16"/></svg><span>Heal</span></button>
           <button class="btn icon sm ghost desktop-only" id="btnZoomOut" title="Zoom out (−)" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
           <button class="btn icon sm ghost desktop-only" id="btnZoomFit" title="Zoom to fit (0)" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
           <button class="btn icon sm ghost desktop-only" id="btnZoomIn" title="Zoom in (+)" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           <button class="btn sm ghost desktop-only" id="btnZoomSel" title="Zoom to selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M20 20l-3.2-3.2"/></svg>Selection</button>
+        </div>
+
+        <div class="spec-repair-bar" id="specRepairBar" hidden role="toolbar" aria-label="Spectral repair tools">
+          <div class="seg-sm" role="group" aria-label="Brush shape">
+            <button type="button" data-sr-shape="box" aria-pressed="true">Box</button>
+            <button type="button" data-sr-shape="brush" aria-pressed="false">Brush</button>
+          </div>
+          <div class="seg-sm" id="srSizeSeg" role="group" aria-label="Brush size" hidden>
+            <button type="button" data-sr-size="s" aria-pressed="false">S</button>
+            <button type="button" data-sr-size="m" aria-pressed="true">M</button>
+            <button type="button" data-sr-size="l" aria-pressed="false">L</button>
+          </div>
+          <div class="seg-sm" role="group" aria-label="Repair action">
+            <button type="button" data-sr-mode="heal" aria-pressed="true">Spot Heal</button>
+            <button type="button" data-sr-mode="attenuate" aria-pressed="false">Attenuate</button>
+            <button type="button" data-sr-mode="isolate" aria-pressed="false">Solo Band</button>
+          </div>
+          <label class="att-wrap" id="srAttWrap" hidden>
+            <span id="srAttOut">-24 dB</span>
+            <input type="range" id="srAttDb" min="-48" max="-6" step="2" value="-24" aria-label="Attenuation amount">
+          </label>
+          <div class="spacer"></div>
+          <button type="button" class="btn sm" id="btnSpecAudition" disabled>Audition</button>
+          <button type="button" class="btn sm primary" id="btnSpecApply" disabled>Apply Heal</button>
+          <button type="button" class="btn sm ghost" id="btnSpecClear" disabled>Clear</button>
+          <button type="button" class="btn sm ghost" id="btnSpecDone">Done</button>
         </div>
 
         <div class="wave-wrap" id="waveWrap">
@@ -1730,6 +1809,19 @@ body.overlay-open { overflow: hidden; }
             <button class="btn icon" id="mZoomFit" title="Zoom to fit" aria-label="Zoom to fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg></button>
             <button class="btn icon" id="mZoomIn" title="Zoom in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           </div>
+        </div>
+
+        <div class="region-quick-bar" id="regionQuickBar" hidden role="toolbar" aria-label="Track 1 non-destructive clip controls">
+          <span class="rq-tag" id="rqLabel">T1 Clips</span>
+          <button type="button" class="btn sm ghost" id="btnT1ClipEdit" aria-pressed="false" title="Drag clip bodies directly on the timeline">Move Clips</button>
+          <button type="button" class="btn sm" id="btnRqSplit">Split</button>
+          <button type="button" class="btn sm" id="btnRqFade">Crossfade</button>
+          <button type="button" class="btn sm" id="btnRqRipple">Close Gaps</button>
+          <button type="button" class="btn sm" id="btnRqDup">Dup</button>
+          <button type="button" class="btn sm" id="btnRqMute">Mute</button>
+          <button type="button" class="btn sm warn" id="btnRqDel">Del</button>
+          <div class="spacer"></div>
+          <button type="button" class="btn sm primary" id="btnRqBounce">Bounce</button>
         </div>
 
         <div class="overview-wrap" id="overviewWrap" title="Full track overview — tap or drag to seek or pan">
@@ -1828,6 +1920,7 @@ body.overlay-open { overflow: hidden; }
         <button type="button" class="btn" id="qTrim" title="Keep only the selected region">Keep</button>
         <button type="button" class="btn warn" id="qDelete" title="Delete the selected part">Delete part</button>
         <button type="button" class="btn" id="qFade" title="Fade selection edges (120 ms)">Fade</button>
+        <button type="button" class="btn" id="qSplitClip" title="Split Track 1 at playhead into non-destructive clip lanes">Split Clip</button>
         <button type="button" class="btn" id="quickZoom" title="Zoom waveform to selection">Fit ↗</button>
         <span class="sel-badge mono" id="selQuickDur">0.00 s</span>
       </div>
@@ -1978,6 +2071,7 @@ body.overlay-open { overflow: hidden; }
                 <button class="btn sm" id="btnJumpScan">Preview gaps</button>
                 <button class="btn sm" id="btnJumpFillers">Scan + "um"s</button>
                 <button class="btn sm primary" id="btnJumpApply">Tighten pauses</button>
+                <button class="btn sm" id="btnJumpClips">Keep as clips</button>
               </div>
               <div class="range-row" id="cutListMeta" hidden><label>Cut List (check to include)</label><output id="cutListSavedOut">0.0 s saved</output></div>
               <div class="cut-list" id="cutListBox" hidden></div>
@@ -19414,6 +19508,193 @@ lamejs();
     return { data: mag, cols, bins, fftSize, stride, sampleRate: fs, hop: (fftSize / 2) * stride };
   }
 
+  /* ---------------------------------------------- spectral repair / inpaint */
+  function spectralRepair(ch, fs, opts) {
+    const o = opts || {};
+    const masks = Array.isArray(o.masks) ? o.masks : [];
+    if (!masks.length) return ch.slice();
+    const mode = o.mode || 'heal'; // 'heal' | 'attenuate' | 'isolate'
+    const attLin = Math.pow(10, clamp(o.attDb == null ? -24 : o.attDb, -60, -1) / 20);
+    const fftSize = 2048;
+    const hop = 512; // 75% overlap
+    const bins = fftSize >> 1;
+    const nyq = fs / 2;
+
+    let minT = Infinity, maxT = -Infinity;
+    for (const m of masks) {
+      if (m.type === 'box') {
+        minT = Math.min(minT, Math.min(m.t0, m.t1));
+        maxT = Math.max(maxT, Math.max(m.t0, m.t1));
+      } else if (m.points && m.points.length) {
+        const padT = m.bwSec || 0.04;
+        for (const pt of m.points) {
+          minT = Math.min(minT, pt.t - padT * 1.5);
+          maxT = Math.max(maxT, pt.t + padT * 1.5);
+        }
+      }
+    }
+    if (!isFinite(minT) || !isFinite(maxT)) return ch.slice();
+
+    const padSec = 0.18;
+    const sStart = Math.max(0, Math.floor((minT - padSec) * fs) - fftSize);
+    const sEnd = Math.min(ch.length, Math.ceil((maxT + padSec) * fs) + fftSize);
+    const segLen = sEnd - sStart;
+    if (segLen < fftSize) return ch.slice();
+
+    const seg = ch.subarray(sStart, sEnd);
+    const fft = getFFT(fftSize);
+    const win = hann(fftSize);
+    const sqrtWin = new Float32Array(fftSize);
+    for (let i = 0; i < fftSize; i++) sqrtWin[i] = Math.sqrt(Math.max(0, win[i]));
+    const normScale = 0.5; // 75% overlap COLA for hann: sum(win) across 4 overlapping frames = 2.0
+
+    const nFrames = Math.max(1, Math.floor((segLen - fftSize) / hop) + 1);
+    const reFrames = new Array(nFrames);
+    const imFrames = new Array(nFrames);
+    const magFrames = mode === 'heal' ? new Array(nFrames) : null;
+    const maskFrames = new Array(nFrames);
+
+    const maskAt = (tSec, hz) => {
+      let best = 0;
+      for (let i = 0; i < masks.length; i++) {
+        const m = masks[i];
+        let w = 0;
+        if (m.type === 'box') {
+          const tA = Math.min(m.t0, m.t1), tB = Math.max(m.t0, m.t1);
+          const fA = Math.min(m.f0, m.f1), fB = Math.max(m.f0, m.f1);
+          const ft = Math.max(0.012, (tB - tA) * 0.12);
+          const ff = Math.max(85, (fB - fA) * 0.12);
+          if (tSec >= tA - ft && tSec <= tB + ft && hz >= fA - ff && hz <= fB + ff) {
+            const wt = tSec < tA ? 0.5 * (1 + Math.cos(Math.PI * (tA - tSec) / ft))
+              : tSec > tB ? 0.5 * (1 + Math.cos(Math.PI * (tSec - tB) / ft)) : 1;
+            const wf = hz < fA ? 0.5 * (1 + Math.cos(Math.PI * (fA - hz) / ff))
+              : hz > fB ? 0.5 * (1 + Math.cos(Math.PI * (hz - fB) / ff)) : 1;
+            w = wt * wf;
+          }
+        } else if (m.points && m.points.length) {
+          const bw = Math.max(0.012, m.bwSec || 0.035);
+          const bf = Math.max(70, m.bfHz || nyq * 0.04);
+          let minD = 99;
+          const pts = m.points;
+          if (pts.length === 1) {
+            minD = Math.hypot((tSec - pts[0].t) / bw, (hz - pts[0].f) / bf);
+          } else {
+            for (let j = 0; j < pts.length - 1; j++) {
+              const p0 = pts[j], p1 = pts[j + 1];
+              const dx = (p1.t - p0.t) / bw, dy = (p1.f - p0.f) / bf;
+              const l2 = dx * dx + dy * dy;
+              const u = l2 > 1e-9 ? clamp((((tSec - p0.t) / bw) * dx + ((hz - p0.f) / bf) * dy) / l2, 0, 1) : 0;
+              const ct = p0.t + u * (p1.t - p0.t);
+              const cf = p0.f + u * (p1.f - p0.f);
+              const d = Math.hypot((tSec - ct) / bw, (hz - cf) / bf);
+              if (d < minD) minD = d;
+            }
+          }
+          if (minD <= 1) w = 1;
+          else if (minD < 1.45) w = 0.5 * (1 + Math.cos(Math.PI * (minD - 1) / 0.45));
+        }
+        if (w > best) { best = w; if (best >= 0.999) break; }
+      }
+      return best;
+    };
+
+    for (let f = 0; f < nFrames; f++) {
+      const pos = f * hop;
+      const re = new Float32Array(fftSize);
+      const im = new Float32Array(fftSize);
+      for (let i = 0; i < fftSize; i++) re[i] = seg[pos + i] * sqrtWin[i];
+      fft.forward(re, im);
+      reFrames[f] = re;
+      imFrames[f] = im;
+      const tMid = (sStart + pos + fftSize * 0.5) / fs;
+      const mk = new Float32Array(bins);
+      const mg = magFrames ? new Float32Array(bins) : null;
+      for (let k = 0; k < bins; k++) {
+        const hz = (k / bins) * nyq;
+        mk[k] = maskAt(tMid, hz);
+        if (mg) mg[k] = Math.hypot(re[k], im[k]);
+      }
+      maskFrames[f] = mk;
+      if (magFrames) magFrames[f] = mg;
+    }
+
+    // Apply requested spectral repair operation
+    let seed = 1337;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+    for (let f = 0; f < nFrames; f++) {
+      const re = reFrames[f], im = imFrames[f], mk = maskFrames[f];
+      for (let k = 0; k < bins; k++) {
+        const w = mk[k];
+        if (mode === 'attenuate') {
+          if (w <= 0.002) continue;
+          const g = 1 - w * (1 - attLin);
+          const mir = k === 0 ? 0 : fftSize - k;
+          re[k] *= g; im[k] *= g;
+          if (mir !== k) { re[mir] *= g; im[mir] *= g; }
+        } else if (mode === 'isolate') {
+          const g = 0.02 + 0.98 * w;
+          const mir = k === 0 ? 0 : fftSize - k;
+          re[k] *= g; im[k] *= g;
+          if (mir !== k) { re[mir] *= g; im[mir] *= g; }
+        } else {
+          // 2D Spectral Interpolation (Spot Heal)
+          if (w <= 0.005) continue;
+          let fL = -1, fR = -1;
+          for (let d = 1; d <= 16; d++) {
+            if (fL < 0 && f - d >= 0 && maskFrames[f - d][k] < 0.08) fL = f - d;
+            if (fR < 0 && f + d < nFrames && maskFrames[f + d][k] < 0.08) fR = f + d;
+            if (fL >= 0 && fR >= 0) break;
+          }
+          let kLo = -1, kHi = -1;
+          for (let d = 1; d <= 14; d++) {
+            if (kLo < 0 && k - d >= 1 && mk[k - d] < 0.08) kLo = k - d;
+            if (kHi < 0 && k + d < bins && mk[k + d] < 0.08) kHi = k + d;
+            if (kLo >= 0 && kHi >= 0) break;
+          }
+          let logAcc = 0, wAcc = 0;
+          if (fL >= 0) { const wt = 1 / (f - fL); logAcc += wt * Math.log(magFrames[fL][k] + 1e-7); wAcc += wt; }
+          if (fR >= 0) { const wt = 1 / (fR - f); logAcc += wt * Math.log(magFrames[fR][k] + 1e-7); wAcc += wt; }
+          if (kLo >= 0) { const wt = 0.65 / (k - kLo); logAcc += wt * Math.log(magFrames[f][kLo] + 1e-7); wAcc += wt; }
+          if (kHi >= 0) { const wt = 0.65 / (kHi - k); logAcc += wt * Math.log(magFrames[f][kHi] + 1e-7); wAcc += wt; }
+          const estMag = wAcc > 0 ? Math.exp(logAcc / wAcc) * (0.93 + rand() * 0.14) : magFrames[f][k] * 0.1;
+          const curMag = magFrames[f][k];
+          const targetMag = curMag + (estMag - curMag) * w;
+          const mir = k === 0 ? 0 : fftSize - k;
+          if (curMag > 1e-6) {
+            const g = targetMag / curMag;
+            re[k] *= g; im[k] *= g;
+            if (mir !== k) { re[mir] *= g; im[mir] *= g; }
+          } else {
+            const ph = rand() * Math.PI * 2;
+            const nr = Math.cos(ph) * targetMag, ni = Math.sin(ph) * targetMag;
+            re[k] = nr; im[k] = ni;
+            if (mir !== k) { re[mir] = nr; im[mir] = -ni; }
+          }
+        }
+      }
+    }
+
+    const outSeg = new Float32Array(segLen);
+    for (let f = 0; f < nFrames; f++) {
+      const pos = f * hop;
+      const re = reFrames[f], im = imFrames[f];
+      fft.inverse(re, im);
+      for (let i = 0; i < fftSize; i++) outSeg[pos + i] += re[i] * sqrtWin[i] * normScale;
+    }
+
+    const out = ch.slice();
+    const fadeN = Math.min(Math.round(0.012 * fs), Math.floor(segLen * 0.15));
+    for (let i = 0; i < segLen; i++) {
+      if (i < fftSize || i >= segLen - fftSize) continue; // avoid window edge roll-off
+      let mix = 1;
+      if (i - fftSize < fadeN) mix = (i - fftSize) / Math.max(1, fadeN);
+      else if (segLen - fftSize - i < fadeN) mix = (segLen - fftSize - i) / Math.max(1, fadeN);
+      out[sStart + i] = ch[sStart + i] * (1 - mix) + outSeg[i] * mix;
+    }
+    return out;
+  }
+
   /* --------------------------------------------------------------- encoders */
   function writeAscii(view, off, str) {
     for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i) & 0xff);
@@ -19978,7 +20259,7 @@ lamejs();
     measureLufs, compress, deess, applyEnvelope,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, formantShiftChannel, formantShift,
     MATCH_EQ_BANDS, analyzeSpectrumBands, matchEq, makeNoiseProfile, denoise,
-    process, spectrogram, spectroColor, encodeWav, encodeMp3, makeDemo,
+    process, spectrogram, spectroColor, spectralRepair, encodeWav, encodeMp3, makeDemo,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = SonicDSP;
@@ -20131,7 +20412,7 @@ lamejs();
     }
     if (typeof Regions !== 'undefined' && Regions.list.length) {
       for (const rg of Regions.list) {
-        if (rg.data && rg.data[0]) d = Math.max(d, (rg.offsetSec || 0) + rg.data[0].length / (rg.rate || S.rate));
+        if (!rg.mute && rg.data && rg.data[0]) d = Math.max(d, (rg.offsetSec || 0) + regionTrimmedSpan(rg).playDur);
       }
     }
     return d;
@@ -20173,6 +20454,7 @@ self.onmessage = function (e) {
       }); break;
       case 'profile': r = D.makeNoiseProfile(m.data[0], m.start || 0, m.len || 0, m.fftSize || 2048); break;
       case 'spectrogram': r = D.spectrogram(m.data[0], m.rate, m.opts || {}); break;
+      case 'spectralRepair': r = m.data.map(function (ch) { return D.spectralRepair(ch, m.rate, m.opts || {}); }); break;
       case 'resample': r = D.resample(m.data, m.rate, m.to, 4); break;
       case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null, m.id3 || null); break;
       default: throw new Error('unknown task ' + m.act);
@@ -20249,6 +20531,7 @@ self.onmessage = function (e) {
       case 'denoise': return m.data.map((ch) => D.denoise(ch, m.rate, m.opts || {}));
       case 'profile': return D.makeNoiseProfile(m.data[0], m.start || 0, m.len || 0, m.fftSize || 2048);
       case 'spectrogram': return D.spectrogram(m.data[0], m.rate, m.opts || {});
+      case 'spectralRepair': return m.data.map((ch) => D.spectralRepair(ch, m.rate, m.opts || {}));
       case 'resample': return D.resample(m.data, m.rate, m.to, 4);
       case 'wav': return D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null);
       default: throw new Error('unknown task ' + m.act);
@@ -20279,7 +20562,16 @@ self.onmessage = function (e) {
   };
   const Comp = { takes: [], auditionSrc: null };
   const Stems = { clips: [], sources: [], mute: false, nextId: 1 };
-  const Regions = { list: [], sources: [], nextId: 1 };
+  const Regions = { list: [], sources: [], nextId: 1, selectedId: null, clipEdit: false };
+  const SpecBrush = { active: false, shape: 'box', size: 'm', mode: 'heal', attDb: -24, masks: [], draft: null, audSrc: null };
+  function regionTrimmedSpan(rg) {
+    if (!rg || !rg.data || !rg.data[0]) return { rawDur: 0, inS: 0, outS: 0, playDur: 0 };
+    const rawDur = rg.data[0].length / (rg.rate || S.rate || 48000);
+    const inS = clamp(rg.trimInSec || 0, 0, Math.max(0, rawDur - 0.04));
+    const outS = clamp(rg.trimOutSec || 0, 0, Math.max(0, rawDur - inS - 0.04));
+    const playDur = Math.max(0.04, rawDur - inS - outS);
+    return { rawDur, inS, outS, playDur };
+  }
 
   let ctx = null, master = null, mixBusNode = null, mixSafetyLim = null, mainTrackGainNode = null, mainTrackPanNode = null, src = null, analyser = null, analyserBuf = null, endTimer = 0;
   let mainRevSendNode = null, mainDelSendNode = null, layerRevSendNode = null, layerDelSendNode = null;
@@ -20976,20 +21268,20 @@ self.onmessage = function (e) {
     const rate = P.rate || 1;
     const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
     for (const reg of Regions.list) {
-      if (!reg.buffer) continue;
-      const regDur = reg.buffer.duration;
+      if (!reg.buffer || reg.mute) continue;
+      const { inS, playDur: regDur } = regionTrimmedSpan(reg);
       const off = reg.offsetSec || 0;
       const rel = fromSec - off;
-      let startWhen = when, bufOff = 0, playDur = 0;
+      let startWhen = when, bufOff = inS, playDur = 0;
       if (rel >= 0) {
         if (rel >= regDur) continue;
-        bufOff = rel;
+        bufOff = inS + rel;
         playDur = Math.min((regDur - rel) / rate, maxWin);
       } else {
         const delay = (-rel) / rate;
         if (delay >= maxWin) continue;
         startWhen = when + delay;
-        bufOff = 0;
+        bufOff = inS;
         playDur = Math.min(regDur / rate, maxWin - delay);
       }
       if (playDur <= 0.005) continue;
@@ -21000,7 +21292,7 @@ self.onmessage = function (e) {
       const baseG = Math.pow(10, (reg.gainDb || 0) / 20);
       const fi = Math.min((reg.fadeInMs || 0) / 1000 / rate, playDur * 0.45);
       const fo = Math.min((reg.fadeOutMs || 0) / 1000 / rate, playDur * 0.45);
-      if (fi > 0.004 && bufOff < fi) {
+      if (fi > 0.004 && (bufOff - inS) < fi) {
         g.gain.setValueAtTime(0.0001, startWhen);
         g.gain.linearRampToValueAtTime(baseG, startWhen + fi);
       } else {
@@ -21164,7 +21456,10 @@ self.onmessage = function (e) {
   function captureState(label) {
     return { d: cloneData(S.data), r: S.rate, a: Sel.a, b: Sel.b, t: P.t,
       dur: S.data[0].length / S.rate, ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      markers: Markers.list.map(m => ({...m})), label: label || 'Edit' };
+      markers: Markers.list.map(m => ({...m})),
+      regions: Regions.list.map(rg => ({ ...rg })),
+      regionsSel: Regions.selectedId,
+      label: label || 'Edit' };
   }
   function snapshot(label) {
     H.undo.push(captureState(label)); H.redo.length = 0;
@@ -21179,6 +21474,11 @@ self.onmessage = function (e) {
     pausePlay(); S.data = cloneData(snap.d); S.rate = snap.r;
     Sel.a = snap.a; Sel.b = snap.b; P.t = snap.t;
     Markers.list = snap.markers.map(m => ({...m})); renderMarkers();
+    if (Array.isArray(snap.regions)) {
+      Regions.list = snap.regions.map(rg => ({ ...rg }));
+      Regions.selectedId = snap.regionsSel || null;
+      if (typeof renderRegionList === 'function') renderRegionList();
+    }
     afterEdit(true); syncTransport();
   }
   function undo() {
@@ -22254,7 +22554,10 @@ self.onmessage = function (e) {
     pausePlay(); killSource(); closeOverlays(); previewOnly = false;
     busy(true, 'Loading');
     await yieldUI();
-    Markers.list = []; closeMarkerPop(); renderMarkers(); Sil.list = []; ClipScan.regions = []; Regions.list = [];
+    Markers.list = []; closeMarkerPop(); renderMarkers(); Sil.list = []; ClipScan.regions = []; Regions.list = []; Regions.selectedId = null; Regions.clipEdit = false;
+    SpecBrush.masks = []; SpecBrush.draft = null; SpecBrush.active = false;
+    if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
+    if (typeof syncSpecBrushUI === 'function') syncSpecBrushUI();
     JumpCut.preview = false; JumpCut.skipPlay = false;
     if ($('#chkSilQuickSkip')) $('#chkSilQuickSkip').checked = false;
     if ($('#chkJumpQuickSkip')) $('#chkJumpQuickSkip').checked = false;
@@ -22519,6 +22822,10 @@ self.onmessage = function (e) {
     P.waveMode = mode;
     $$('#waveModeSeg [data-wmode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wmode === mode));
     if ((mode === 'spec' || mode === 'mix') && !S.spec) ensureSpectrogram();
+    if (SpecBrush.active && mode !== 'spec' && mode !== 'mix') {
+      SpecBrush.active = false;
+      if (typeof syncSpecBrushUI === 'function') syncSpecBrushUI();
+    }
     baseDirty = fxDirty = true;
   }
   function pickTick() {
@@ -22689,6 +22996,58 @@ self.onmessage = function (e) {
         }
         c.restore();
       }
+    } else if (Regions.list.length) {
+      // Non-destructive Track 1 Clip Lanes: draw each clip's trimmed waveform at its live offsetSec
+      c.save();
+      c.beginPath(); c.rect(0, top, canvasW, mainH); c.clip();
+      c.strokeStyle = 'rgba(255,255,255,.045)';
+      for (const f of [0.25, 0.5, 0.75]) {
+        const y = Math.round(top + mainH * f) + 0.5;
+        c.beginPath(); c.moveTo(0, y); c.lineTo(canvasW, y); c.stroke();
+      }
+      c.strokeStyle = 'rgba(255,255,255,.12)';
+      c.beginPath(); c.moveTo(0, Math.round(top + mainH / 2) + 0.5); c.lineTo(canvasW, Math.round(top + mainH / 2) + 0.5); c.stroke();
+      const mid1 = top + mainH * 0.52, amp1 = mainH * 0.42;
+      for (let i = 0; i < Regions.list.length; i++) {
+        const rg = Regions.list[i];
+        const { inS, playDur } = regionTrimmedSpan(rg);
+        const rx0 = tToX(rg.offsetSec), rx1 = tToX(rg.offsetSec + playDur);
+        if (rx1 < 0 || rx0 > canvasW) continue;
+        const chR = rg.data[0];
+        if (!rg.peaksCache) {
+          const nbR = Math.ceil(chR.length / PYR_BLK);
+          const mnR = new Float32Array(nbR), mxR = new Float32Array(nbR);
+          for (let b = 0; b < nbR; b++) {
+            const s0 = b * PYR_BLK, s1 = Math.min(chR.length, s0 + PYR_BLK);
+            let lo = 0, hi = 0;
+            for (let k = s0; k < s1; k++) { const v = chR[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+            mnR[b] = lo; mxR[b] = hi;
+          }
+          rg.peaksCache = { mn: mnR, mx: mxR, nb: nbR };
+        }
+        const pxA = Math.max(0, Math.floor(rx0)), pxB = Math.min(canvasW, Math.ceil(rx1));
+        const clipG = Math.pow(10, clamp((rg.gainDb || 0) / 20, -1.2, 0.6));
+        c.fillStyle = rg.mute ? 'rgba(140, 155, 180, .20)' : 'rgba(130, 220, 255, .62)';
+        const { mn: mnR, mx: mxR, nb: nbR } = rg.peaksCache;
+        for (let px = pxA; px < pxB; px++) {
+          const tAt = xToT(px);
+          const sIdx0 = clamp(Math.floor((inS + (tAt - rg.offsetSec)) * rg.rate), 0, chR.length - 1);
+          const sIdx1 = clamp(Math.floor((inS + (xToT(px + 1) - rg.offsetSec)) * rg.rate), sIdx0 + 1, chR.length);
+          let lo = 0, hi = 0;
+          if (sIdx1 - sIdx0 > PYR_BLK * 2) {
+            const b0 = Math.max(0, (sIdx0 / PYR_BLK) | 0), b1 = Math.min(nbR - 1, ((sIdx1 - 1) / PYR_BLK) | 0);
+            const st = Math.max(1, ((b1 - b0 + 1) / 16) | 0);
+            for (let b = b0; b <= b1; b += st) { if (mnR[b] < lo) lo = mnR[b]; if (mxR[b] > hi) hi = mxR[b]; }
+          } else {
+            const st = Math.max(1, ((sIdx1 - sIdx0) / 16) | 0);
+            for (let k = sIdx0; k < sIdx1; k += st) { const v = chR[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+          }
+          const yTop = mid1 - clamp(hi * clipG, -1, 1) * amp1;
+          const yBot = mid1 - clamp(lo * clipG, -1, 1) * amp1;
+          c.fillRect(px, Math.min(yTop, yBot), 1, Math.max(1.5, Math.abs(yBot - yTop)));
+        }
+      }
+      c.restore();
     } else if (P.waveMode === 'stereo' && S.data.length > 1) {
       const gap = 5;
       const lh = (mainH - gap) / 2;
@@ -22864,6 +23223,18 @@ self.onmessage = function (e) {
       }
     }
     return pills;
+  }
+  function specYToHz(y, lanes) {
+    const ln = lanes || getTimelineLanes();
+    const nyq = (S.rate || 48000) / 2;
+    const frac = clamp(1 - (y - ln.top) / Math.max(1, ln.mainH), 0, 1);
+    return Math.pow(frac, 1.55) * nyq;
+  }
+  function specHzToY(hz, lanes) {
+    const ln = lanes || getTimelineLanes();
+    const nyq = (S.rate || 48000) / 2;
+    const frac = Math.pow(clamp(hz / Math.max(1, nyq), 0, 1), 1 / 1.55);
+    return ln.top + (1 - frac) * ln.mainH;
   }
   function drawFx() {
     // overlay only: the visible canvas was just blitted from baseLayer by render()
@@ -23080,30 +23451,140 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // Non-destructive Split Regions overlay (inside Main Track 1 lane)
+    // Non-destructive Track 1 Region / Clip Lanes overlay (interactive trim, move, fade, mute & overlaps)
     if (Regions.list.length) {
       c.save();
       c.beginPath(); c.rect(0, top, canvasW, lanesFx.mainH); c.clip();
+      const rh = Math.max(24, lanesFx.mainH - 4);
+      const ry = top + 2;
       for (let i = 0; i < Regions.list.length; i++) {
         const rg = Regions.list[i];
+        const { playDur: rDur } = regionTrimmedSpan(rg);
         const rx0 = tToX(rg.offsetSec);
-        const rDur = rg.data[0].length / rg.rate;
         const rx1 = tToX(rg.offsetSec + rDur);
         if (rx1 < 0 || rx0 > canvasW) continue;
-        const rw = Math.max(6, rx1 - rx0);
-        c.fillStyle = 'rgba(100, 210, 255, .10)';
-        c.fillRect(rx0, top, rw, lanesFx.mainH);
-        c.strokeStyle = 'rgba(100, 210, 255, .65)';
-        c.lineWidth = 1.25;
-        c.strokeRect(rx0 + 0.5, top + 0.5, rw - 1, lanesFx.mainH - 1);
-        const pillW = Math.min(rw - 6, 108);
-        if (pillW >= 18) {
-          c.fillStyle = 'rgba(100, 210, 255, .88)';
-          roundRect(c, rx0 + 3, top + 3, pillW, 16, 5); c.fill();
+        const rw = Math.max(8, rx1 - rx0);
+        const isSel = Regions.selectedId === rg.id;
+        const isDragReg = drag && drag.regIdx === i && /^reg/.test(drag.mode);
+        c.save();
+        roundRect(c, rx0 + 0.5, ry + 0.5, rw - 1, rh - 1, 7);
+        c.fillStyle = rg.mute ? 'rgba(90, 100, 120, .14)' : (isDragReg ? 'rgba(100, 210, 255, .18)' : (isSel ? 'rgba(100, 210, 255, .12)' : 'rgba(100, 210, 255, .07)'));
+        c.fill();
+        c.strokeStyle = isDragReg ? '#ffffff' : (isSel ? '#7ce2ff' : (rg.mute ? 'rgba(160,170,190,.35)' : 'rgba(100, 210, 255, .62)'));
+        c.lineWidth = (isSel || isDragReg) ? 1.7 : 1.1;
+        c.stroke();
+        c.clip();
+
+        // Fade-in & Fade-out ramps
+        const fiPx = Math.min(rw * 0.48, Math.max(0, (rg.fadeInMs || 0) / 1000) * V.pps);
+        const foPx = Math.min(rw * 0.48, Math.max(0, (rg.fadeOutMs || 0) / 1000) * V.pps);
+        if (fiPx > 2) {
+          c.fillStyle = 'rgba(6, 10, 18, .48)';
+          c.beginPath(); c.moveTo(rx0, ry); c.lineTo(rx0 + fiPx, ry); c.lineTo(rx0, ry + rh); c.closePath(); c.fill();
+          c.strokeStyle = 'rgba(124, 226, 255, .85)'; c.lineWidth = 1.25;
+          c.beginPath(); c.moveTo(rx0, ry + rh); c.lineTo(rx0 + fiPx, ry); c.stroke();
+        }
+        if (foPx > 2) {
+          c.fillStyle = 'rgba(6, 10, 18, .48)';
+          c.beginPath(); c.moveTo(rx1, ry); c.lineTo(rx1 - foPx, ry); c.lineTo(rx1, ry + rh); c.closePath(); c.fill();
+          c.strokeStyle = 'rgba(124, 226, 255, .85)'; c.lineWidth = 1.25;
+          c.beginPath(); c.moveTo(rx1 - foPx, ry); c.lineTo(rx1, ry + rh); c.stroke();
+        }
+
+        const pillW = Math.min(rw - 10, 132);
+        if (pillW >= 20) {
+          c.fillStyle = rg.mute ? 'rgba(140, 150, 170, .75)' : (isSel ? '#8ae5ff' : 'rgba(100, 210, 255, .88)');
+          roundRect(c, rx0 + 5, ry + 3, pillW, 17, 5); c.fill();
           c.fillStyle = '#04060a';
           c.font = '700 9.5px -apple-system, sans-serif';
           c.textBaseline = 'middle';
-          c.fillText(rg.name.slice(0, 14) + (rg.gainDb ? ` (${rg.gainDb > 0 ? '+' : ''}${rg.gainDb}dB)` : ''), rx0 + 7, top + 11, Math.max(8, pillW - 8));
+          const tag = rg.mute ? `${rg.name.slice(0, 10)} · MUTE` : (rg.name.slice(0, 13) + (rg.gainDb ? ` ${rg.gainDb > 0 ? '+' : ''}${rg.gainDb.toFixed(1)}dB` : ''));
+          c.fillText(tag, rx0 + 9, ry + 11.5, Math.max(8, pillW - 8));
+        }
+        c.restore();
+
+        // Trim edge grips + Fade dots
+        if (rw >= 22) {
+          for (const [edgeX, edgeMode] of [[rx0, 'regTrimL'], [rx1, 'regTrimR']]) {
+            if (edgeX < -8 || edgeX > canvasW + 8) continue;
+            const hot = drag && drag.mode === edgeMode && drag.regIdx === i;
+            c.fillStyle = hot ? '#ffffff' : '#7ce2ff';
+            roundRect(c, edgeX - 2, ry + Math.round(rh * 0.22), 4, Math.max(12, Math.round(rh * 0.56)), 2);
+            c.fill();
+          }
+          for (const [fx, fadeMode] of [[rx0 + fiPx, 'regFadeIn'], [rx1 - foPx, 'regFadeOut']]) {
+            if (fx < -8 || fx > canvasW + 8) continue;
+            const hot = drag && drag.mode === fadeMode && drag.regIdx === i;
+            c.fillStyle = hot ? '#ffffff' : '#7ce2ff';
+            c.strokeStyle = '#08090d'; c.lineWidth = 1.4;
+            c.beginPath(); c.arc(fx, ry + 5, hot ? 5.4 : 3.9, 0, TAU); c.fill(); c.stroke();
+          }
+        }
+      }
+      c.restore();
+    }
+
+    // Spectral Repair Brush / Box Masks overlay on Spectrogram
+    if ((SpecBrush.active || SpecBrush.masks.length || SpecBrush.draft) && (P.waveMode === 'spec' || P.waveMode === 'mix')) {
+      c.save();
+      c.beginPath(); c.rect(0, top, canvasW, lanesFx.mainH); c.clip();
+      const maskCol = SpecBrush.mode === 'attenuate' ? '#ff9f0a' : (SpecBrush.mode === 'isolate' ? '#30d158' : '#64d2ff');
+      const maskFill = SpecBrush.mode === 'attenuate' ? 'rgba(255, 159, 10, .24)' : (SpecBrush.mode === 'isolate' ? 'rgba(48, 209, 88, .22)' : 'rgba(100, 210, 255, .24)');
+      const allMasks = SpecBrush.draft ? [...SpecBrush.masks, SpecBrush.draft] : SpecBrush.masks;
+      for (const m of allMasks) {
+        if (m.type === 'box') {
+          const x0 = tToX(Math.min(m.t0, m.t1)), x1 = tToX(Math.max(m.t0, m.t1));
+          const y0 = specHzToY(Math.max(m.f0, m.f1), lanesFx);
+          const y1 = specHzToY(Math.min(m.f0, m.f1), lanesFx);
+          const bw = Math.max(4, x1 - x0), bh = Math.max(4, y1 - y0);
+          c.fillStyle = maskFill;
+          c.fillRect(x0, y0, bw, bh);
+          c.strokeStyle = maskCol;
+          c.lineWidth = 1.6;
+          c.setLineDash([5, 3]);
+          c.strokeRect(x0 + 0.5, y0 + 0.5, bw - 1, bh - 1);
+          c.setLineDash([]);
+        } else if (m.points && m.points.length) {
+          const rPx = Math.max(8, Math.min(36, (m.bwPx || 16) * 2));
+          c.save();
+          c.lineCap = 'round'; c.lineJoin = 'round';
+          c.strokeStyle = maskFill;
+          c.lineWidth = rPx;
+          c.beginPath();
+          for (let j = 0; j < m.points.length; j++) {
+            const px = tToX(m.points[j].t), py = specHzToY(m.points[j].f, lanesFx);
+            j === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+          }
+          if (m.points.length === 1) {
+            const px = tToX(m.points[0].t), py = specHzToY(m.points[0].f, lanesFx);
+            c.lineTo(px + 0.5, py);
+          }
+          c.stroke();
+          c.strokeStyle = maskCol;
+          c.lineWidth = 1.4;
+          c.stroke();
+          c.restore();
+        }
+      }
+      if (SpecBrush.draft) {
+        const dm = SpecBrush.draft;
+        let hud = '';
+        if (dm.type === 'box') {
+          const tA = Math.min(dm.t0, dm.t1), tB = Math.max(dm.t0, dm.t1);
+          const fA = Math.min(dm.f0, dm.f1), fB = Math.max(dm.f0, dm.f1);
+          hud = `${tA.toFixed(2)}–${tB.toFixed(2)}s · ${fmtHz(fA)}–${fmtHz(fB)}`;
+        } else if (dm.points && dm.points.length) {
+          const last = dm.points[dm.points.length - 1];
+          hud = `Brush · ${last.t.toFixed(2)}s · ${fmtHz(last.f)}`;
+        }
+        if (hud) {
+          c.font = '600 10.5px ui-monospace, monospace';
+          const tw = c.measureText(hud).width + 14;
+          c.fillStyle = 'rgba(8, 12, 20, .92)';
+          c.strokeStyle = maskCol; c.lineWidth = 1.1;
+          roundRect(c, 8, top + 8, tw, 20, 6); c.fill(); c.stroke();
+          c.fillStyle = '#ffffff'; c.textBaseline = 'middle';
+          c.fillText(hud, 15, top + 18);
         }
       }
       c.restore();
@@ -23186,13 +23667,21 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // Live alignment / trim / fade guide + tooltip while dragging Track 2 or Track 3 layer
-    if (drag && /^(t2|stem)/.test(drag.mode)) {
+    // Live alignment / trim / fade guide + tooltip while dragging Track 1 Region, Track 2, or Track 3 layer
+    if (drag && /^(t2|stem|reg)/.test(drag.mode)) {
       const isT2 = drag.mode.startsWith('t2');
-      const st = !isT2 ? Stems.clips[drag.stemIdx] : null;
-      let guideT = isT2 ? Layer.offset : (st ? st.offsetSec : 0);
-      let lbl = (isT2 ? 'T2 Start: ' : 'Clip Start: ') + (guideT >= 0 ? '+' : '') + guideT.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
-      if (drag.mode === 't2TrimL') {
+      const isReg = drag.mode.startsWith('reg');
+      const rg = isReg ? Regions.list[drag.regIdx] : null;
+      const st = (!isT2 && !isReg) ? Stems.clips[drag.stemIdx] : null;
+      let guideT = isReg ? (rg ? rg.offsetSec : 0) : (isT2 ? Layer.offset : (st ? st.offsetSec : 0));
+      let lbl = (isReg ? `${rg ? rg.name : 'Clip'}: ` : (isT2 ? 'T2 Start: ' : 'Clip Start: ')) + (guideT >= 0 ? '+' : '') + guideT.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
+      if (isReg && rg) {
+        const spanR = regionTrimmedSpan(rg);
+        if (drag.mode === 'regTrimL') { guideT = rg.offsetSec; lbl = `In: ${(rg.trimInSec || 0).toFixed(2)}s`; }
+        else if (drag.mode === 'regTrimR') { guideT = rg.offsetSec + spanR.playDur; lbl = `Dur: ${spanR.playDur.toFixed(2)}s`; }
+        else if (drag.mode === 'regFadeIn') { guideT = rg.offsetSec + (rg.fadeInMs || 0) / 1000; lbl = `Fade In: ${Math.round(rg.fadeInMs || 0)}ms`; }
+        else if (drag.mode === 'regFadeOut') { guideT = rg.offsetSec + spanR.playDur - (rg.fadeOutMs || 0) / 1000; lbl = `Fade Out: ${Math.round(rg.fadeOutMs || 0)}ms`; }
+      } else if (drag.mode === 't2TrimL') {
         guideT = Layer.offset;
         lbl = `T2 In: ${(Layer.trimInSec || 0).toFixed(2)}s`;
       } else if (drag.mode === 't2TrimR') {
@@ -23587,10 +24076,36 @@ self.onmessage = function (e) {
     }
     return 't2';
   }
-  function snapLayerTime(rawT) {
+  function hitTestRegionTarget(x, y) {
+    if (!Regions.list.length) return null;
+    const lanes = getTimelineLanes();
+    if (y < lanes.top || y > lanes.top + lanes.mainH) return null;
+    const ry = lanes.top + 2;
+    for (let i = Regions.list.length - 1; i >= 0; i--) {
+      const rg = Regions.list[i];
+      const { playDur } = regionTrimmedSpan(rg);
+      const rx0 = tToX(rg.offsetSec), rx1 = tToX(rg.offsetSec + playDur);
+      if (x < rx0 - 10 || x > Math.max(rx0 + 18, rx1 + 10)) continue;
+      const rw = rx1 - rx0;
+      const fiPx = Math.min(rw * 0.48, Math.max(0, (rg.fadeInMs || 0) / 1000) * V.pps);
+      const foPx = Math.min(rw * 0.48, Math.max(0, (rg.fadeOutMs || 0) / 1000) * V.pps);
+      if (y <= ry + 16 && Math.abs(x - (rx0 + fiPx)) <= 11 && rw >= 22) return { mode: 'regFadeIn', regIdx: i };
+      if (y <= ry + 16 && Math.abs(x - (rx1 - foPx)) <= 11 && rw >= 22) return { mode: 'regFadeOut', regIdx: i };
+      if (Math.abs(x - rx0) <= 10 && rw >= 22) return { mode: 'regTrimL', regIdx: i };
+      if (Math.abs(x - rx1) <= 10 && rw >= 22) return { mode: 'regTrimR', regIdx: i };
+      if (y <= ry + 22 || Regions.clipEdit) return { mode: 'regMove', regIdx: i };
+    }
+    return null;
+  }
+  function snapLayerTime(rawT, excludeRegIdx) {
     const tolSec = 8 / Math.max(1, V.pps);
     const targets = [0, P.t, Sel.a / S.rate, Sel.b / S.rate, dur()];
     for (let i = 0; i < Markers.list.length; i++) targets.push(Markers.list[i].t);
+    for (let i = 0; i < Regions.list.length; i++) {
+      if (i === excludeRegIdx) continue;
+      const rg = Regions.list[i];
+      targets.push(rg.offsetSec, rg.offsetSec + regionTrimmedSpan(rg).playDur);
+    }
     let best = rawT, bestD = tolSec, snapped = null;
     for (let i = 0; i < targets.length; i++) {
       const d = Math.abs(rawT - targets[i]);
@@ -23605,10 +24120,16 @@ self.onmessage = function (e) {
     const px = tToX(P.t);
     if (typeof y === 'number') {
       if (y <= 34) return 'scrub';
+      if (SpecBrush.active && (P.waveMode === 'spec' || P.waveMode === 'mix')) {
+        const lanes = getTimelineLanes();
+        if (y >= lanes.top && y <= lanes.top + lanes.mainH) return 'specPaint';
+      }
       const t2Hit = hitTestT2Target(x, y);
       if (t2Hit) return t2Hit;
       const stHit = hitTestStemTarget(x, y);
       if (stHit) return stHit.mode;
+      const rgHit = hitTestRegionTarget(x, y);
+      if (rgHit) return rgHit.mode;
     }
     if (Math.abs(x - px) <= 18 && Math.abs(x - xa) > 14 && Math.abs(x - xb) > 14) return 'scrub';
     if (Math.abs(x - xa) <= tol) return 'a';
@@ -23752,6 +24273,37 @@ self.onmessage = function (e) {
     closeMarkerPop();
     const mode = hitTest(p.x, p.y);
     const [a, b] = selRange();
+    if (mode === 'specPaint') {
+      const lanesSpec = getTimelineLanes();
+      const t0 = clamp(xToT(p.x), 0, dur());
+      const f0 = specYToHz(p.y, lanesSpec);
+      if (SpecBrush.shape === 'box') {
+        SpecBrush.draft = { type: 'box', t0, t1: t0, f0, f1: f0 };
+      } else {
+        const bwPx = SpecBrush.size === 's' ? 8 : (SpecBrush.size === 'l' ? 24 : 14);
+        const bwSec = Math.max(0.014, bwPx / Math.max(1, V.pps));
+        const bfHz = Math.max(85, ((S.rate || 48000) / 2) * (bwPx / Math.max(40, lanesSpec.mainH)) * 1.1);
+        SpecBrush.draft = { type: 'brush', points: [{ t: t0, f: f0 }], bwSec, bfHz, bwPx };
+      }
+      drag = { mode: 'specPaint', id: e.pointerId, sx: p.x, sy: p.y, moved: false };
+      haptic(6); fxDirty = true; return;
+    }
+    if (mode === 'regMove' || mode === 'regTrimL' || mode === 'regTrimR' || mode === 'regFadeIn' || mode === 'regFadeOut') {
+      const hitRg = hitTestRegionTarget(p.x, p.y);
+      const regIdx = hitRg ? hitRg.regIdx : -1;
+      const rg = Regions.list[regIdx];
+      if (rg) {
+        Regions.selectedId = rg.id;
+        drag = {
+          mode, regIdx, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+          off0: rg.offsetSec, trimIn0: rg.trimInSec || 0, trimOut0: rg.trimOutSec || 0,
+          fadeIn0: (rg.fadeInMs || 0) / 1000, fadeOut0: (rg.fadeOutMs || 0) / 1000,
+          moved: false, snapT: null,
+        };
+        if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
+        haptic(6); fxDirty = true; return;
+      }
+    }
     if (mode === 't2' || mode === 't2TrimL' || mode === 't2TrimR' || mode === 't2FadeIn' || mode === 't2FadeOut') {
       drag = {
         mode, id: e.pointerId, sx: p.x, t0: xToT(p.x),
@@ -23783,7 +24335,7 @@ self.onmessage = function (e) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
         const h = hitTest(p.x, p.y);
-        baseCv.style.cursor = (h === 't2' || h === 'stem') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut') ? 'ew-resize' : (h === 'scrub' ? 'crosshair' : 'ew-resize'));
+        baseCv.style.cursor = (h === 't2' || h === 'stem' || h === 'regMove') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut' || h === 'regTrimL' || h === 'regTrimR' || h === 'regFadeIn' || h === 'regFadeOut') ? 'ew-resize' : ((h === 'scrub' || h === 'specPaint') ? 'crosshair' : 'ew-resize'));
       }
       return;
     }
@@ -23820,6 +24372,70 @@ self.onmessage = function (e) {
       }
       syncMixNodes();
       fxDirty = true;
+      return;
+    } else if (drag.mode === 'specPaint' && SpecBrush.draft) {
+      const lanesSpec = getTimelineLanes();
+      const tCur = clamp(t, 0, dur());
+      const fCur = specYToHz(p.y, lanesSpec);
+      if (SpecBrush.draft.type === 'box') {
+        SpecBrush.draft.t1 = tCur;
+        SpecBrush.draft.f1 = fCur;
+      } else if (SpecBrush.draft.points) {
+        const pts = SpecBrush.draft.points;
+        const last = pts[pts.length - 1];
+        if (!last || Math.hypot(tToX(last.t) - p.x, specHzToY(last.f, lanesSpec) - p.y) >= 4) {
+          pts.push({ t: tCur, f: fCur });
+        }
+      }
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 'regMove') {
+      const rg = Regions.list[drag.regIdx];
+      if (rg) {
+        const dt = t - drag.t0;
+        const maxOff = Math.max(60, dur() + 30);
+        const rawOff = clamp(drag.off0 + dt, 0, maxOff);
+        const sn = snapLayerTime(rawOff, drag.regIdx);
+        rg.offsetSec = Number(clamp(sn.t, 0, maxOff).toFixed(3));
+        drag.snapT = sn.snapT;
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'regTrimL') {
+      const rg = Regions.list[drag.regIdx];
+      if (rg) {
+        const rawDur = rg.data[0].length / rg.rate;
+        const maxDelta = rawDur - (drag.trimIn0 + drag.trimOut0) - 0.04;
+        const delta = clamp(t - drag.t0, -drag.trimIn0, maxDelta);
+        rg.trimInSec = Number((drag.trimIn0 + delta).toFixed(3));
+        rg.offsetSec = Number(Math.max(0, drag.off0 + delta).toFixed(3));
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'regTrimR') {
+      const rg = Regions.list[drag.regIdx];
+      if (rg) {
+        const rawDur = rg.data[0].length / rg.rate;
+        const maxTrimOut = rawDur - (rg.trimInSec || 0) - 0.04;
+        rg.trimOutSec = Number(clamp(drag.trimOut0 - (t - drag.t0), 0, maxTrimOut).toFixed(3));
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'regFadeIn') {
+      const rg = Regions.list[drag.regIdx];
+      if (rg) {
+        const { playDur } = regionTrimmedSpan(rg);
+        rg.fadeInMs = Math.round(clamp(drag.fadeIn0 + (t - drag.t0), 0, playDur * 0.48) * 1000);
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 'regFadeOut') {
+      const rg = Regions.list[drag.regIdx];
+      if (rg) {
+        const { playDur } = regionTrimmedSpan(rg);
+        rg.fadeOutMs = Math.round(clamp(drag.fadeOut0 - (t - drag.t0), 0, playDur * 0.48) * 1000);
+        fxDirty = true;
+      }
       return;
     } else if (drag.mode === 'marker') {
       const m = Markers.list[drag.markerIdx];
@@ -24031,6 +24647,23 @@ self.onmessage = function (e) {
       if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol') {
         renderLayersUI(); renderStemList();
         fxDirty = true; scheduleSave();
+      } else if (drag.mode === 'specPaint') {
+        if (SpecBrush.draft) {
+          const d = SpecBrush.draft;
+          const validBox = d.type === 'box' && (Math.abs(d.t1 - d.t0) >= 0.008 || Math.abs(d.f1 - d.f0) >= 60);
+          const validBrush = d.type === 'brush' && d.points && d.points.length >= 1;
+          if (validBox || validBrush) SpecBrush.masks.push(d);
+          SpecBrush.draft = null;
+        }
+        if (typeof syncSpecBrushUI === 'function') syncSpecBrushUI();
+        fxDirty = true; haptic(6);
+      } else if (/^reg/.test(drag.mode)) {
+        clampView();
+        renderRegionList(); renderLayersUI();
+        if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
+        baseDirty = fxDirty = true;
+        scheduleSave();
+        haptic(5);
       } else if (drag.mode === 'marker') {
         const mRef = Markers.list[drag.markerIdx];
         if (!drag.moved && e.type !== 'pointercancel' && mRef) {
@@ -25564,9 +26197,12 @@ self.onmessage = function (e) {
   function renderRegionsInto(a, b, out, mg) {
     const n = out[0].length;
     for (const rg of Regions.list) {
+      if (rg.mute) continue;
+      const { inS, playDur } = regionTrimmedSpan(rg);
       const offS = Math.round((rg.offsetSec || 0) * S.rate);
       const rData = rg.data;
-      const rLen = rData[0].length;
+      const inSamp = Math.round(inS * S.rate);
+      const rLen = Math.min(rData[0].length - inSamp, Math.max(1, Math.round(playDur * S.rate)));
       const baseG = mg * Math.pow(10, (rg.gainDb || 0) / 20);
       const fi = Math.min(Math.round(((rg.fadeInMs || 0) / 1000) * S.rate), Math.floor(rLen * 0.45));
       const fo = Math.min(Math.round(((rg.fadeOutMs || 0) / 1000) * S.rate), Math.floor(rLen * 0.45));
@@ -25576,8 +26212,9 @@ self.onmessage = function (e) {
         let fg = baseG;
         if (fi > 1 && ri < fi) fg *= 0.5 * (1 - Math.cos(Math.PI * (ri / fi)));
         if (fo > 1 && ri > rLen - fo) fg *= 0.5 * (1 - Math.cos(Math.PI * ((rLen - ri) / fo)));
+        const srcIdx = inSamp + ri;
         for (let c = 0; c < out.length; c++) {
-          out[c][i] += rData[c % rData.length][ri] * fg;
+          out[c][i] += rData[c % rData.length][srcIdx] * fg;
         }
       }
     }
@@ -25932,14 +26569,66 @@ self.onmessage = function (e) {
     });
   }
 
+  function buildClipPeaks(data, blockSize = PYR_BLK) {
+    if (!data || !data.length || !data[0].length) return null;
+    const n = data[0].length;
+    const nb = Math.max(1, Math.ceil(n / blockSize));
+    const mn = new Float32Array(nb), mx = new Float32Array(nb);
+    const ch0 = data[0], ch1 = data.length > 1 ? data[1] : null;
+    for (let b = 0; b < nb; b++) {
+      const s0 = b * blockSize, s1 = Math.min(n, s0 + blockSize);
+      let lo = 1, hi = -1;
+      for (let i = s0; i < s1; i++) {
+        const v = ch1 ? (ch0[i] + ch1[i]) * 0.5 : ch0[i];
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+      mn[b] = lo; mx[b] = hi;
+    }
+    return { bs: blockSize, nb, mn, mx };
+  }
   function makeRegionObj(name, data, rate, offsetSec) {
     const c = AC();
     const b = c.createBuffer(data.length, data[0].length, rate);
     for (let i = 0; i < data.length; i++) b.copyToChannel(data[i], i);
     return {
       id: Regions.nextId++, name, data, buffer: b, rate,
-      offsetSec: Math.max(0, offsetSec || 0), gainDb: 0, fadeInMs: 12, fadeOutMs: 12,
+      offsetSec: Math.max(0, offsetSec || 0),
+      trimInSec: 0, trimOutSec: 0,
+      gainDb: 0, fadeInMs: 12, fadeOutMs: 12,
+      mute: false,
+      peaksCache: buildClipPeaks(data),
     };
+  }
+  function getSelectedRegionIndex() {
+    if (!Regions.list.length) return -1;
+    let idx = Regions.list.findIndex((r) => r.id === Regions.selectedId);
+    if (idx < 0) {
+      idx = Regions.list.findIndex((r) => {
+        const { playDur } = regionTrimmedSpan(r);
+        return P.t >= r.offsetSec && P.t <= r.offsetSec + playDur;
+      });
+    }
+    if (idx < 0) idx = 0;
+    Regions.selectedId = Regions.list[idx].id;
+    return idx;
+  }
+  function syncRegionQuickBar() {
+    const bar = $('#regionQuickBar');
+    if (!bar) return;
+    const hasRegs = hasAudio && Regions.list.length > 0;
+    bar.hidden = !hasRegs;
+    if (!hasRegs) return;
+    const idx = getSelectedRegionIndex();
+    const rg = Regions.list[idx];
+    if ($('#rqLabel')) {
+      const span = rg ? regionTrimmedSpan(rg) : { playDur: 0 };
+      $('#rqLabel').textContent = rg
+        ? `${Regions.list.length} clips · ${rg.name} (${span.playDur.toFixed(2)}s)`
+        : `${Regions.list.length} clips`;
+    }
+    if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').setAttribute('aria-pressed', Regions.clipEdit ? 'true' : 'false');
+    if ($('#btnRqMute') && rg) $('#btnRqMute').setAttribute('aria-pressed', rg.mute ? 'true' : 'false');
   }
   function splitTrackToRegions(cutsSec) {
     if (!hasAudio) return;
@@ -25959,25 +26648,140 @@ self.onmessage = function (e) {
       const label = (mObj && mObj.name) ? mObj.name : ('Clip ' + (i + 1));
       Regions.list.push(makeRegionObj(label, seg, S.rate, pts[i]));
     }
-    renderRegionList(); renderLayersUI(); fxDirty = true;
-    toast(`Split into ${Regions.list.length} non-destructive regions`, 'ok', 2400);
+    Regions.selectedId = Regions.list[0] ? Regions.list[0].id : null;
+    Regions.clipEdit = true;
+    renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true;
+    scheduleSave();
+    toast(`Split into ${Regions.list.length} non-destructive clips — drag clips on Track 1 to arrange`, 'ok', 2600);
   }
   function splitAtPlayheadRegion() {
     if (!hasAudio) return;
     if (!Regions.list.length) return splitTrackToRegions([P.t]);
-    const idx = Regions.list.findIndex((rg) => P.t > rg.offsetSec + 0.06 && P.t < rg.offsetSec + rg.data[0].length / rg.rate - 0.06);
-    if (idx < 0) return toast('Move playhead inside a region to split it', 'info');
+    const idx = Regions.list.findIndex((rg) => {
+      const { playDur } = regionTrimmedSpan(rg);
+      return P.t > rg.offsetSec + 0.04 && P.t < rg.offsetSec + playDur - 0.04;
+    });
+    if (idx < 0) return toast('Move playhead inside a clip to split it', 'info');
     const rg = Regions.list[idx];
-    const splitS = Math.round((P.t - rg.offsetSec) * rg.rate);
-    const leftD = rg.data.map((ch) => ch.slice(0, splitS));
-    const rightD = rg.data.map((ch) => ch.slice(splitS));
-    const leftR = Object.assign(makeRegionObj(rg.name + ' A', leftD, rg.rate, rg.offsetSec), { gainDb: rg.gainDb, fadeInMs: rg.fadeInMs, fadeOutMs: 12 });
-    const rightR = Object.assign(makeRegionObj(rg.name + ' B', rightD, rg.rate, P.t), { gainDb: rg.gainDb, fadeInMs: 12, fadeOutMs: rg.fadeOutMs });
+    const { inS, outS } = regionTrimmedSpan(rg);
+    const localPlaySec = P.t - rg.offsetSec;
+    const splitRawS = clamp(Math.round((inS + localPlaySec) * rg.rate), 16, rg.data[0].length - 16);
+    const inSamp = Math.round(inS * rg.rate);
+    const outSamp = Math.round(outS * rg.rate);
+    const leftD = rg.data.map((ch) => ch.slice(inSamp, splitRawS));
+    const rightD = rg.data.map((ch) => ch.slice(splitRawS, Math.max(splitRawS + 16, rg.data[0].length - outSamp)));
+    const leftR = Object.assign(makeRegionObj(rg.name + ' A', leftD, rg.rate, rg.offsetSec), { gainDb: rg.gainDb, fadeInMs: rg.fadeInMs, fadeOutMs: 12, mute: rg.mute });
+    const rightR = Object.assign(makeRegionObj(rg.name + ' B', rightD, rg.rate, P.t), { gainDb: rg.gainDb, fadeInMs: 12, fadeOutMs: rg.fadeOutMs, mute: rg.mute });
     Regions.list.splice(idx, 1, leftR, rightR);
-    renderRegionList(); renderLayersUI(); fxDirty = true;
+    Regions.selectedId = rightR.id;
+    Regions.clipEdit = true;
+    renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true; scheduleSave();
+  }
+  function crossfadeAdjacentRegions(ms = 80) {
+    if (Regions.list.length < 2) return toast('Need at least 2 clips to crossfade', 'info');
+    Regions.list.sort((a, b) => a.offsetSec - b.offsetSec);
+    const xfSec = ms / 1000;
+    for (let i = 1; i < Regions.list.length; i++) {
+      const prev = Regions.list[i - 1], cur = Regions.list[i];
+      const prevEnd = prev.offsetSec + regionTrimmedSpan(prev).playDur;
+      const gap = cur.offsetSec - prevEnd;
+      if (Math.abs(gap) <= 0.15) {
+        cur.offsetSec = Number(Math.max(0, prevEnd - xfSec).toFixed(3));
+        prev.fadeOutMs = Math.max(prev.fadeOutMs || 0, ms);
+        cur.fadeInMs = Math.max(cur.fadeInMs || 0, ms);
+      }
+    }
+    clampView(); renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast(`Applied ${ms} ms equal-power crossfades across adjacent clips`, 'ok', 2200);
+  }
+  function closeRegionGaps() {
+    if (!Regions.list.length) return;
+    Regions.list.sort((a, b) => a.offsetSec - b.offsetSec);
+    let cursor = 0;
+    for (const rg of Regions.list) {
+      rg.offsetSec = Number(cursor.toFixed(3));
+      cursor += regionTrimmedSpan(rg).playDur;
+    }
+    clampView(); renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast('Closed all gaps between Track 1 clips', 'ok', 2000);
+  }
+  function dupSelectedRegion() {
+    if (!Regions.list.length) return;
+    const idx = getSelectedRegionIndex();
+    const rg = Regions.list[idx];
+    if (!rg) return;
+    const { playDur } = regionTrimmedSpan(rg);
+    const cloneD = rg.data.map((ch) => ch.slice());
+    const dup = Object.assign(makeRegionObj(rg.name + ' copy', cloneD, rg.rate, rg.offsetSec + playDur + 0.05), {
+      trimInSec: rg.trimInSec || 0, trimOutSec: rg.trimOutSec || 0,
+      gainDb: rg.gainDb, fadeInMs: rg.fadeInMs, fadeOutMs: rg.fadeOutMs, mute: rg.mute,
+    });
+    Regions.list.splice(idx + 1, 0, dup);
+    Regions.selectedId = dup.id;
+    clampView(); renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true; scheduleSave();
+  }
+  function toggleMuteSelectedRegion() {
+    if (!Regions.list.length) return;
+    const idx = getSelectedRegionIndex();
+    const rg = Regions.list[idx];
+    if (!rg) return;
+    rg.mute = !rg.mute;
+    renderRegionList(); syncRegionQuickBar(); baseDirty = fxDirty = true; scheduleSave();
+  }
+  function deleteSelectedRegion() {
+    if (!Regions.list.length) return;
+    const idx = getSelectedRegionIndex();
+    Regions.list.splice(idx, 1);
+    Regions.selectedId = Regions.list[Math.min(idx, Regions.list.length - 1)]?.id ?? null;
+    clampView(); renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    baseDirty = fxDirty = true; scheduleSave();
+    if (P.playing) { P.t = curTime(); play(); }
+  }
+  function jumpCutToClips() {
+    if (!hasAudio) return;
+    const candidates = Sil.list.length ? Sil.list : findSilences();
+    const found = candidates.filter((r) => !r.skip);
+    if (!found.length) return toast('No active cuts in Cut List — preview gaps first', 'info');
+    const keepSec = clamp((parseFloat($('#jumpGapMs').value) || 0) / 1000, 0, 0.5);
+    const keepS = Math.round(keepSec * S.rate);
+    const segs = [];
+    let prev = 0;
+    for (const r of found) {
+      const targetKeep = r.kind === 'um' ? Math.min(keepS, Math.round(0.04 * S.rate)) : keepS;
+      if (r.b - r.a <= targetKeep) continue;
+      const half = Math.floor(targetKeep / 2);
+      const endLeft = Math.min(S.data[0].length, r.a + half);
+      const startRight = Math.max(endLeft, r.b - (targetKeep - half));
+      if (endLeft > prev) segs.push([prev, endLeft]);
+      prev = startRight;
+    }
+    if (prev < S.data[0].length) segs.push([prev, S.data[0].length]);
+    if (!segs.length) return toast('Would remove entire track', 'err');
+    Regions.list = [];
+    let cursor = 0;
+    segs.forEach(([s0, s1], i) => {
+      if (s1 - s0 < 64) return;
+      const slice = S.data.map((ch) => ch.slice(s0, s1));
+      const rg = makeRegionObj('Take ' + (i + 1), slice, S.rate, cursor);
+      rg.fadeInMs = 15; rg.fadeOutMs = 15;
+      Regions.list.push(rg);
+      cursor += (s1 - s0) / S.rate;
+    });
+    Regions.selectedId = Regions.list[0] ? Regions.list[0].id : null;
+    Regions.clipEdit = true;
+    Sil.list = []; JumpCut.preview = false; ClipScan.regions = [];
+    renderCutList(); renderRegionList(); renderLayersUI(); syncRegionQuickBar();
+    clampView(); baseDirty = fxDirty = true; scheduleSave();
+    toast(`Created ${Regions.list.length} non-destructive clips (gaps closed)`, 'ok', 2600);
   }
   function renderRegionList() {
     const host = $('#regionList');
+    syncRegionQuickBar();
     if (!host) return;
     if ($('#regionBounceRow')) $('#regionBounceRow').hidden = Regions.list.length === 0;
     if (!Regions.list.length) {
@@ -25986,13 +26790,14 @@ self.onmessage = function (e) {
     }
     host.innerHTML = '';
     Regions.list.forEach((rg, idx) => {
-      const durS = rg.data[0].length / rg.rate;
+      const { playDur: durS } = regionTrimmedSpan(rg);
       const card = document.createElement('div');
-      card.className = 'region-card';
+      card.className = 'region-card' + (rg.id === Regions.selectedId ? ' is-sel' : '');
       card.innerHTML = `
         <div class="region-card-h">
           <b></b>
-          <span>${fmtTime(durS, true)}</span>
+          <span>${fmtTime(durS, true)}${rg.mute ? ' · MUTE' : ''}</span>
+          <button type="button" class="btn icon sm ghost" data-ract="mute" data-idx="${idx}" aria-label="Mute clip">${rg.mute ? 'M' : '🔊'}</button>
           <button type="button" class="btn icon sm ghost" data-ract="del" data-idx="${idx}" aria-label="Delete region">×</button>
         </div>
         <div class="stem-grid">
@@ -26004,6 +26809,10 @@ self.onmessage = function (e) {
           <div><div class="range-row"><label>Fade Out</label><output>${rg.fadeOutMs} ms</output></div><input type="range" data-rfld="fadeOutMs" data-idx="${idx}" min="0" max="1000" step="10" value="${rg.fadeOutMs}"></div>
         </div>`;
       card.querySelector('b').textContent = rg.name;
+      card.addEventListener('click', (ev) => {
+        if (ev.target.closest('button,input')) return;
+        Regions.selectedId = rg.id; syncRegionQuickBar(); fxDirty = true;
+      });
       host.appendChild(card);
     });
   }
@@ -26011,7 +26820,7 @@ self.onmessage = function (e) {
     if (!hasAudio || !Regions.list.length) return;
     let maxEnd = 0;
     for (const rg of Regions.list) {
-      maxEnd = Math.max(maxEnd, (rg.offsetSec || 0) + rg.data[0].length / rg.rate);
+      maxEnd = Math.max(maxEnd, (rg.offsetSec || 0) + regionTrimmedSpan(rg).playDur);
     }
     const len = Math.max(64, Math.round(maxEnd * S.rate));
     edit('Bounce regions to Track 1', async () => {
@@ -26022,6 +26831,7 @@ self.onmessage = function (e) {
       }
       S.data = out;
       Regions.list = [];
+      Regions.selectedId = null;
       Sel.a = 0; Sel.b = len; P.t = 0;
       renderRegionList();
       renderLayersUI();
@@ -26031,15 +26841,138 @@ self.onmessage = function (e) {
   function bounceMixToMain() {
     if (!hasAudio || (!Layer.active && !Stems.clips.length && !Regions.list.length)) return toast('Load Track 2, Track 3 stems, or split regions first', 'info');
     let maxEndS = S.data[0].length;
-    for (const rg of Regions.list) maxEndS = Math.max(maxEndS, Math.round(((rg.offsetSec || 0) + rg.data[0].length / rg.rate) * S.rate));
-    for (const st of Stems.clips) maxEndS = Math.max(maxEndS, Math.round(((st.offsetSec || 0) + st.data[0].length / st.rate) * S.rate));
+    for (const rg of Regions.list) maxEndS = Math.max(maxEndS, Math.round(((rg.offsetSec || 0) + regionTrimmedSpan(rg).playDur) * S.rate));
+    for (const st of Stems.clips) maxEndS = Math.max(maxEndS, Math.round(((st.offsetSec || 0) + stemTrimmedSpan(st).playDur) * S.rate));
     edit('Bounce Multitrack Mix', async () => {
       S.data = renderMixedRange(0, maxEndS);
-      Layer.mute = true; Stems.mute = true; Regions.list = [];
+      Layer.mute = true; Stems.mute = true; Regions.list = []; Regions.selectedId = null;
       MainMix.mute = false; MainMix.solo = false; Layer.solo = false; MainMix.gainDb = 0;
       if ($('#t1Gain')) { $('#t1Gain').value = 0; $('#t1GainOut').textContent = '0.0 dB'; }
       renderRegionList(); renderStemList(); syncMixNodes(); renderLayersUI();
     });
+  }
+
+  function stopSpecAudition() {
+    if (SpecBrush.audSrc) {
+      try { SpecBrush.audSrc.stop(); } catch (_) {}
+      SpecBrush.audSrc = null;
+    }
+  }
+  function syncSpecBrushUI() {
+    const bar = $('#specRepairBar');
+    if (bar) bar.hidden = !SpecBrush.active;
+    if ($('#btnSpecBrush')) $('#btnSpecBrush').setAttribute('aria-pressed', SpecBrush.active ? 'true' : 'false');
+    $$('#specRepairBar [data-sr-shape]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.srShape === SpecBrush.shape ? 'true' : 'false'));
+    $$('#specRepairBar [data-sr-size]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.srSize === SpecBrush.size ? 'true' : 'false'));
+    $$('#specRepairBar [data-sr-mode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.srMode === SpecBrush.mode ? 'true' : 'false'));
+    if ($('#srSizeSeg')) $('#srSizeSeg').hidden = SpecBrush.shape !== 'brush';
+    if ($('#srAttWrap')) $('#srAttWrap').hidden = SpecBrush.mode !== 'attenuate';
+    const hasMasks = SpecBrush.masks.length > 0;
+    if ($('#btnSpecAudition')) $('#btnSpecAudition').disabled = !hasMasks;
+    if ($('#btnSpecApply')) {
+      $('#btnSpecApply').disabled = !hasMasks;
+      const lbl = SpecBrush.mode === 'attenuate' ? 'Apply Attenuate' : (SpecBrush.mode === 'isolate' ? 'Apply Solo Band' : 'Apply Heal');
+      $('#btnSpecApply').textContent = hasMasks ? `${lbl} (${SpecBrush.masks.length})` : lbl;
+    }
+    if ($('#btnSpecClear')) $('#btnSpecClear').disabled = !hasMasks;
+  }
+  function setSpecBrushActive(on) {
+    if (on && !hasAudio) return toast('Load audio first to use Spectral Heal', 'info');
+    SpecBrush.active = !!on;
+    if (SpecBrush.active && P.waveMode !== 'spec' && P.waveMode !== 'mix') {
+      setWaveMode('spec');
+    }
+    syncSpecBrushUI();
+    fxDirty = true;
+    haptic(6);
+  }
+  function getSpecRepairBounds(masks) {
+    let tMin = Infinity, tMax = -Infinity;
+    for (const m of masks) {
+      if (m.type === 'box') {
+        tMin = Math.min(tMin, m.t0, m.t1);
+        tMax = Math.max(tMax, m.t0, m.t1);
+      } else if (m.points) {
+        const pad = m.bwSec || 0.04;
+        for (const pt of m.points) {
+          tMin = Math.min(tMin, pt.t - pad);
+          tMax = Math.max(tMax, pt.t + pad);
+        }
+      }
+    }
+    if (!Number.isFinite(tMin)) return null;
+    const padSec = 0.14;
+    const totalS = dur();
+    const sSec = clamp(tMin - padSec, 0, totalS);
+    const eSec = clamp(tMax + padSec, sSec + 0.08, totalS);
+    const a = Math.max(0, Math.floor(sSec * S.rate));
+    const b = Math.min(S.data[0].length, Math.ceil(eSec * S.rate));
+    if (b - a < 64) return null;
+    const relMasks = masks.map((m) => {
+      if (m.type === 'box') {
+        return { ...m, t0: m.t0 - sSec, t1: m.t1 - sSec };
+      }
+      return { ...m, points: m.points.map((pt) => ({ t: pt.t - sSec, f: pt.f })) };
+    });
+    return { a, b, sSec, relMasks };
+  }
+  async function auditionSpecRepair() {
+    if (!hasAudio || !SpecBrush.masks.length) return;
+    stopSpecAudition();
+    const bnd = getSpecRepairBounds(SpecBrush.masks);
+    if (!bnd) return;
+    const slice = S.data.map((ch) => ch.slice(bnd.a, bnd.b));
+    const res = await runTask({
+      act: 'spectralRepair',
+      data: slice,
+      rate: S.rate,
+      opts: { masks: bnd.relMasks, mode: SpecBrush.mode, attDb: SpecBrush.attDb },
+    }, 'Auditioning repair…');
+    if (!res) return;
+    const c = AC();
+    if (c.state === 'suspended') await c.resume();
+    const buf = c.createBuffer(res.length, res[0].length, S.rate);
+    for (let i = 0; i < res.length; i++) buf.copyToChannel(res[i], i);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.connect(c.destination);
+    src.onended = () => { if (SpecBrush.audSrc === src) SpecBrush.audSrc = null; };
+    SpecBrush.audSrc = src;
+    src.start();
+    toast('Playing repaired preview snippet', 'info', 1600);
+  }
+  async function applySpecRepair() {
+    if (!hasAudio || !SpecBrush.masks.length) return;
+    stopSpecAudition();
+    const bnd = getSpecRepairBounds(SpecBrush.masks);
+    if (!bnd) return;
+    const masksCopy = SpecBrush.masks.slice();
+    const modeCopy = SpecBrush.mode;
+    const attCopy = SpecBrush.attDb;
+    await edit(`Spectral ${modeCopy === 'heal' ? 'Spot Heal' : (modeCopy === 'attenuate' ? 'Attenuate' : 'Solo Band')}`, async () => {
+      const slice = S.data.map((ch) => ch.slice(bnd.a, bnd.b));
+      const res = await runTask({
+        act: 'spectralRepair',
+        data: slice,
+        rate: S.rate,
+        opts: { masks: bnd.relMasks, mode: modeCopy, attDb: attCopy },
+      }, 'Applying spectral repair…');
+      const xf = Math.min(Math.round(0.012 * S.rate), Math.floor((bnd.b - bnd.a) * 0.12));
+      for (let c = 0; c < S.data.length; c++) {
+        const dst = S.data[c], rep = res[c];
+        for (let i = 0; i < rep.length; i++) {
+          let w = 1;
+          if (xf > 1 && i < xf) w = i / xf;
+          else if (xf > 1 && i > rep.length - xf) w = (rep.length - i) / xf;
+          dst[bnd.a + i] = dst[bnd.a + i] * (1 - w) + rep[i] * w;
+        }
+      }
+      SpecBrush.masks = [];
+      SpecBrush.draft = null;
+      syncSpecBrushUI();
+      if (S.spec) S.spec = null;
+    });
+    if (masksCopy.length) toast('Spectral repair applied (Undo available)', 'ok', 2000);
   }
 
   function bakeRackToMain() {
@@ -26462,15 +27395,54 @@ self.onmessage = function (e) {
       });
     }
     if ($('#btnSplitAtPlayheadRegion')) $('#btnSplitAtPlayheadRegion').addEventListener('click', splitAtPlayheadRegion);
+    if ($('#qSplitClip')) $('#qSplitClip').addEventListener('click', splitAtPlayheadRegion);
     if ($('#btnSplitMarkersToRegions')) $('#btnSplitMarkersToRegions').addEventListener('click', () => splitTrackToRegions(Markers.list.map((m) => m.t)));
     if ($('#btnBounceRegions')) $('#btnBounceRegions').addEventListener('click', bounceRegionsToMain);
-    if ($('#btnClearRegions')) $('#btnClearRegions').addEventListener('click', () => { Regions.list = []; renderRegionList(); renderLayersUI(); fxDirty = true; if (P.playing) { P.t = curTime(); play(); } });
+    if ($('#btnClearRegions')) $('#btnClearRegions').addEventListener('click', () => { Regions.list = []; Regions.selectedId = null; Regions.clipEdit = false; renderRegionList(); renderLayersUI(); baseDirty = fxDirty = true; if (P.playing) { P.t = curTime(); play(); } });
+    if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').addEventListener('click', () => { Regions.clipEdit = !Regions.clipEdit; syncRegionQuickBar(); haptic(5); });
+    if ($('#btnRqSplit')) $('#btnRqSplit').addEventListener('click', splitAtPlayheadRegion);
+    if ($('#btnRqFade')) $('#btnRqFade').addEventListener('click', () => crossfadeAdjacentRegions(80));
+    if ($('#btnRqRipple')) $('#btnRqRipple').addEventListener('click', closeRegionGaps);
+    if ($('#btnRqDup')) $('#btnRqDup').addEventListener('click', dupSelectedRegion);
+    if ($('#btnRqMute')) $('#btnRqMute').addEventListener('click', toggleMuteSelectedRegion);
+    if ($('#btnRqDel')) $('#btnRqDel').addEventListener('click', deleteSelectedRegion);
+    if ($('#btnRqBounce')) $('#btnRqBounce').addEventListener('click', bounceRegionsToMain);
+    if ($('#btnSpecBrush')) $('#btnSpecBrush').addEventListener('click', () => setSpecBrushActive(!SpecBrush.active));
+    if ($('#specRepairBar')) {
+      $('#specRepairBar').addEventListener('click', (e) => {
+        const sb = e.target.closest('[data-sr-shape]');
+        if (sb) { SpecBrush.shape = sb.dataset.srShape; syncSpecBrushUI(); return; }
+        const sz = e.target.closest('[data-sr-size]');
+        if (sz) { SpecBrush.size = sz.dataset.srSize; syncSpecBrushUI(); return; }
+        const md = e.target.closest('[data-sr-mode]');
+        if (md) { SpecBrush.mode = md.dataset.srMode; syncSpecBrushUI(); fxDirty = true; return; }
+      });
+    }
+    if ($('#srAttDb')) {
+      $('#srAttDb').addEventListener('input', (e) => {
+        SpecBrush.attDb = parseFloat(e.target.value) || -24;
+        if ($('#srAttOut')) $('#srAttOut').textContent = Math.round(SpecBrush.attDb) + ' dB';
+      });
+    }
+    if ($('#btnSpecAudition')) $('#btnSpecAudition').addEventListener('click', auditionSpecRepair);
+    if ($('#btnSpecApply')) $('#btnSpecApply').addEventListener('click', applySpecRepair);
+    if ($('#btnSpecClear')) $('#btnSpecClear').addEventListener('click', () => { stopSpecAudition(); SpecBrush.masks = []; SpecBrush.draft = null; syncSpecBrushUI(); fxDirty = true; });
+    if ($('#btnSpecDone')) $('#btnSpecDone').addEventListener('click', () => { stopSpecAudition(); setSpecBrushActive(false); });
     if ($('#regionList')) {
       $('#regionList').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-ract="del"]');
+        const b = e.target.closest('[data-ract]');
         if (!b) return;
-        Regions.list.splice(Number(b.dataset.idx), 1);
-        renderRegionList(); renderLayersUI(); fxDirty = true;
+        const idx = Number(b.dataset.idx);
+        if (b.dataset.ract === 'mute' && Regions.list[idx]) {
+          Regions.list[idx].mute = !Regions.list[idx].mute;
+          renderRegionList(); baseDirty = fxDirty = true; scheduleSave();
+          return;
+        }
+        if (b.dataset.ract === 'del') {
+          Regions.list.splice(idx, 1);
+          if (!Regions.list.some((r) => r.id === Regions.selectedId)) Regions.selectedId = Regions.list[0]?.id ?? null;
+          renderRegionList(); renderLayersUI(); baseDirty = fxDirty = true; scheduleSave();
+        }
       });
       $('#regionList').addEventListener('input', (e) => {
         const inp = e.target;
@@ -26486,7 +27458,7 @@ self.onmessage = function (e) {
           else if (fld === 'gainDb') out.textContent = (v > 0 ? '+' : '') + v.toFixed(1) + ' dB';
           else out.textContent = Math.round(v) + ' ms';
         }
-        fxDirty = true;
+        baseDirty = fxDirty = true;
       });
     }
     renderStemList();
@@ -27593,9 +28565,12 @@ self.onmessage = function (e) {
         name: r.name,
         rate: r.rate,
         offsetSec: r.offsetSec,
+        trimInSec: r.trimInSec || 0,
+        trimOutSec: r.trimOutSec || 0,
         gainDb: r.gainDb,
         fadeInMs: r.fadeInMs,
         fadeOutMs: r.fadeOutMs,
+        mute: !!r.mute,
         data: includeAudio ? cloneData(r.data) : undefined,
       })),
       cover: CoverArt.bytes ? { bytes: Uint8Array.from(CoverArt.bytes), mime: CoverArt.mime, name: CoverArt.name } : null,
@@ -27741,9 +28716,13 @@ self.onmessage = function (e) {
           buffer: b,
           rate: S.rate,
           offsetSec: rm.offsetSec || 0,
+          trimInSec: rm.trimInSec || 0,
+          trimOutSec: rm.trimOutSec || 0,
           gainDb: rm.gainDb || 0,
           fadeInMs: rm.fadeInMs ?? 15,
           fadeOutMs: rm.fadeOutMs ?? 15,
+          mute: !!rm.mute,
+          peaksCache: null,
         });
       }
       renderRegionList();
@@ -29219,6 +30198,9 @@ self.onmessage = function (e) {
     { t: 'Audition original file for 3 s', cat: 'Playback', sub: 'Bypass live FX rack briefly', run: () => { compareOn(); setTimeout(compareOff, 3000); } },
 
     { t: 'Jump-cut: tighten silent pauses', cat: 'Smart', sub: 'Auto-shorten long gaps & breaths', run: tightenPausesJumpCut },
+    { t: 'Jump-cut: keep as non-destructive clips', cat: 'Smart', sub: 'Turn active speech segments into Track 1 clips', run: jumpCutToClips },
+    { t: 'Split Track 1 clip at playhead', cat: 'Multitrack', sub: 'Non-destructive Track 1 clip split', run: splitAtPlayheadRegion },
+    { t: 'Spectral Heal Brush (Spectrogram repair)', cat: 'Repair', sub: 'Paint or box-select clicks, whistles & mic bumps', run: () => setSpecBrushActive(true) },
     { t: 'Detect beats & BPM', cat: 'Smart', sub: 'Transient beat analysis + markers', run: detectBeatsAndBpm },
     { t: 'Ringtone 30s maker', cat: 'Smart', sub: '30 s loop window + 0.5 s fades', run: () => setupRingtone(30) },
     { t: 'Podcast Intro / Outro Builder', cat: 'Smart', sub: 'Assemble intro, episode & outro at -16 LUFS', run: openPodcastBuilder },
@@ -29818,7 +30800,7 @@ self.onmessage = function (e) {
     const tSec = o.tSec || 0, totalSec = Math.max(0.01, o.totalSec || 1);
     const progress = clamp(o.progress != null ? o.progress : (tSec / totalSec), 0, 1);
     const bins = o.bins || null;
-    const viz = o.viz || 'bars';
+    const viz = o.viz === 'orbital' ? 'bars' : (o.viz || 'bars');
     const artStyle = o.artStyle || 'card';
     const coverImg = o.coverImg !== undefined ? o.coverImg : (typeof agCoverImg !== 'undefined' ? agCoverImg : null);
     const bgVideo = o.bgVideo !== undefined ? o.bgVideo : (typeof agBgVideo !== 'undefined' ? agBgVideo : null);
@@ -29833,12 +30815,12 @@ self.onmessage = function (e) {
     };
     const pal = palettes[o.theme] || palettes.glass;
 
-    // 1. Base gradient + optional looping B-Roll video or blurred cover backdrop (steady, no pulsing/blinking)
-    const bg = c.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
-    c.fillStyle = bg; c.fillRect(0, 0, w, h);
-
-    if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
+    // 1. Base gradient + optional looping B-Roll video or blurred cover backdrop (cached when static)
+    const hasLiveBroll = !!(bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0);
+    if (hasLiveBroll) {
+      const bg = c.createLinearGradient(0, 0, w, h);
+      bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
+      c.fillStyle = bg; c.fillRect(0, 0, w, h);
       c.save();
       const scVid = Math.max(w / bgVideo.videoWidth, h / bgVideo.videoHeight) * 1.02;
       const vw = bgVideo.videoWidth * scVid, vh = bgVideo.videoHeight * scVid;
@@ -29847,36 +30829,44 @@ self.onmessage = function (e) {
       c.fillStyle = `rgba(6, 8, 14, ${dimAlpha.toFixed(2)})`;
       c.fillRect(0, 0, w, h);
       c.restore();
-    } else if (coverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
-      const blurKey = `${w}x${h}:${artStyle}:${coverImg.src || (coverImg.width + 'x' + coverImg.height)}`;
-      if (!drawAudiogramFrame._blurCache || drawAudiogramFrame._blurKey !== blurKey) {
-        const bc = drawAudiogramFrame._blurCache || (drawAudiogramFrame._blurCache = (typeof OffscreenCanvas !== 'undefined' && typeof document === 'undefined') ? new OffscreenCanvas(w, h) : document.createElement('canvas'));
+      const rg = c.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * 0.52);
+      rg.addColorStop(0, pal[2] + '38');
+      rg.addColorStop(0.55, pal[3] + '12');
+      rg.addColorStop(1, 'transparent');
+      c.fillStyle = rg; c.fillRect(0, 0, w, h);
+    } else {
+      const covKey = coverImg ? (coverImg.src || (coverImg.width + 'x' + coverImg.height)) : 'none';
+      const bgKey = `${w}x${h}:${o.theme || 'glass'}:${artStyle}:${o.blurBg !== false ? 1 : 0}:${covKey}`;
+      if (!drawAudiogramFrame._bgLayerCache || drawAudiogramFrame._bgLayerKey !== bgKey) {
+        const bc = drawAudiogramFrame._bgLayerCache || (drawAudiogramFrame._bgLayerCache = (typeof OffscreenCanvas !== 'undefined' && typeof document === 'undefined') ? new OffscreenCanvas(w, h) : document.createElement('canvas'));
         bc.width = w; bc.height = h;
         const bx = bc.getContext('2d');
-        bx.clearRect(0, 0, w, h);
-        bx.save();
-        bx.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
-        try { bx.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
-        const scBg = Math.max(w / coverImg.width, h / coverImg.height) * 1.12;
-        const bgW = coverImg.width * scBg, bgH = coverImg.height * scBg;
-        bx.drawImage(coverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
-        bx.restore();
-        const vig = bx.createLinearGradient(0, 0, 0, h);
-        vig.addColorStop(0, 'rgba(6,8,14,.55)');
-        vig.addColorStop(0.5, 'rgba(6,8,14,.32)');
-        vig.addColorStop(1, 'rgba(6,8,14,.78)');
-        bx.fillStyle = vig; bx.fillRect(0, 0, w, h);
-        drawAudiogramFrame._blurKey = blurKey;
+        const bg = bx.createLinearGradient(0, 0, w, h);
+        bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
+        bx.fillStyle = bg; bx.fillRect(0, 0, w, h);
+        if (coverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
+          bx.save();
+          bx.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
+          try { bx.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
+          const scBg = Math.max(w / coverImg.width, h / coverImg.height) * 1.12;
+          const bgW = coverImg.width * scBg, bgH = coverImg.height * scBg;
+          bx.drawImage(coverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
+          bx.restore();
+          const vig = bx.createLinearGradient(0, 0, 0, h);
+          vig.addColorStop(0, 'rgba(6,8,14,.55)');
+          vig.addColorStop(0.5, 'rgba(6,8,14,.32)');
+          vig.addColorStop(1, 'rgba(6,8,14,.78)');
+          bx.fillStyle = vig; bx.fillRect(0, 0, w, h);
+        }
+        const rg = bx.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * 0.52);
+        rg.addColorStop(0, pal[2] + '38');
+        rg.addColorStop(0.55, pal[3] + '12');
+        rg.addColorStop(1, 'transparent');
+        bx.fillStyle = rg; bx.fillRect(0, 0, w, h);
+        drawAudiogramFrame._bgLayerKey = bgKey;
       }
-      c.drawImage(drawAudiogramFrame._blurCache, 0, 0);
+      c.drawImage(drawAudiogramFrame._bgLayerCache, 0, 0);
     }
-
-    // Calm ambient radial glow (steady, zero flashing/blinking)
-    const rg = c.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * 0.52);
-    rg.addColorStop(0, pal[2] + '38');
-    rg.addColorStop(0.55, pal[3] + '12');
-    rg.addColorStop(1, 'transparent');
-    c.fillStyle = rg; c.fillRect(0, 0, w, h);
 
     // Optional smooth ambient bokeh particles (gentle drift, no blinking)
     if (o.particles !== false) {
@@ -29899,33 +30889,6 @@ self.onmessage = function (e) {
     const artX = Math.round((w - artSize) / 2);
     const artY = vertical ? Math.round(h * 0.14) : ratio === '1:1' ? Math.round(h * 0.11) : Math.round(h * 0.10);
     const artCx = artX + artSize / 2, artCy = artY + artSize / 2;
-
-    // Orbital ring visualizer behind artwork when selected
-    if (viz === 'orbital') {
-      const segs = 64;
-      const baseR = artSize * 0.56;
-      const maxSpoke = minDim * (vertical ? 0.095 : 0.08);
-      c.save();
-      c.translate(artCx, artCy);
-      for (let i = 0; i < segs; i++) {
-        const ang = (i / segs) * Math.PI * 2 - Math.PI / 2 + tSec * 0.18;
-        let v = 0.18 + 0.34 * Math.abs(Math.sin(tSec * 3.8 + i * 0.35));
-        if (bins && bins.length) {
-          const bi = clamp(Math.floor(((i % (segs / 2)) / (segs / 2)) * (bins.length * 0.7)), 0, bins.length - 1);
-          v = Math.max(0.08, bins[bi] / 255);
-        }
-        const len = Math.max(6, v * maxSpoke);
-        c.strokeStyle = i % 2 === 0 ? pal[2] : pal[3];
-        c.lineWidth = Math.max(3, minDim * 0.006);
-        c.lineCap = 'round';
-        c.globalAlpha = 0.45 + v * 0.55;
-        c.beginPath();
-        c.moveTo(Math.cos(ang) * baseR, Math.sin(ang) * baseR);
-        c.lineTo(Math.cos(ang) * (baseR + len), Math.sin(ang) * (baseR + len));
-        c.stroke();
-      }
-      c.restore();
-    }
 
     // 2. Artwork frame (Glass Card, Spinning Vinyl, or Backdrop Label — steady, no pulse)
     c.save();
@@ -30127,6 +31090,1851 @@ self.onmessage = function (e) {
     }
   }
 
+  function _ebmlReadVintSize(u8, pos) {
+
+    if (pos >= u8.length) return null;
+
+    const b0 = u8[pos];
+
+    if (!b0) return null;
+
+    let len = 1, mask = 0x80;
+
+    while (len <= 8 && !(b0 & mask)) { mask >>= 1; len++; }
+
+    if (len > 8 || pos + len > u8.length) return null;
+
+    let val = b0 & (mask - 1), allOnes = (val === (mask - 1));
+
+    for (let i = 1; i < len; i++) {
+
+      const b = u8[pos + i];
+
+      if (b !== 0xff) allOnes = false;
+
+      val = val * 256 + b;
+
+    }
+
+    return { val: allOnes ? null : val, len, unknown: allOnes };
+
+  }
+
+  function _ebmlWriteVintSize(u8, pos, len, val) {
+
+    let v = Math.max(0, Math.floor(val));
+
+    for (let i = len - 1; i >= 0; i--) {
+
+      u8[pos + i] = v & 0xff;
+
+      v = Math.floor(v / 256);
+
+    }
+
+    u8[pos] |= (1 << (8 - len));
+
+  }
+
+  function _ebmlReadId(u8, pos) {
+
+    if (pos >= u8.length) return null;
+
+    const b0 = u8[pos];
+
+    if (!b0) return null;
+
+    let len = 1, mask = 0x80;
+
+    while (len <= 4 && !(b0 & mask)) { mask >>= 1; len++; }
+
+    if (len > 4 || pos + len > u8.length) return null;
+
+    let id = 0;
+
+    for (let i = 0; i < len; i++) id = id * 256 + u8[pos + i];
+
+    return { id, len };
+
+  }
+
+  function fixWebmDuration(u8, durationMs) {
+
+    try {
+
+      if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
+
+      let pos = 0;
+
+      const ebml = _ebmlReadId(u8, pos);
+
+      if (!ebml || ebml.id !== 0x1A45DFA3) return u8;
+
+      const ebmlSz = _ebmlReadVintSize(u8, pos + ebml.len);
+
+      if (!ebmlSz || ebmlSz.unknown) return u8;
+
+      pos += ebml.len + ebmlSz.len + ebmlSz.val;
+
+      const seg = _ebmlReadId(u8, pos);
+
+      if (!seg || seg.id !== 0x18538067) return u8;
+
+      const segSizeStart = pos + seg.len;
+
+      const segSz = _ebmlReadVintSize(u8, segSizeStart);
+
+      if (!segSz) return u8;
+
+      const segDataStart = segSizeStart + segSz.len;
+
+      const segLimit = segSz.unknown ? u8.length : Math.min(u8.length, segDataStart + segSz.val);
+
+
+
+      let p = segDataStart;
+
+      let infoStart = -1, infoSizeStart = -1, infoSizeLen = 0, infoDataStart = -1, infoSizeVal = 0;
+
+      const seekHeads = [];
+
+      while (p < segLimit) {
+
+        const el = _ebmlReadId(u8, p);
+
+        if (!el) break;
+
+        const sz = _ebmlReadVintSize(u8, p + el.len);
+
+        if (!sz) break;
+
+        const dStart = p + el.len + sz.len;
+
+        if (el.id === 0x1F43B675) break;
+
+        if (el.id === 0x114D9B74 && !sz.unknown) seekHeads.push({ dStart, dEnd: dStart + sz.val });
+
+        if (el.id === 0x1549A966 && !sz.unknown) {
+
+          infoStart = p; infoSizeStart = p + el.len; infoSizeLen = sz.len;
+
+          infoDataStart = dStart; infoSizeVal = sz.val;
+
+          break;
+
+        }
+
+        if (sz.unknown) break;
+
+        p = dStart + sz.val;
+
+      }
+
+      if (infoStart < 0) return u8;
+
+      const infoDataEnd = Math.min(u8.length, infoDataStart + infoSizeVal);
+
+      let timecodeScale = 1000000;
+
+      let durElemDataStart = -1, durElemLen = 0;
+
+      let ip = infoDataStart;
+
+      while (ip < infoDataEnd) {
+
+        const el = _ebmlReadId(u8, ip);
+
+        if (!el) break;
+
+        const sz = _ebmlReadVintSize(u8, ip + el.len);
+
+        if (!sz || sz.unknown) break;
+
+        const dStart = ip + el.len + sz.len;
+
+        if (el.id === 0x2AD7B1 && sz.val > 0 && sz.val <= 8) {
+
+          let ts = 0;
+
+          for (let i = 0; i < sz.val; i++) ts = ts * 256 + u8[dStart + i];
+
+          if (ts > 0) timecodeScale = ts;
+
+        } else if (el.id === 0x4489) {
+
+          durElemDataStart = dStart; durElemLen = sz.val;
+
+        }
+
+        ip = dStart + sz.val;
+
+      }
+
+      const durUnits = (durationMs * 1000000) / timecodeScale;
+
+      if (durElemDataStart >= 0 && (durElemLen === 4 || durElemLen === 8)) {
+
+        const out = u8.slice();
+
+        const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
+
+        if (durElemLen === 8) dv.setFloat64(durElemDataStart, durUnits, false);
+
+        else dv.setFloat32(durElemDataStart, durUnits, false);
+
+        return out;
+
+      }
+
+      const durEl = new Uint8Array(11);
+
+      durEl[0] = 0x44; durEl[1] = 0x89; durEl[2] = 0x88;
+
+      new DataView(durEl.buffer).setFloat64(3, durUnits, false);
+
+      const newInfoVal = infoSizeVal + 11;
+
+      let newInfoSizeLen = infoSizeLen;
+
+      while (newInfoSizeLen < 8 && newInfoVal >= (Math.pow(2, 7 * newInfoSizeLen) - 1)) newInfoSizeLen++;
+
+      const delta = 11 + (newInfoSizeLen - infoSizeLen);
+
+      const out = new Uint8Array(u8.length + delta);
+
+      out.set(u8.subarray(0, infoSizeStart), 0);
+
+      _ebmlWriteVintSize(out, infoSizeStart, newInfoSizeLen, newInfoVal);
+
+      const newInfoDataStart = infoSizeStart + newInfoSizeLen;
+
+      out.set(u8.subarray(infoDataStart, infoDataEnd), newInfoDataStart);
+
+      out.set(durEl, newInfoDataStart + infoSizeVal);
+
+      out.set(u8.subarray(infoDataEnd), newInfoDataStart + infoSizeVal + 11);
+
+      if (!segSz.unknown) {
+
+        const newSegVal = segSz.val + delta;
+
+        if (newSegVal < (Math.pow(2, 7 * segSz.len) - 1)) _ebmlWriteVintSize(out, segSizeStart, segSz.len, newSegVal);
+
+      }
+
+      const infoRelEnd = infoDataEnd - segDataStart;
+
+      for (const sh of seekHeads) {
+
+        let sp = sh.dStart;
+
+        while (sp < sh.dEnd) {
+
+          const se = _ebmlReadId(out, sp); if (!se) break;
+
+          const ss = _ebmlReadVintSize(out, sp + se.len); if (!ss || ss.unknown) break;
+
+          const sd = sp + se.len + ss.len;
+
+          if (se.id === 0x4DBB) {
+
+            let cp = sd, cEnd = sd + ss.val;
+
+            while (cp < cEnd) {
+
+              const ce = _ebmlReadId(out, cp); if (!ce) break;
+
+              const cs = _ebmlReadVintSize(out, cp + ce.len); if (!cs || cs.unknown) break;
+
+              const cd = cp + ce.len + cs.len;
+
+              if (ce.id === 0x53AC && cs.val > 0 && cs.val <= 8) {
+
+                let sv = 0;
+
+                for (let i = 0; i < cs.val; i++) sv = sv * 256 + out[cd + i];
+
+                if (sv >= infoRelEnd) {
+
+                  let nv = sv + delta;
+
+                  for (let i = cs.val - 1; i >= 0; i--) { out[cd + i] = nv & 0xff; nv = Math.floor(nv / 256); }
+
+                }
+
+              }
+
+              cp = cd + cs.val;
+
+            }
+
+          }
+
+          sp = sd + ss.val;
+
+        }
+
+      }
+
+      return out;
+
+    } catch (e) { return u8; }
+
+  }
+
+  function fixMp4Duration(u8, durationMs) {
+
+    try {
+
+      if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
+
+      const out = u8.slice();
+
+      const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
+
+      const readBox = (start, limit) => {
+
+        if (start + 8 > limit) return null;
+
+        let size = dv.getUint32(start, false);
+
+        const type = String.fromCharCode(out[start + 4], out[start + 5], out[start + 6], out[start + 7]);
+
+        let hdr = 8;
+
+        if (size === 1) {
+
+          if (start + 16 > limit) return null;
+
+          size = Number(dv.getBigUint64(start + 8, false));
+
+          hdr = 16;
+
+        } else if (size === 0) {
+
+          size = limit - start;
+
+        }
+
+        if (size < hdr || start + size > limit) return null;
+
+        return { type, dStart: start + hdr, end: start + size };
+
+      };
+
+      let mvhdTs = 1000;
+
+      const findMvhdTs = (start, limit) => {
+
+        let p = start;
+
+        while (p < limit) {
+
+          const box = readBox(p, limit); if (!box) break;
+
+          if (box.type === 'moov') findMvhdTs(box.dStart, box.end);
+
+          else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
+
+            const ver = out[box.dStart];
+
+            const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+
+            if (tsOff + 4 <= box.end) mvhdTs = dv.getUint32(tsOff, false) || 1000;
+
+          }
+
+          p = box.end;
+
+        }
+
+      };
+
+      findMvhdTs(0, out.length);
+
+      const walk = (start, limit) => {
+
+        let p = start;
+
+        while (p < limit) {
+
+          const box = readBox(p, limit);
+
+          if (!box) break;
+
+          if (box.type === 'moov' || box.type === 'trak' || box.type === 'mdia' || box.type === 'mvex') {
+
+            walk(box.dStart, box.end);
+
+          } else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
+
+            const ver = out[box.dStart];
+
+            const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+
+            const durOff = box.dStart + (ver === 1 ? 24 : 16);
+
+            if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+
+              const ts = dv.getUint32(tsOff, false) || 1000;
+
+              const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+
+              if (cur === 0 || cur === 0xffffffff) {
+
+                const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
+
+                if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+
+                else dv.setUint32(durOff, nd, false);
+
+              }
+
+            }
+
+          } else if (box.type === 'tkhd' && box.end - box.dStart >= 24) {
+
+            const ver = out[box.dStart];
+
+            const durOff = box.dStart + (ver === 1 ? 28 : 20);
+
+            if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+
+              const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+
+              if (cur === 0 || cur === 0xffffffff) {
+
+                const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
+
+                if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+
+                else dv.setUint32(durOff, nd, false);
+
+              }
+
+            }
+
+          } else if (box.type === 'mdhd' && box.end - box.dStart >= 20) {
+
+            const ver = out[box.dStart];
+
+            const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+
+            const durOff = box.dStart + (ver === 1 ? 24 : 16);
+
+            if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+
+              const ts = dv.getUint32(tsOff, false) || 1000;
+
+              const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+
+              if (cur === 0 || cur === 0xffffffff) {
+
+                const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
+
+                if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+
+                else dv.setUint32(durOff, nd, false);
+
+              }
+
+            }
+
+          } else if (box.type === 'mehd' && box.end - box.dStart >= 8) {
+
+            const ver = out[box.dStart];
+
+            const durOff = box.dStart + 4;
+
+            if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+
+              const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+
+              if (cur === 0 || cur === 0xffffffff) {
+
+                const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
+
+                if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+
+                else dv.setUint32(durOff, nd, false);
+
+              }
+
+            }
+
+          }
+
+          p = box.end;
+
+        }
+
+      };
+
+      walk(0, out.length);
+
+      return out;
+
+    } catch (e) { return u8; }
+
+  }
+
+  async function fixVideoContainerDuration(blob, mime, durationMs) {
+
+    try {
+
+      if (!blob || !blob.size || durationMs <= 0) return blob;
+
+      const u8 = new Uint8Array(await blob.arrayBuffer());
+
+      const isMp4 = (mime && mime.includes('mp4')) || (u8.length > 8 && u8[4] === 0x66 && u8[5] === 0x74 && u8[6] === 0x79 && u8[7] === 0x70);
+
+      const patched = isMp4 ? fixMp4Duration(u8, durationMs) : fixWebmDuration(u8, durationMs);
+
+      return new Blob([patched], { type: mime || blob.type || (isMp4 ? 'video/mp4' : 'video/webm') });
+
+    } catch (e) { return blob; }
+
+  }
+
+
+
+  function createAudiogramWorker() {
+
+    const src = `'use strict';
+
+    const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+    const agParticlesSeed = ${JSON.stringify(agParticlesSeed)};
+
+    ${fmtTime.toString()}
+
+    ${roundRect.toString()}
+
+    ${agActiveCaption.toString()}
+
+    ${drawAudiogramFrame.toString()}
+
+
+
+    let cancelled = false;
+
+    self.onmessage = (e) => {
+
+      if (e.data && e.data.type === 'cancel') { cancelled = true; return; }
+
+      if (e.data && e.data.type === 'start') runJob(e.data).catch((err) => self.postMessage({ type: 'error', message: err && err.message || String(err) }));
+
+    };
+
+
+
+    function resampleChannels(channels, inRate, outRate) {
+
+      if (inRate === outRate) return channels;
+
+      const ratio = inRate / outRate;
+
+      const outLen = Math.max(1, Math.round(channels[0].length / ratio));
+
+      return channels.map((ch) => {
+
+        const dst = new Float32Array(outLen);
+
+        const maxI = ch.length - 1;
+
+        for (let i = 0; i < outLen; i++) {
+
+          const p = i * ratio;
+
+          const i0 = p | 0;
+
+          const f = p - i0;
+
+          const s0 = ch[i0 <= maxI ? i0 : maxI];
+
+          const s1 = ch[i0 + 1 <= maxI ? i0 + 1 : maxI];
+
+          dst[i] = s0 + (s1 - s0) * f;
+
+        }
+
+        return dst;
+
+      });
+
+    }
+
+
+
+    // Fast 256-point Hann-windowed FFT for smooth spectrum bins
+
+    const FFT_N = 256;
+
+    const hann = new Float32Array(FFT_N);
+
+    const rev = new Uint8Array(FFT_N);
+
+    const cosT = new Float32Array(FFT_N / 2), sinT = new Float32Array(FFT_N / 2);
+
+    for (let i = 0; i < FFT_N; i++) {
+
+      hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_N - 1)));
+
+      let r = 0, x = i;
+
+      for (let b = 0; b < 8; b++) { r = (r << 1) | (x & 1); x >>= 1; }
+
+      rev[i] = r;
+
+    }
+
+    for (let i = 0; i < FFT_N / 2; i++) {
+
+      cosT[i] = Math.cos((-2 * Math.PI * i) / FFT_N);
+
+      sinT[i] = Math.sin((-2 * Math.PI * i) / FFT_N);
+
+    }
+
+    const fftRe = new Float32Array(FFT_N), fftIm = new Float32Array(FFT_N);
+
+    function computeBins(channels, rate, tSec, smoothOut) {
+
+      const ch0 = channels[0], ch1 = channels[1] || ch0;
+
+      const center = Math.floor(tSec * rate);
+
+      const start = Math.max(0, Math.min(ch0.length - FFT_N, center - (FFT_N >> 1)));
+
+      for (let i = 0; i < FFT_N; i++) {
+
+        const idx = rev[i];
+
+        const s = start + idx < ch0.length ? 0.5 * (ch0[start + idx] + ch1[start + idx]) : 0;
+
+        fftRe[i] = s * hann[idx];
+
+        fftIm[i] = 0;
+
+      }
+
+      for (let size = 2; size <= FFT_N; size <<= 1) {
+
+        const half = size >> 1;
+
+        const step = FFT_N / size;
+
+        for (let i = 0; i < FFT_N; i += size) {
+
+          for (let j = 0; j < half; j++) {
+
+            const k = j * step;
+
+            const wr = cosT[k], wi = sinT[k];
+
+            const tr = wr * fftRe[i + j + half] - wi * fftIm[i + j + half];
+
+            const ti = wr * fftIm[i + j + half] + wi * fftRe[i + j + half];
+
+            fftRe[i + j + half] = fftRe[i + j] - tr;
+
+            fftIm[i + j + half] = fftIm[i + j] - ti;
+
+            fftRe[i + j] += tr;
+
+            fftIm[i + j] += ti;
+
+          }
+
+        }
+
+      }
+
+      for (let i = 0; i < 128; i++) {
+
+        const mag = Math.hypot(fftRe[i], fftIm[i]) / (FFT_N * 0.5);
+
+        const db = 20 * Math.log10(mag + 1e-6);
+
+        const norm = clamp((db + 92) / 68, 0, 1) * 255;
+
+        smoothOut[i] = Math.round(smoothOut[i] * 0.72 + norm * 0.28);
+
+      }
+
+      return smoothOut;
+
+    }
+
+
+
+    function normalizeAvcChunks(vChunks, vDesc) {
+
+      const hasDesc = vDesc && vDesc.length >= 7 && vDesc[0] === 1;
+
+      const isAnnexB = (d) => d.length >= 4 && ((d[0] === 0 && d[1] === 0 && d[2] === 0 && d[3] === 1) || (d[0] === 0 && d[1] === 0 && d[2] === 1));
+
+      const splitAnnexB = (d) => {
+
+        const nalus = [];
+
+        let i = 0;
+
+        const findStart = (from) => {
+
+          for (let p = from; p + 3 < d.length; p++) {
+
+            if (d[p] === 0 && d[p + 1] === 0) {
+
+              if (d[p + 2] === 1) return { idx: p, len: 3 };
+
+              if (p + 3 < d.length && d[p + 2] === 0 && d[p + 3] === 1) return { idx: p, len: 4 };
+
+            }
+
+          }
+
+          return null;
+
+        };
+
+        let st = findStart(0);
+
+        while (st) {
+
+          const nStart = st.idx + st.len;
+
+          const next = findStart(nStart);
+
+          const nEnd = next ? next.idx : d.length;
+
+          if (nEnd > nStart) nalus.push(d.subarray(nStart, nEnd));
+
+          st = next;
+
+        }
+
+        return nalus;
+
+      };
+
+      let sps = null, pps = null;
+
+      let needConvert = !hasDesc || (vChunks.length && isAnnexB(vChunks[0].data));
+
+      if (needConvert) {
+
+        for (const c of vChunks) {
+
+          if (isAnnexB(c.data)) {
+
+            const nalus = splitAnnexB(c.data);
+
+            const outNalus = [];
+
+            for (const n of nalus) {
+
+              const nt = n[0] & 0x1f;
+
+              if (nt === 7 && !sps) sps = n.slice();
+
+              else if (nt === 8 && !pps) pps = n.slice();
+
+              else if (nt !== 9) outNalus.push(n);
+
+            }
+
+            let tot = 0; for (const n of outNalus) tot += 4 + n.length;
+
+            const avcc = new Uint8Array(tot);
+
+            let off = 0;
+
+            for (const n of outNalus) {
+
+              const l = n.length;
+
+              avcc[off] = (l >>> 24) & 255; avcc[off + 1] = (l >>> 16) & 255;
+
+              avcc[off + 2] = (l >>> 8) & 255; avcc[off + 3] = l & 255;
+
+              avcc.set(n, off + 4); off += 4 + l;
+
+            }
+
+            c.data = avcc;
+
+          }
+
+        }
+
+      }
+
+      let desc = hasDesc ? vDesc : null;
+
+      if (!desc && sps && pps) {
+
+        desc = new Uint8Array(11 + sps.length + pps.length);
+
+        desc[0] = 1; desc[1] = sps[1] || 0x42; desc[2] = sps[2] || 0xe0; desc[3] = sps[3] || 0x1e;
+
+        desc[4] = 0xff; desc[5] = 0xe1;
+
+        desc[6] = (sps.length >> 8) & 255; desc[7] = sps.length & 255;
+
+        desc.set(sps, 8);
+
+        const pOff = 8 + sps.length;
+
+        desc[pOff] = 1; desc[pOff + 1] = (pps.length >> 8) & 255; desc[pOff + 2] = pps.length & 255;
+
+        desc.set(pps, pOff + 3);
+
+      }
+
+      return desc;
+
+    }
+
+
+
+    function buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate, audioCh }) {
+
+      const te = new TextEncoder();
+
+      const u32 = (v) => new Uint8Array([(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]);
+
+      const u16 = (v) => new Uint8Array([(v >>> 8) & 255, v & 255]);
+
+      const concat = (...parts) => {
+
+        let total = 0; for (const p of parts) total += p.length;
+
+        const out = new Uint8Array(total);
+
+        let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+
+        return out;
+
+      };
+
+      const box = (type, ...payloads) => {
+
+        const body = concat(...payloads);
+
+        return concat(u32(8 + body.length), te.encode(type), body);
+
+      };
+
+      const fullBox = (type, ver, flags, ...payloads) => {
+
+        const vf = new Uint8Array([ver & 255, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]);
+
+        return box(type, vf, ...payloads);
+
+      };
+
+      const avcDesc = normalizeAvcChunks(vChunks, vDesc);
+
+      if (!avcDesc) throw new Error('Missing H.264 decoder config');
+
+
+
+      const ftyp = box('ftyp', te.encode('isom'), u32(512), te.encode('isom'), te.encode('iso2'), te.encode('avc1'), te.encode('mp41'));
+
+      let mdatPayloadLen = 0;
+
+      for (const c of vChunks) mdatPayloadLen += c.data.length;
+
+      for (const c of aChunks) mdatPayloadLen += c.data.length;
+
+      const mdatHdr = concat(u32(8 + mdatPayloadLen), te.encode('mdat'));
+
+      const mdatDataStart = ftyp.length + 8;
+
+
+
+      const vOffsets = [], aOffsets = [];
+
+      let cursor = mdatDataStart;
+
+      for (const c of vChunks) { vOffsets.push(cursor); cursor += c.data.length; }
+
+      for (const c of aChunks) { aOffsets.push(cursor); cursor += c.data.length; }
+
+
+
+      const durMs = Math.max(1, Math.round(totalSec * 1000));
+
+      const unityMatrix = concat(u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000));
+
+      const hasAudio = aChunks.length > 0;
+
+      const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(durMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(hasAudio ? 3 : 2));
+
+
+
+      const buildStts = (durs) => {
+
+        const entries = [];
+
+        for (const d of durs) {
+
+          const dd = Math.max(1, Math.round(d));
+
+          if (entries.length && entries[entries.length - 1][1] === dd) entries[entries.length - 1][0]++;
+
+          else entries.push([1, dd]);
+
+        }
+
+        const parts = [u32(entries.length)];
+
+        for (const [cnt, dd] of entries) parts.push(u32(cnt), u32(dd));
+
+        return fullBox('stts', 0, 0, ...parts);
+
+      };
+
+      const buildStsz = (chunks) => {
+
+        const buf = new Uint8Array(8 + chunks.length * 4);
+
+        const dv = new DataView(buf.buffer);
+
+        dv.setUint32(0, 0, false); dv.setUint32(4, chunks.length, false);
+
+        for (let i = 0; i < chunks.length; i++) dv.setUint32(8 + i * 4, chunks[i].data.length, false);
+
+        return fullBox('stsz', 0, 0, buf);
+
+      };
+
+      const buildStco = (offsets) => {
+
+        const buf = new Uint8Array(4 + offsets.length * 4);
+
+        const dv = new DataView(buf.buffer);
+
+        dv.setUint32(0, offsets.length, false);
+
+        for (let i = 0; i < offsets.length; i++) dv.setUint32(4 + i * 4, offsets[i], false);
+
+        return fullBox('stco', 0, 0, buf);
+
+      };
+
+      const dinf = box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1)));
+
+
+
+      const vTimescale = 90000;
+
+      const vDurs = vChunks.map((c, i) => {
+
+        if (i + 1 < vChunks.length) return Math.max(1, Math.round(((vChunks[i + 1].timestamp - c.timestamp) / 1e6) * vTimescale));
+
+        return Math.max(1, Math.round(((c.duration || (1e6 / fps)) / 1e6) * vTimescale));
+
+      });
+
+      const vTotalDur = vDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * vTimescale);
+
+      const vTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), unityMatrix, u32((width & 0xffff) << 16), u32((height & 0xffff) << 16));
+
+      const vMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(vTimescale), u32(vTotalDur), u16(0x55c4), u16(0));
+
+      const vHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('vide'), new Uint8Array(12), te.encode('VideoHandler\\0'));
+
+      const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), new Uint8Array(32), u16(0x0018), new Uint8Array([0xff, 0xff]), box('avcC', avcDesc));
+
+      const vStsd = fullBox('stsd', 0, 0, u32(1), avc1);
+
+      const syncIdx = [];
+
+      for (let i = 0; i < vChunks.length; i++) if (vChunks[i].key) syncIdx.push(i + 1);
+
+      if (!syncIdx.length && vChunks.length) syncIdx.push(1);
+
+      const stssBuf = new Uint8Array(4 + syncIdx.length * 4);
+
+      const stssDv = new DataView(stssBuf.buffer);
+
+      stssDv.setUint32(0, syncIdx.length, false);
+
+      for (let i = 0; i < syncIdx.length; i++) stssDv.setUint32(4 + i * 4, syncIdx[i], false);
+
+      const vStbl = box('stbl', vStsd, buildStts(vDurs), fullBox('stss', 0, 0, stssBuf), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(vChunks), buildStco(vOffsets));
+
+      const vTrak = box('trak', vTkhd, box('mdia', vMdhd, vHdlr, box('minf', fullBox('vmhd', 0, 1, new Uint8Array(8)), dinf, vStbl)));
+
+
+
+      const traks = [vTrak];
+
+      if (hasAudio) {
+
+        const aDurs = aChunks.map((c, i) => {
+
+          if (i + 1 < aChunks.length) return Math.max(1, Math.round(((aChunks[i + 1].timestamp - c.timestamp) / 1e6) * audioRate));
+
+          return Math.max(1, Math.round(((c.duration || (1024e6 / audioRate)) / 1e6) * audioRate));
+
+        });
+
+        const aTotalDur = aDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * audioRate);
+
+        const aTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(2), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0x0100), u16(0), unityMatrix, u32(0), u32(0));
+
+        const aMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(audioRate), u32(aTotalDur), u16(0x55c4), u16(0));
+
+        const aHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('soun'), new Uint8Array(12), te.encode('SoundHandler\\0'));
+
+        const srTable = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+
+        const srIdx = Math.max(0, srTable.indexOf(audioRate));
+
+        const asc = (aDesc && aDesc.length >= 2) ? aDesc : new Uint8Array([(2 << 3) | (srIdx >> 1), ((srIdx & 1) << 7) | (audioCh << 3)]);
+
+        const tag05 = concat(new Uint8Array([0x05, asc.length]), asc);
+
+        const tag04 = concat(new Uint8Array([0x04, 13 + tag05.length, 0x40, 0x15, 0, 0, 0]), u32(192000), u32(192000), tag05);
+
+        const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
+
+        const tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
+
+        const mp4a = box('mp4a', new Uint8Array(6), u16(1), new Uint8Array(8), u16(audioCh), u16(16), u16(0), u16(0), u32((audioRate & 0xffff) << 16), fullBox('esds', 0, 0, tag03));
+
+        const aStbl = box('stbl', fullBox('stsd', 0, 0, u32(1), mp4a), buildStts(aDurs), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(aChunks), buildStco(aOffsets));
+
+        traks.push(box('trak', aTkhd, box('mdia', aMdhd, aHdlr, box('minf', fullBox('smhd', 0, 0, new Uint8Array(4)), dinf, aStbl))));
+
+      }
+
+
+
+      const moov = box('moov', mvhd, ...traks);
+
+      const out = new Uint8Array(ftyp.length + mdatHdr.length + mdatPayloadLen + moov.length);
+
+      let p = 0;
+
+      out.set(ftyp, p); p += ftyp.length;
+
+      out.set(mdatHdr, p); p += mdatHdr.length;
+
+      for (const c of vChunks) { out.set(c.data, p); p += c.data.length; }
+
+      for (const c of aChunks) { out.set(c.data, p); p += c.data.length; }
+
+      out.set(moov, p);
+
+      return out;
+
+    }
+
+
+
+    function buildWebm({ width, height, totalSec, vCodecId, vChunks, aChunks, audioRate, audioCh }) {
+
+      const te = new TextEncoder();
+
+      const concat = (...parts) => {
+
+        let total = 0; for (const p of parts) total += p.length;
+
+        const out = new Uint8Array(total);
+
+        let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+
+        return out;
+
+      };
+
+      const vintSize = (val) => {
+
+        let len = 1;
+
+        while (len < 8 && val >= (Math.pow(2, 7 * len) - 1)) len++;
+
+        const out = new Uint8Array(len);
+
+        let v = val;
+
+        for (let i = len - 1; i >= 0; i--) { out[i] = v & 0xff; v = Math.floor(v / 256); }
+
+        out[0] |= (1 << (8 - len));
+
+        return out;
+
+      };
+
+      const idBytes = (id) => {
+
+        if (id <= 0xff) return new Uint8Array([id]);
+
+        if (id <= 0xffff) return new Uint8Array([(id >>> 8) & 0xff, id & 0xff]);
+
+        if (id <= 0xffffff) return new Uint8Array([(id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
+
+        return new Uint8Array([(id >>> 24) & 0xff, (id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
+
+      };
+
+      const el = (id, ...payloads) => {
+
+        const body = payloads.length === 1 ? payloads[0] : concat(...payloads);
+
+        return concat(idBytes(id), vintSize(body.length), body);
+
+      };
+
+      const elUint = (id, v) => {
+
+        const bytes = []; let n = Math.max(0, Math.floor(v));
+
+        do { bytes.unshift(n & 0xff); n = Math.floor(n / 256); } while (n > 0);
+
+        return el(id, new Uint8Array(bytes));
+
+      };
+
+      const elFloat64 = (id, v) => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat64(0, v, false); return el(id, b); };
+
+      const elStr = (id, s) => el(id, te.encode(s));
+
+
+
+      const ebml = el(0x1A45DFA3, elUint(0x4286, 1), elUint(0x42F7, 1), elUint(0x42F2, 4), elUint(0x42F3, 8), elStr(0x4282, 'webm'), elUint(0x4287, 2), elUint(0x4285, 2));
+
+      const info = el(0x1549A966, elUint(0x2AD7B1, 1000000), elStr(0x4D80, 'Sonora'), elStr(0x5741, 'Sonora'), elFloat64(0x4489, Math.max(1, totalSec * 1000)));
+
+      const trackEntries = [el(0xAE, elUint(0xD7, 1), elUint(0x73C5, 1), elUint(0x83, 1), elStr(0x86, vCodecId || 'V_VP8'), el(0xE0, elUint(0xB0, width), elUint(0xBA, height)))];
+
+      if (aChunks.length) {
+
+        const opusHead = new Uint8Array(19);
+
+        opusHead.set(te.encode('OpusHead'), 0);
+
+        opusHead[8] = 1; opusHead[9] = audioCh; opusHead[10] = 0x38; opusHead[11] = 0x01;
+
+        new DataView(opusHead.buffer).setUint32(12, audioRate, true);
+
+        trackEntries.push(el(0xAE, elUint(0xD7, 2), elUint(0x73C5, 2), elUint(0x83, 2), elStr(0x86, 'A_OPUS'), el(0x63A2, opusHead), el(0xE1, elFloat64(0xB5, audioRate), elUint(0x9F, audioCh))));
+
+      }
+
+      const tracks = el(0x1654AE6B, ...trackEntries);
+
+
+
+      const all = [];
+
+      for (const c of vChunks) all.push({ tr: 1, tMs: Math.round(c.timestamp / 1000), key: !!c.key, data: c.data });
+
+      for (const c of aChunks) all.push({ tr: 2, tMs: Math.round(c.timestamp / 1000), key: true, data: c.data });
+
+      all.sort((a, b) => a.tMs - b.tMs || a.tr - b.tr);
+
+
+
+      const clusters = []; let curItems = [], curT0 = 0;
+
+      const flushCluster = () => {
+
+        if (!curItems.length) return;
+
+        const blocks = [elUint(0xE7, curT0)];
+
+        for (const item of curItems) {
+
+          const rel = clamp(item.tMs - curT0, -32768, 32767);
+
+          const hdr = new Uint8Array([0x80 | item.tr, (rel >> 8) & 0xff, rel & 0xff, item.key ? 0x80 : 0x00]);
+
+          blocks.push(el(0xA3, hdr, item.data));
+
+        }
+
+        clusters.push(el(0x1F43B675, ...blocks));
+
+        curItems = [];
+
+      };
+
+      for (const item of all) {
+
+        if (!curItems.length) curT0 = item.tMs;
+
+        else if ((item.tMs - curT0 >= 2000 && item.tr === 1 && item.key) || (item.tMs - curT0 >= 10000)) { flushCluster(); curT0 = item.tMs; }
+
+        curItems.push(item);
+
+      }
+
+      flushCluster();
+
+      return concat(ebml, el(0x18538067, info, tracks, ...clusters));
+
+    }
+
+
+
+    async function pickSupportedPipeline(width, height, fps, vBps, chCount, pref) {
+
+      const mp4Order = async () => {
+
+        for (const vc of ['avc1.4D4028', 'avc1.4D401F', 'avc1.42E01E', 'avc1.640028']) {
+
+          try {
+
+            const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps, avc: { format: 'avc' } });
+
+            if (!vSup || !vSup.supported) continue;
+
+            for (const sr of [48000, 44100]) {
+
+              const aSup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: chCount, bitrate: 192000 });
+
+              if (aSup && aSup.supported) return { container: 'mp4', vCodec: vc, aCodec: 'mp4a.40.2', audioRate: sr };
+
+            }
+
+          } catch (e) {}
+
+        }
+
+        return null;
+
+      };
+
+      const webmOrder = async () => {
+
+        for (const [vc, cid] of [['vp09.00.10.08', 'V_VP9'], ['vp8', 'V_VP8']]) {
+
+          try {
+
+            const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps });
+
+            if (!vSup || !vSup.supported) continue;
+
+            const aSup = await AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 48000, numberOfChannels: chCount, bitrate: 128000 });
+
+            if (aSup && aSup.supported) return { container: 'webm', vCodec: vc, vCodecId: cid, aCodec: 'opus', audioRate: 48000 };
+
+          } catch (e) {}
+
+        }
+
+        return null;
+
+      };
+
+      if (pref === 'webm') return (await webmOrder()) || (await mp4Order());
+
+      return (await mp4Order()) || (await webmOrder());
+
+    }
+
+
+
+    async function runJob(job) {
+
+      if (typeof OffscreenCanvas === 'undefined' || typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
+
+        self.postMessage({ type: 'unsupported' }); return;
+
+      }
+
+      const { opts, channels, rate, fps, vBps, pref, coverBitmap } = job;
+
+      const startFrame = Math.max(0, job.startFrame | 0);
+
+      const keyInterval = Math.max(15, fps * 2);
+
+      const tmpCv = new OffscreenCanvas(16, 16);
+
+      opts.coverImg = coverBitmap || null;
+
+      opts.bgVideo = null;
+
+      opts.peakHold = new Float32Array(64);
+
+      opts.tSec = 0; opts.progress = 0; opts.bins = null;
+
+      drawAudiogramFrame(tmpCv, opts);
+
+      const width = tmpCv.width, height = tmpCv.height;
+
+      const chCount = channels.length;
+
+      const totalSec = channels[0].length / rate;
+
+
+
+      const pipe = job.initialPipe || (await pickSupportedPipeline(width, height, fps, vBps, chCount, pref));
+
+      if (!pipe) { self.postMessage({ type: 'unsupported' }); return; }
+
+
+
+      const vChunks = Array.isArray(job.initialVChunks) ? job.initialVChunks.slice() : [];
+
+      const aChunks = Array.isArray(job.initialAChunks) ? job.initialAChunks.slice() : [];
+
+      let vDesc = job.initialVDesc || null;
+
+      let aDesc = job.initialADesc || null;
+
+      let encErr = null;
+
+      let sentVCount = vChunks.length;
+
+      let sentAudio = aChunks.length > 0;
+
+
+
+      const vEnc = new VideoEncoder({
+
+        output: (chunk, meta) => {
+
+          const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+
+          vChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration, key: chunk.type === 'key' });
+
+          if (!vDesc && meta && meta.decoderConfig && meta.decoderConfig.description) vDesc = new Uint8Array(meta.decoderConfig.description);
+
+        },
+
+        error: (err) => { encErr = err; }
+
+      });
+
+      const vCfg = { codec: pipe.vCodec, width, height, bitrate: vBps, framerate: fps };
+
+      if (pipe.container === 'mp4') vCfg.avc = { format: 'avc' };
+
+      vEnc.configure(vCfg);
+
+
+
+      let aEnc = null;
+
+      if (!sentAudio) {
+
+        aEnc = new AudioEncoder({
+
+          output: (chunk, meta) => {
+
+            const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+
+            aChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration });
+
+            if (!aDesc && meta && meta.decoderConfig && meta.decoderConfig.description) aDesc = new Uint8Array(meta.decoderConfig.description);
+
+          },
+
+          error: (err) => { encErr = err; }
+
+        });
+
+        aEnc.configure({ codec: pipe.aCodec, sampleRate: pipe.audioRate, numberOfChannels: chCount, bitrate: pipe.container === 'mp4' ? 192000 : 128000 });
+
+
+
+        // 1. Encode all audio chunks cleanly
+
+        const pcmA = resampleChannels(channels, rate, pipe.audioRate);
+
+        const totalASamples = pcmA[0].length;
+
+        const aBlock = 4096;
+
+        for (let pos = 0; pos < totalASamples && !cancelled && !encErr; pos += aBlock) {
+
+          const n = Math.min(aBlock, totalASamples - pos);
+
+          const planar = new Float32Array(n * chCount);
+
+          for (let ch = 0; ch < chCount; ch++) planar.set(pcmA[ch].subarray(pos, pos + n), ch * n);
+
+          const ad = new AudioData({ format: 'f32-planar', sampleRate: pipe.audioRate, numberOfFrames: n, numberOfChannels: chCount, timestamp: Math.round((pos / pipe.audioRate) * 1e6), data: planar });
+
+          aEnc.encode(ad);
+
+          ad.close();
+
+          if (aEnc.encodeQueueSize > 8) await new Promise((r) => setTimeout(r, 2));
+
+        }
+
+        if (!cancelled && !encErr) await aEnc.flush();
+
+        try { aEnc.close(); } catch (e) {}
+
+        aEnc = null;
+
+      }
+
+
+
+      // 2. Render & encode video frames faster than real-time (with GOP-aligned checkpoints)
+
+      const totalFrames = Math.max(1, Math.round(totalSec * fps));
+
+      const frameDurUs = Math.round(1e6 / fps);
+
+      const smoothBins = new Uint8Array(128);
+
+      // Prime smoothBins on resume so visualizer matches continuous level
+
+      if (startFrame > 0) {
+
+        for (let pf = Math.max(0, startFrame - 6); pf < startFrame; pf++) {
+
+          computeBins(channels, rate, Math.min(totalSec, pf / fps), smoothBins);
+
+        }
+
+      }
+
+      let lastProgMs = 0;
+
+      for (let f = startFrame; f < totalFrames && !cancelled && !encErr; f++) {
+
+        if (f > startFrame && (f % keyInterval === 0)) {
+
+          await vEnc.flush();
+
+          if (cancelled || encErr) break;
+
+          const newV = vChunks.slice(sentVCount).map((c) => ({ data: c.data.slice(), timestamp: c.timestamp, duration: c.duration, key: c.key }));
+
+          sentVCount = vChunks.length;
+
+          const transfer = newV.map((c) => c.data.buffer);
+
+          const aSend = !sentAudio ? aChunks.map((c) => ({ data: c.data.slice(), timestamp: c.timestamp, duration: c.duration })) : null;
+
+          if (aSend) { sentAudio = true; aSend.forEach((c) => transfer.push(c.data.buffer)); }
+
+          const pctCp = Math.round((f / totalFrames) * 96);
+
+          self.postMessage({
+
+            type: 'checkpoint',
+
+            nextFrame: f,
+
+            totalFrames,
+
+            pct: pctCp,
+
+            el: Math.min(totalSec, f / fps),
+
+            totalSec,
+
+            pipe,
+
+            vChunksBatch: newV,
+
+            vDesc: vDesc ? new Uint8Array(vDesc) : null,
+
+            aChunksOnce: aSend,
+
+            aDesc: aDesc ? new Uint8Array(aDesc) : null,
+
+          }, transfer);
+
+        }
+
+        const tSec = Math.min(totalSec, f / fps);
+
+        opts.tSec = tSec;
+
+        opts.progress = totalFrames > 1 ? f / (totalFrames - 1) : 1;
+
+        opts.bins = computeBins(channels, rate, tSec, smoothBins);
+
+        drawAudiogramFrame(tmpCv, opts);
+
+        const vf = new VideoFrame(tmpCv, { timestamp: Math.round((f * 1e6) / fps), duration: frameDurUs });
+
+        vEnc.encode(vf, { keyFrame: f === startFrame || (f % keyInterval === 0) });
+
+        vf.close();
+
+        while (vEnc.encodeQueueSize > 3 && !cancelled && !encErr) await new Promise((r) => setTimeout(r, 4));
+
+        if ((f & 1) === 1) await new Promise((r) => setTimeout(r, 0));
+
+        const nowMs = performance.now();
+
+        if (nowMs - lastProgMs >= 100 || f === totalFrames - 1) {
+
+          lastProgMs = nowMs;
+
+          self.postMessage({ type: 'progress', pct: Math.round(((f + 1) / totalFrames) * 96), el: tSec, totalSec, frame: f + 1, totalFrames });
+
+        }
+
+      }
+
+
+
+      if (cancelled) {
+
+        try { vEnc.close(); } catch (e) {}
+
+        if (aEnc) try { aEnc.close(); } catch (e) {}
+
+        self.postMessage({ type: 'cancelled' });
+
+        return;
+
+      }
+
+      if (encErr) throw encErr;
+
+      await vEnc.flush();
+
+      vEnc.close();
+
+      if (coverBitmap && typeof coverBitmap.close === 'function') coverBitmap.close();
+
+
+
+      self.postMessage({ type: 'progress', pct: 99, el: totalSec, totalSec, finalizing: true });
+
+      const outBytes = pipe.container === 'mp4'
+
+        ? buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate: pipe.audioRate, audioCh: chCount })
+
+        : buildWebm({ width, height, totalSec, vCodecId: pipe.vCodecId, vChunks, aChunks, audioRate: pipe.audioRate, audioCh: chCount });
+
+      const mime = pipe.container === 'mp4' ? 'video/mp4' : 'video/webm';
+
+      self.postMessage({ type: 'done', buffer: outBytes.buffer, mime, ext: pipe.container, totalSec }, [outBytes.buffer]);
+
+    }`;
+
+    const blob = new Blob([src], { type: 'application/javascript' });
+
+    const url = URL.createObjectURL(blob);
+
+    const w = new Worker(url);
+
+    w._blobUrl = url;
+
+    return w;
+  }
+
+  let activeRqJob = null;
+  let rqWriteChain = Promise.resolve();
+  function queueRqWrite(fn) {
+    rqWriteChain = rqWriteChain.then(fn).catch(() => {});
+    return rqWriteChain;
+  }
+
+  async function renderAgQueueUI() {
+    const host = $('#agQueueHost');
+    if (!host) return;
+    const jobs = await rqGetAll();
+    if (!jobs.length) { host.hidden = true; host.innerHTML = ''; return; }
+    host.hidden = false;
+    host.innerHTML = '';
+    const head = document.createElement('div');
+    head.className = 'rq-queue-head';
+    head.innerHTML = `<span>Background Render Queue (${jobs.length})</span><button type="button" class="btn sm ghost" id="btnRqClearDone">Clear completed</button>`;
+    host.appendChild(head);
+    const clearBtn = head.querySelector('#btnRqClearDone');
+    if (clearBtn) {
+      clearBtn.hidden = !jobs.some((j) => j.status === 'completed' || j.status === 'failed');
+      clearBtn.onclick = async () => {
+        for (const j of jobs) {
+          if (j.status === 'completed' || j.status === 'failed') await rqDel(j.id);
+        }
+        renderAgQueueUI();
+      };
+    }
+    for (const j of jobs) {
+      const row = document.createElement('div');
+      row.className = 'rq-job-row';
+      const isCur = activeRqJob && activeRqJob.id === j.id && agRenderActive;
+      const st = isCur ? 'rendering' : j.status;
+      const pct = clamp(Math.round(isCur ? agRenderPct : (j.pct || 0)), 0, 100);
+      const badgeCls = st === 'completed' ? 'is-done' : (st === 'paused' || st === 'rendering' ? 'is-paused' : '');
+      const badgeTxt = st === 'completed' ? 'Ready' : (isCur ? `Rendering ${pct}%` : (st === 'rendering' ? `Interrupted ${pct}%` : (st === 'paused' ? `Paused ${pct}%` : 'Failed')));
+      const durTxt = fmtTime(j.totalSec || 0, true);
+      const elTxt = fmtTime(j.el || 0, true);
+      const szTxt = j.resultBlob ? ` · ${fmtBytes(j.resultBlob.size)}` : '';
+      row.innerHTML = `
+        <div class="rq-job-top">
+          <b></b>
+          <span class="rq-job-badge ${badgeCls}">${badgeTxt}</span>
+        </div>
+        <div class="rq-job-sub">${st === 'completed' ? `${j.resultName || 'video'}${szTxt} · ${durTxt}` : `${elTxt} / ${durTxt} · ${j.fps || 30} fps`}</div>
+        <div class="rq-job-bar"><i style="width:${pct}%"></i></div>
+        <div class="rq-job-acts"></div>`;
+      row.querySelector('b').textContent = (j.opts && j.opts.title) || j.title || 'Sonora Video';
+      const acts = row.querySelector('.rq-job-acts');
+      if (st === 'completed' && j.resultBlob) {
+        const dlBtn = document.createElement('button');
+        dlBtn.type = 'button'; dlBtn.className = 'btn sm primary'; dlBtn.textContent = 'Download';
+        dlBtn.onclick = () => {
+          downloadBlob(j.resultBlob, j.resultName || 'sonora-video.mp4');
+          toast(`Downloaded ${j.resultName || 'video'}`, 'ok', 2400);
+        };
+        acts.appendChild(dlBtn);
+      } else if (!isCur && (st === 'paused' || st === 'rendering' || st === 'failed') && j.channels && j.channels.length) {
+        const resBtn = document.createElement('button');
+        resBtn.type = 'button'; resBtn.className = 'btn sm primary';
+        resBtn.textContent = (j.nextFrame > 0) ? `Resume from ${pct}%` : 'Resume Export';
+        resBtn.onclick = () => resumeRenderJob(j.id);
+        acts.appendChild(resBtn);
+      }
+      if (!isCur) {
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button'; delBtn.className = 'btn sm ghost'; delBtn.textContent = 'Discard';
+        delBtn.onclick = async () => { await rqDel(j.id); renderAgQueueUI(); refreshDzRenderRecovery(); };
+        acts.appendChild(delBtn);
+      }
+      host.appendChild(row);
+    }
+  }
+
+  async function runWorkerRenderJob(jobRecord, optsUI = {}) {
+    if (agRenderActive) return toast('A video render is already running', 'info', 2200);
+    let cancelled = false;
+    let paused = false;
+    let wakeLock = null;
+    let worker = null;
+    activeRqJob = jobRecord;
+    jobRecord.status = 'rendering';
+    jobRecord.updatedAt = Date.now();
+    if (jobRecord.checkpointSafe !== false) await rqPut(jobRecord);
+
+    const setButtonsRunning = (running) => {
+      if ($('#btnRenderAudiogram')) {
+        $('#btnRenderAudiogram').disabled = running;
+        $('#btnRenderAudiogram').textContent = running ? 'Rendering video…' : 'Render & Download Video';
+      }
+      if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = !running;
+      if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = !running;
+    };
+
+    setButtonsRunning(true);
+    const startPct = clamp(Math.round(jobRecord.pct || 1), 1, 96);
+    setAgBgRenderUI(true, startPct, jobRecord.nextFrame > 0 ? `Resuming from ${startPct}%…` : 'Preparing audio & background encoder…');
+    renderAgQueueUI();
+
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+      }
+      const workerRes = await new Promise((resolve, reject) => {
+        worker = createAudiogramWorker();
+        agCancelRender = (pauseOnly) => {
+          if (pauseOnly) paused = true;
+          else cancelled = true;
+          if (worker) try { worker.postMessage({ type: 'cancel' }); } catch (e) {}
+        };
+        if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').onclick = () => { if (agCancelRender) agCancelRender(false); };
+        if ($('#bgRenderCancel')) $('#bgRenderCancel').onclick = () => { if (agCancelRender) agCancelRender(false); };
+
+        worker.onmessage = (ev) => {
+          const m = ev.data || {};
+          if (m.type === 'progress') {
+            const msg = m.finalizing ? 'Finalizing video file…' : `Rendering ${m.pct}% · ${fmtTime(m.el, true)} / ${fmtTime(m.totalSec, true)}`;
+            jobRecord.pct = m.pct; jobRecord.el = m.el;
+            setAgBgRenderUI(true, m.pct, msg);
+          } else if (m.type === 'checkpoint') {
+            if (m.vChunksBatch && m.vChunksBatch.length) {
+              if (!jobRecord.vChunks) jobRecord.vChunks = [];
+              for (const c of m.vChunksBatch) jobRecord.vChunks.push(c);
+            }
+            if (m.vDesc && !jobRecord.vDesc) jobRecord.vDesc = m.vDesc;
+            if (m.aChunksOnce && !jobRecord.aChunks) jobRecord.aChunks = m.aChunksOnce;
+            if (m.aDesc && !jobRecord.aDesc) jobRecord.aDesc = m.aDesc;
+            if (m.pipe && !jobRecord.pipe) jobRecord.pipe = m.pipe;
+            jobRecord.nextFrame = m.nextFrame;
+            jobRecord.totalFrames = m.totalFrames;
+            jobRecord.pct = m.pct;
+            jobRecord.el = m.el;
+            jobRecord.updatedAt = Date.now();
+            if (jobRecord.checkpointSafe !== false && !cancelled) {
+              const snap = { ...jobRecord };
+              queueRqWrite(() => rqPut(snap));
+            }
+          } else if (m.type === 'done') {
+            resolve({ ok: true, buffer: m.buffer, mime: m.mime });
+          } else if (m.type === 'cancelled') {
+            resolve({ cancelled: !paused, paused });
+          } else if (m.type === 'unsupported') {
+            resolve({ unsupported: true });
+          } else if (m.type === 'error') {
+            reject(new Error(m.message || 'Background video render failed'));
+          }
+        };
+        worker.onerror = (err) => reject(new Error(err.message || 'Video worker error'));
+        (async () => {
+          let coverBitmap = null;
+          if (jobRecord.coverBlob && typeof createImageBitmap === 'function') {
+            try { coverBitmap = await createImageBitmap(jobRecord.coverBlob); } catch (e) {}
+          } else if (optsUI.coverImg && typeof createImageBitmap === 'function') {
+            try { coverBitmap = await createImageBitmap(optsUI.coverImg); } catch (e) {}
+          }
+          const chCopies = jobRecord.channels.map((ch) => new Float32Array(ch));
+          const transfer = chCopies.map((ch) => ch.buffer);
+          if (coverBitmap) transfer.push(coverBitmap);
+          worker.postMessage({
+            type: 'start',
+            opts: jobRecord.opts,
+            channels: chCopies,
+            rate: jobRecord.rate,
+            fps: jobRecord.fps,
+            vBps: jobRecord.vBps,
+            pref: jobRecord.pref,
+            coverBitmap,
+            startFrame: jobRecord.nextFrame || 0,
+            initialVChunks: jobRecord.vChunks || [],
+            initialVDesc: jobRecord.vDesc || null,
+            initialAChunks: jobRecord.aChunks || null,
+            initialADesc: jobRecord.aDesc || null,
+            initialPipe: jobRecord.pipe || null,
+          }, transfer);
+        })().catch(reject);
+      });
+
+      if (workerRes.unsupported) return { unsupported: true };
+      if (workerRes.cancelled || cancelled) {
+        await rqDel(jobRecord.id);
+        toast('Video render cancelled', 'info', 2200);
+        if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
+      } else if (workerRes.paused || paused) {
+        jobRecord.status = 'paused'; jobRecord.updatedAt = Date.now();
+        await rqPut(jobRecord);
+        toast(`Saved render checkpoint at ${Math.round(jobRecord.pct || 0)}%`, 'info', 2400);
+      } else if (workerRes.ok) {
+        const blob = new Blob([workerRes.buffer], { type: workerRes.mime });
+        const ext = (workerRes.mime && workerRes.mime.includes('mp4')) ? 'mp4' : 'webm';
+        const fname = sanitizeName((jobRecord.opts && jobRecord.opts.title) || jobRecord.title || 'sonora') + '-video.' + ext;
+        jobRecord.status = 'completed';
+        jobRecord.pct = 100;
+        jobRecord.el = jobRecord.totalSec;
+        jobRecord.resultBlob = blob;
+        jobRecord.resultMime = workerRes.mime;
+        jobRecord.resultName = fname;
+        jobRecord.vChunks = [];
+        jobRecord.aChunks = [];
+        jobRecord.channels = [];
+        jobRecord.coverBlob = null;
+        jobRecord.updatedAt = Date.now();
+        await rqPut(jobRecord);
+        downloadBlob(blob, fname);
+        toast(`Exported ${fname} (${fmtBytes(blob.size)} · ${fmtTime(jobRecord.totalSec, true)})`, 'ok', 4200);
+        if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)} · ${fmtTime(jobRecord.totalSec, true)})`;
+      }
+      return { ok: true };
+    } catch (e) {
+      jobRecord.status = 'failed';
+      jobRecord.error = e.message || String(e);
+      jobRecord.updatedAt = Date.now();
+      await rqPut(jobRecord);
+      throw e;
+    } finally {
+      if (worker) {
+        try { worker.terminate(); } catch (e) {}
+        if (worker._blobUrl) try { URL.revokeObjectURL(worker._blobUrl); } catch (e) {}
+      }
+      if (wakeLock) { wakeLock.release().catch(() => {}); }
+      activeRqJob = null;
+      agCancelRender = null;
+      setAgBgRenderUI(false, 0, '');
+      setButtonsRunning(false);
+      renderAgQueueUI();
+      refreshDzRenderRecovery();
+    }
+  }
+
+  async function resumeRenderJob(jobId) {
+    if (agRenderActive) return toast('Another render is already running', 'info', 2200);
+    const job = await rqGet(jobId);
+    if (!job) return toast('Render job not found', 'info', 2000);
+    if (job.status === 'completed' && job.resultBlob) {
+      downloadBlob(job.resultBlob, job.resultName || 'sonora-video.mp4');
+      toast(`Downloaded ${job.resultName || 'video'}`, 'ok', 2400);
+      return;
+    }
+    if (!job.channels || !job.channels.length) {
+      return toast('Cannot resume: audio checkpoint missing', 'err', 2600);
+    }
+    try {
+      await runWorkerRenderJob(job);
+    } catch (e) {
+      toast('Resume failed: ' + e.message, 'err', 3600);
+    }
+  }
+
+  async function refreshDzRenderRecovery() {
+    const dz = $('#dz');
+    if (!dz) return;
+    dz.querySelectorAll('.rq-recovery-banner').forEach((n) => n.remove());
+    const jobs = await rqGetAll();
+    const pending = jobs.filter((j) => j.status === 'paused' || j.status === 'rendering' || (j.status === 'completed' && j.resultBlob));
+    for (const j of pending.slice(0, 2)) {
+      if (activeRqJob && activeRqJob.id === j.id && agRenderActive) continue;
+      const box = document.createElement('div');
+      box.className = 'restore-banner rq-recovery-banner';
+      const info = document.createElement('div');
+      info.className = 'restore-info';
+      const bTitle = document.createElement('b');
+      const pct = clamp(Math.round(j.pct || 0), 0, 100);
+      bTitle.textContent = j.status === 'completed'
+        ? `Ready to download: ${j.resultName || 'Video export'}`
+        : `Resume video export (${pct}%): ${(j.opts && j.opts.title) || j.title || 'Sonora Video'}`;
+      const sSub = document.createElement('span');
+      sSub.textContent = j.status === 'completed'
+        ? `${fmtBytes(j.resultBlob.size)} · ${fmtTime(j.totalSec || 0, true)}`
+        : `${fmtTime(j.el || 0, true)} / ${fmtTime(j.totalSec || 0, true)} saved in Background Render Queue`;
+      info.append(bTitle, sSub);
+      const btnGo = document.createElement('button');
+      btnGo.type = 'button'; btnGo.className = 'btn sm primary';
+      btnGo.textContent = j.status === 'completed' ? 'Download' : `Resume ${pct}%`;
+      btnGo.onclick = async () => {
+        if (j.status === 'completed' && j.resultBlob) {
+          downloadBlob(j.resultBlob, j.resultName || 'sonora-video.mp4');
+          toast(`Downloaded ${j.resultName || 'video'}`, 'ok', 2400);
+        } else {
+          box.remove();
+          await resumeRenderJob(j.id);
+        }
+      };
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button'; btnDel.className = 'btn icon sm ghost'; btnDel.textContent = '×';
+      btnDel.setAttribute('aria-label', 'Discard queued render');
+      btnDel.onclick = async () => { await rqDel(j.id); box.remove(); renderAgQueueUI(); };
+      box.append(info, btnGo, btnDel);
+      dz.appendChild(box);
+    }
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    if (agRenderActive) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if (activeRqJob && agRenderActive) {
+      activeRqJob.status = 'paused';
+      activeRqJob.updatedAt = Date.now();
+      rqPut(activeRqJob);
+    }
+  });
+
   async function openAudiogramModal() {
     if (!hasAudio) return toast('Open an audio file first', 'info');
     const canWebCodecs = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
@@ -30199,7 +33007,6 @@ self.onmessage = function (e) {
           <div class="field"><label>Visualizer</label>
             <div class="ag-chip-row" id="agVizRow">
               <button type="button" class="ag-chip" data-ag-viz="bars" aria-pressed="true">Spectrum Bars</button>
-              <button type="button" class="ag-chip" data-ag-viz="orbital" aria-pressed="false">Orbital Ring</button>
               <button type="button" class="ag-chip" data-ag-viz="wave" aria-pressed="false">Liquid Wave</button>
               <button type="button" class="ag-chip" data-ag-viz="mirror" aria-pressed="false">Mirror Bars</button>
               <button type="button" class="ag-chip" data-ag-viz="minimal" aria-pressed="false">Minimal</button>
@@ -30261,10 +33068,11 @@ self.onmessage = function (e) {
               <option value="webm">WebM (VP9 / Opus)</option>
             </select>
           </div>
-          <label class="checkrow"><input type="checkbox" id="agFade"><span>Smooth 120 ms audio fade-in &amp; fade-out</span></label>
           <label class="checkrow"><input type="checkbox" id="agStudio" checked><span>Include Track 2 mix &amp; live FX rack</span></label>
+          <label class="checkrow"><input type="checkbox" id="agAutoResume" checked><span>Resume-safe checkpoints (save progress if tab closes)</span></label>
         </div>
 
+        <div id="agQueueHost" class="rq-queue-box" hidden></div>
         <div class="prog" id="agProg"><i></i></div>
         <div class="ag-actions">
           <button type="button" class="btn primary" id="btnRenderAudiogram">Render &amp; Download Video</button>
@@ -30277,6 +33085,7 @@ self.onmessage = function (e) {
     $('#modal').classList.add('on');
     $('#scrim').classList.add('on');
     $('#modalClose').focus();
+    renderAgQueueUI();
 
     if (agRenderActive) {
       $('#btnRenderAudiogram').disabled = true;
@@ -30477,734 +33286,6 @@ self.onmessage = function (e) {
     cancelAnimationFrame(agAnimRaf);
     redrawPreview();
 
-    function _ebmlReadVintSize(u8, pos) {
-      if (pos >= u8.length) return null;
-      const b0 = u8[pos];
-      if (!b0) return null;
-      let len = 1, mask = 0x80;
-      while (len <= 8 && !(b0 & mask)) { mask >>= 1; len++; }
-      if (len > 8 || pos + len > u8.length) return null;
-      let val = b0 & (mask - 1), allOnes = (val === (mask - 1));
-      for (let i = 1; i < len; i++) {
-        const b = u8[pos + i];
-        if (b !== 0xff) allOnes = false;
-        val = val * 256 + b;
-      }
-      return { val: allOnes ? null : val, len, unknown: allOnes };
-    }
-    function _ebmlWriteVintSize(u8, pos, len, val) {
-      let v = Math.max(0, Math.floor(val));
-      for (let i = len - 1; i >= 0; i--) {
-        u8[pos + i] = v & 0xff;
-        v = Math.floor(v / 256);
-      }
-      u8[pos] |= (1 << (8 - len));
-    }
-    function _ebmlReadId(u8, pos) {
-      if (pos >= u8.length) return null;
-      const b0 = u8[pos];
-      if (!b0) return null;
-      let len = 1, mask = 0x80;
-      while (len <= 4 && !(b0 & mask)) { mask >>= 1; len++; }
-      if (len > 4 || pos + len > u8.length) return null;
-      let id = 0;
-      for (let i = 0; i < len; i++) id = id * 256 + u8[pos + i];
-      return { id, len };
-    }
-    function fixWebmDuration(u8, durationMs) {
-      try {
-        if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
-        let pos = 0;
-        const ebml = _ebmlReadId(u8, pos);
-        if (!ebml || ebml.id !== 0x1A45DFA3) return u8;
-        const ebmlSz = _ebmlReadVintSize(u8, pos + ebml.len);
-        if (!ebmlSz || ebmlSz.unknown) return u8;
-        pos += ebml.len + ebmlSz.len + ebmlSz.val;
-        const seg = _ebmlReadId(u8, pos);
-        if (!seg || seg.id !== 0x18538067) return u8;
-        const segSizeStart = pos + seg.len;
-        const segSz = _ebmlReadVintSize(u8, segSizeStart);
-        if (!segSz) return u8;
-        const segDataStart = segSizeStart + segSz.len;
-        const segLimit = segSz.unknown ? u8.length : Math.min(u8.length, segDataStart + segSz.val);
-
-        let p = segDataStart;
-        let infoStart = -1, infoSizeStart = -1, infoSizeLen = 0, infoDataStart = -1, infoSizeVal = 0;
-        const seekHeads = [];
-        while (p < segLimit) {
-          const el = _ebmlReadId(u8, p);
-          if (!el) break;
-          const sz = _ebmlReadVintSize(u8, p + el.len);
-          if (!sz) break;
-          const dStart = p + el.len + sz.len;
-          if (el.id === 0x1F43B675) break;
-          if (el.id === 0x114D9B74 && !sz.unknown) seekHeads.push({ dStart, dEnd: dStart + sz.val });
-          if (el.id === 0x1549A966 && !sz.unknown) {
-            infoStart = p; infoSizeStart = p + el.len; infoSizeLen = sz.len;
-            infoDataStart = dStart; infoSizeVal = sz.val;
-            break;
-          }
-          if (sz.unknown) break;
-          p = dStart + sz.val;
-        }
-        if (infoStart < 0) return u8;
-        const infoDataEnd = Math.min(u8.length, infoDataStart + infoSizeVal);
-        let timecodeScale = 1000000;
-        let durElemDataStart = -1, durElemLen = 0;
-        let ip = infoDataStart;
-        while (ip < infoDataEnd) {
-          const el = _ebmlReadId(u8, ip);
-          if (!el) break;
-          const sz = _ebmlReadVintSize(u8, ip + el.len);
-          if (!sz || sz.unknown) break;
-          const dStart = ip + el.len + sz.len;
-          if (el.id === 0x2AD7B1 && sz.val > 0 && sz.val <= 8) {
-            let ts = 0;
-            for (let i = 0; i < sz.val; i++) ts = ts * 256 + u8[dStart + i];
-            if (ts > 0) timecodeScale = ts;
-          } else if (el.id === 0x4489) {
-            durElemDataStart = dStart; durElemLen = sz.val;
-          }
-          ip = dStart + sz.val;
-        }
-        const durUnits = (durationMs * 1000000) / timecodeScale;
-        if (durElemDataStart >= 0 && (durElemLen === 4 || durElemLen === 8)) {
-          const out = u8.slice();
-          const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
-          if (durElemLen === 8) dv.setFloat64(durElemDataStart, durUnits, false);
-          else dv.setFloat32(durElemDataStart, durUnits, false);
-          return out;
-        }
-        const durEl = new Uint8Array(11);
-        durEl[0] = 0x44; durEl[1] = 0x89; durEl[2] = 0x88;
-        new DataView(durEl.buffer).setFloat64(3, durUnits, false);
-        const newInfoVal = infoSizeVal + 11;
-        let newInfoSizeLen = infoSizeLen;
-        while (newInfoSizeLen < 8 && newInfoVal >= (Math.pow(2, 7 * newInfoSizeLen) - 1)) newInfoSizeLen++;
-        const delta = 11 + (newInfoSizeLen - infoSizeLen);
-        const out = new Uint8Array(u8.length + delta);
-        out.set(u8.subarray(0, infoSizeStart), 0);
-        _ebmlWriteVintSize(out, infoSizeStart, newInfoSizeLen, newInfoVal);
-        const newInfoDataStart = infoSizeStart + newInfoSizeLen;
-        out.set(u8.subarray(infoDataStart, infoDataEnd), newInfoDataStart);
-        out.set(durEl, newInfoDataStart + infoSizeVal);
-        out.set(u8.subarray(infoDataEnd), newInfoDataStart + infoSizeVal + 11);
-        if (!segSz.unknown) {
-          const newSegVal = segSz.val + delta;
-          if (newSegVal < (Math.pow(2, 7 * segSz.len) - 1)) _ebmlWriteVintSize(out, segSizeStart, segSz.len, newSegVal);
-        }
-        const infoRelEnd = infoDataEnd - segDataStart;
-        for (const sh of seekHeads) {
-          let sp = sh.dStart;
-          while (sp < sh.dEnd) {
-            const se = _ebmlReadId(out, sp); if (!se) break;
-            const ss = _ebmlReadVintSize(out, sp + se.len); if (!ss || ss.unknown) break;
-            const sd = sp + se.len + ss.len;
-            if (se.id === 0x4DBB) {
-              let cp = sd, cEnd = sd + ss.val;
-              while (cp < cEnd) {
-                const ce = _ebmlReadId(out, cp); if (!ce) break;
-                const cs = _ebmlReadVintSize(out, cp + ce.len); if (!cs || cs.unknown) break;
-                const cd = cp + ce.len + cs.len;
-                if (ce.id === 0x53AC && cs.val > 0 && cs.val <= 8) {
-                  let sv = 0;
-                  for (let i = 0; i < cs.val; i++) sv = sv * 256 + out[cd + i];
-                  if (sv >= infoRelEnd) {
-                    let nv = sv + delta;
-                    for (let i = cs.val - 1; i >= 0; i--) { out[cd + i] = nv & 0xff; nv = Math.floor(nv / 256); }
-                  }
-                }
-                cp = cd + cs.val;
-              }
-            }
-            sp = sd + ss.val;
-          }
-        }
-        return out;
-      } catch (e) { return u8; }
-    }
-    function fixMp4Duration(u8, durationMs) {
-      try {
-        if (!u8 || u8.length < 32 || durationMs <= 0) return u8;
-        const out = u8.slice();
-        const dv = new DataView(out.buffer, out.byteOffset, out.byteLength);
-        const readBox = (start, limit) => {
-          if (start + 8 > limit) return null;
-          let size = dv.getUint32(start, false);
-          const type = String.fromCharCode(out[start + 4], out[start + 5], out[start + 6], out[start + 7]);
-          let hdr = 8;
-          if (size === 1) {
-            if (start + 16 > limit) return null;
-            size = Number(dv.getBigUint64(start + 8, false));
-            hdr = 16;
-          } else if (size === 0) {
-            size = limit - start;
-          }
-          if (size < hdr || start + size > limit) return null;
-          return { type, dStart: start + hdr, end: start + size };
-        };
-        let mvhdTs = 1000;
-        const findMvhdTs = (start, limit) => {
-          let p = start;
-          while (p < limit) {
-            const box = readBox(p, limit); if (!box) break;
-            if (box.type === 'moov') findMvhdTs(box.dStart, box.end);
-            else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
-              const ver = out[box.dStart];
-              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
-              if (tsOff + 4 <= box.end) mvhdTs = dv.getUint32(tsOff, false) || 1000;
-            }
-            p = box.end;
-          }
-        };
-        findMvhdTs(0, out.length);
-        const walk = (start, limit) => {
-          let p = start;
-          while (p < limit) {
-            const box = readBox(p, limit);
-            if (!box) break;
-            if (box.type === 'moov' || box.type === 'trak' || box.type === 'mdia' || box.type === 'mvex') {
-              walk(box.dStart, box.end);
-            } else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
-              const ver = out[box.dStart];
-              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
-              const durOff = box.dStart + (ver === 1 ? 24 : 16);
-              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
-                const ts = dv.getUint32(tsOff, false) || 1000;
-                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0 || cur === 0xffffffff) {
-                  const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
-                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
-                  else dv.setUint32(durOff, nd, false);
-                }
-              }
-            } else if (box.type === 'tkhd' && box.end - box.dStart >= 24) {
-              const ver = out[box.dStart];
-              const durOff = box.dStart + (ver === 1 ? 28 : 20);
-              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
-                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0 || cur === 0xffffffff) {
-                  const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
-                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
-                  else dv.setUint32(durOff, nd, false);
-                }
-              }
-            } else if (box.type === 'mdhd' && box.end - box.dStart >= 20) {
-              const ver = out[box.dStart];
-              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
-              const durOff = box.dStart + (ver === 1 ? 24 : 16);
-              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
-                const ts = dv.getUint32(tsOff, false) || 1000;
-                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0 || cur === 0xffffffff) {
-                  const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
-                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
-                  else dv.setUint32(durOff, nd, false);
-                }
-              }
-            } else if (box.type === 'mehd' && box.end - box.dStart >= 8) {
-              const ver = out[box.dStart];
-              const durOff = box.dStart + 4;
-              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
-                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0 || cur === 0xffffffff) {
-                  const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
-                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
-                  else dv.setUint32(durOff, nd, false);
-                }
-              }
-            }
-            p = box.end;
-          }
-        };
-        walk(0, out.length);
-        return out;
-      } catch (e) { return u8; }
-    }
-    async function fixVideoContainerDuration(blob, mime, durationMs) {
-      try {
-        if (!blob || !blob.size || durationMs <= 0) return blob;
-        const u8 = new Uint8Array(await blob.arrayBuffer());
-        const isMp4 = (mime && mime.includes('mp4')) || (u8.length > 8 && u8[4] === 0x66 && u8[5] === 0x74 && u8[6] === 0x79 && u8[7] === 0x70);
-        const patched = isMp4 ? fixMp4Duration(u8, durationMs) : fixWebmDuration(u8, durationMs);
-        return new Blob([patched], { type: mime || blob.type || (isMp4 ? 'video/mp4' : 'video/webm') });
-      } catch (e) { return blob; }
-    }
-
-    function createAudiogramWorker() {
-      const src = `'use strict';
-      const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-      const agParticlesSeed = ${JSON.stringify(agParticlesSeed)};
-      ${fmtTime.toString()}
-      ${roundRect.toString()}
-      ${agActiveCaption.toString()}
-      ${drawAudiogramFrame.toString()}
-
-      let cancelled = false;
-      self.onmessage = (e) => {
-        if (e.data && e.data.type === 'cancel') { cancelled = true; return; }
-        if (e.data && e.data.type === 'start') runJob(e.data).catch((err) => self.postMessage({ type: 'error', message: err && err.message || String(err) }));
-      };
-
-      function resampleChannels(channels, inRate, outRate) {
-        if (inRate === outRate) return channels;
-        const ratio = inRate / outRate;
-        const outLen = Math.max(1, Math.round(channels[0].length / ratio));
-        return channels.map((ch) => {
-          const dst = new Float32Array(outLen);
-          const maxI = ch.length - 1;
-          for (let i = 0; i < outLen; i++) {
-            const p = i * ratio;
-            const i0 = p | 0;
-            const f = p - i0;
-            const s0 = ch[i0 <= maxI ? i0 : maxI];
-            const s1 = ch[i0 + 1 <= maxI ? i0 + 1 : maxI];
-            dst[i] = s0 + (s1 - s0) * f;
-          }
-          return dst;
-        });
-      }
-
-      // Fast 256-point Hann-windowed FFT for smooth spectrum bins
-      const FFT_N = 256;
-      const hann = new Float32Array(FFT_N);
-      const rev = new Uint8Array(FFT_N);
-      const cosT = new Float32Array(FFT_N / 2), sinT = new Float32Array(FFT_N / 2);
-      for (let i = 0; i < FFT_N; i++) {
-        hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_N - 1)));
-        let r = 0, x = i;
-        for (let b = 0; b < 8; b++) { r = (r << 1) | (x & 1); x >>= 1; }
-        rev[i] = r;
-      }
-      for (let i = 0; i < FFT_N / 2; i++) {
-        cosT[i] = Math.cos((-2 * Math.PI * i) / FFT_N);
-        sinT[i] = Math.sin((-2 * Math.PI * i) / FFT_N);
-      }
-      const fftRe = new Float32Array(FFT_N), fftIm = new Float32Array(FFT_N);
-      function computeBins(channels, rate, tSec, smoothOut) {
-        const ch0 = channels[0], ch1 = channels[1] || ch0;
-        const center = Math.floor(tSec * rate);
-        const start = Math.max(0, Math.min(ch0.length - FFT_N, center - (FFT_N >> 1)));
-        for (let i = 0; i < FFT_N; i++) {
-          const idx = rev[i];
-          const s = start + idx < ch0.length ? 0.5 * (ch0[start + idx] + ch1[start + idx]) : 0;
-          fftRe[i] = s * hann[idx];
-          fftIm[i] = 0;
-        }
-        for (let size = 2; size <= FFT_N; size <<= 1) {
-          const half = size >> 1;
-          const step = FFT_N / size;
-          for (let i = 0; i < FFT_N; i += size) {
-            for (let j = 0; j < half; j++) {
-              const k = j * step;
-              const wr = cosT[k], wi = sinT[k];
-              const tr = wr * fftRe[i + j + half] - wi * fftIm[i + j + half];
-              const ti = wr * fftIm[i + j + half] + wi * fftRe[i + j + half];
-              fftRe[i + j + half] = fftRe[i + j] - tr;
-              fftIm[i + j + half] = fftIm[i + j] - ti;
-              fftRe[i + j] += tr;
-              fftIm[i + j] += ti;
-            }
-          }
-        }
-        for (let i = 0; i < 128; i++) {
-          const mag = Math.hypot(fftRe[i], fftIm[i]) / (FFT_N * 0.5);
-          const db = 20 * Math.log10(mag + 1e-6);
-          const norm = clamp((db + 92) / 68, 0, 1) * 255;
-          smoothOut[i] = Math.round(smoothOut[i] * 0.72 + norm * 0.28);
-        }
-        return smoothOut;
-      }
-
-      function normalizeAvcChunks(vChunks, vDesc) {
-        const hasDesc = vDesc && vDesc.length >= 7 && vDesc[0] === 1;
-        const isAnnexB = (d) => d.length >= 4 && ((d[0] === 0 && d[1] === 0 && d[2] === 0 && d[3] === 1) || (d[0] === 0 && d[1] === 0 && d[2] === 1));
-        const splitAnnexB = (d) => {
-          const nalus = [];
-          let i = 0;
-          const findStart = (from) => {
-            for (let p = from; p + 3 < d.length; p++) {
-              if (d[p] === 0 && d[p + 1] === 0) {
-                if (d[p + 2] === 1) return { idx: p, len: 3 };
-                if (p + 3 < d.length && d[p + 2] === 0 && d[p + 3] === 1) return { idx: p, len: 4 };
-              }
-            }
-            return null;
-          };
-          let st = findStart(0);
-          while (st) {
-            const nStart = st.idx + st.len;
-            const next = findStart(nStart);
-            const nEnd = next ? next.idx : d.length;
-            if (nEnd > nStart) nalus.push(d.subarray(nStart, nEnd));
-            st = next;
-          }
-          return nalus;
-        };
-        let sps = null, pps = null;
-        let needConvert = !hasDesc || (vChunks.length && isAnnexB(vChunks[0].data));
-        if (needConvert) {
-          for (const c of vChunks) {
-            if (isAnnexB(c.data)) {
-              const nalus = splitAnnexB(c.data);
-              const outNalus = [];
-              for (const n of nalus) {
-                const nt = n[0] & 0x1f;
-                if (nt === 7 && !sps) sps = n.slice();
-                else if (nt === 8 && !pps) pps = n.slice();
-                else if (nt !== 9) outNalus.push(n);
-              }
-              let tot = 0; for (const n of outNalus) tot += 4 + n.length;
-              const avcc = new Uint8Array(tot);
-              let off = 0;
-              for (const n of outNalus) {
-                const l = n.length;
-                avcc[off] = (l >>> 24) & 255; avcc[off + 1] = (l >>> 16) & 255;
-                avcc[off + 2] = (l >>> 8) & 255; avcc[off + 3] = l & 255;
-                avcc.set(n, off + 4); off += 4 + l;
-              }
-              c.data = avcc;
-            }
-          }
-        }
-        let desc = hasDesc ? vDesc : null;
-        if (!desc && sps && pps) {
-          desc = new Uint8Array(11 + sps.length + pps.length);
-          desc[0] = 1; desc[1] = sps[1] || 0x42; desc[2] = sps[2] || 0xe0; desc[3] = sps[3] || 0x1e;
-          desc[4] = 0xff; desc[5] = 0xe1;
-          desc[6] = (sps.length >> 8) & 255; desc[7] = sps.length & 255;
-          desc.set(sps, 8);
-          const pOff = 8 + sps.length;
-          desc[pOff] = 1; desc[pOff + 1] = (pps.length >> 8) & 255; desc[pOff + 2] = pps.length & 255;
-          desc.set(pps, pOff + 3);
-        }
-        return desc;
-      }
-
-      function buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate, audioCh }) {
-        const te = new TextEncoder();
-        const u32 = (v) => new Uint8Array([(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]);
-        const u16 = (v) => new Uint8Array([(v >>> 8) & 255, v & 255]);
-        const concat = (...parts) => {
-          let total = 0; for (const p of parts) total += p.length;
-          const out = new Uint8Array(total);
-          let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
-          return out;
-        };
-        const box = (type, ...payloads) => {
-          const body = concat(...payloads);
-          return concat(u32(8 + body.length), te.encode(type), body);
-        };
-        const fullBox = (type, ver, flags, ...payloads) => {
-          const vf = new Uint8Array([ver & 255, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]);
-          return box(type, vf, ...payloads);
-        };
-        const avcDesc = normalizeAvcChunks(vChunks, vDesc);
-        if (!avcDesc) throw new Error('Missing H.264 decoder config');
-
-        const ftyp = box('ftyp', te.encode('isom'), u32(512), te.encode('isom'), te.encode('iso2'), te.encode('avc1'), te.encode('mp41'));
-        let mdatPayloadLen = 0;
-        for (const c of vChunks) mdatPayloadLen += c.data.length;
-        for (const c of aChunks) mdatPayloadLen += c.data.length;
-        const mdatHdr = concat(u32(8 + mdatPayloadLen), te.encode('mdat'));
-        const mdatDataStart = ftyp.length + 8;
-
-        const vOffsets = [], aOffsets = [];
-        let cursor = mdatDataStart;
-        for (const c of vChunks) { vOffsets.push(cursor); cursor += c.data.length; }
-        for (const c of aChunks) { aOffsets.push(cursor); cursor += c.data.length; }
-
-        const durMs = Math.max(1, Math.round(totalSec * 1000));
-        const unityMatrix = concat(u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000));
-        const hasAudio = aChunks.length > 0;
-        const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(durMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(hasAudio ? 3 : 2));
-
-        const buildStts = (durs) => {
-          const entries = [];
-          for (const d of durs) {
-            const dd = Math.max(1, Math.round(d));
-            if (entries.length && entries[entries.length - 1][1] === dd) entries[entries.length - 1][0]++;
-            else entries.push([1, dd]);
-          }
-          const parts = [u32(entries.length)];
-          for (const [cnt, dd] of entries) parts.push(u32(cnt), u32(dd));
-          return fullBox('stts', 0, 0, ...parts);
-        };
-        const buildStsz = (chunks) => {
-          const buf = new Uint8Array(8 + chunks.length * 4);
-          const dv = new DataView(buf.buffer);
-          dv.setUint32(0, 0, false); dv.setUint32(4, chunks.length, false);
-          for (let i = 0; i < chunks.length; i++) dv.setUint32(8 + i * 4, chunks[i].data.length, false);
-          return fullBox('stsz', 0, 0, buf);
-        };
-        const buildStco = (offsets) => {
-          const buf = new Uint8Array(4 + offsets.length * 4);
-          const dv = new DataView(buf.buffer);
-          dv.setUint32(0, offsets.length, false);
-          for (let i = 0; i < offsets.length; i++) dv.setUint32(4 + i * 4, offsets[i], false);
-          return fullBox('stco', 0, 0, buf);
-        };
-        const dinf = box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1)));
-
-        const vTimescale = 90000;
-        const vDurs = vChunks.map((c, i) => {
-          if (i + 1 < vChunks.length) return Math.max(1, Math.round(((vChunks[i + 1].timestamp - c.timestamp) / 1e6) * vTimescale));
-          return Math.max(1, Math.round(((c.duration || (1e6 / fps)) / 1e6) * vTimescale));
-        });
-        const vTotalDur = vDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * vTimescale);
-        const vTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), unityMatrix, u32((width & 0xffff) << 16), u32((height & 0xffff) << 16));
-        const vMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(vTimescale), u32(vTotalDur), u16(0x55c4), u16(0));
-        const vHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('vide'), new Uint8Array(12), te.encode('VideoHandler\\0'));
-        const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), new Uint8Array(32), u16(0x0018), new Uint8Array([0xff, 0xff]), box('avcC', avcDesc));
-        const vStsd = fullBox('stsd', 0, 0, u32(1), avc1);
-        const syncIdx = [];
-        for (let i = 0; i < vChunks.length; i++) if (vChunks[i].key) syncIdx.push(i + 1);
-        if (!syncIdx.length && vChunks.length) syncIdx.push(1);
-        const stssBuf = new Uint8Array(4 + syncIdx.length * 4);
-        const stssDv = new DataView(stssBuf.buffer);
-        stssDv.setUint32(0, syncIdx.length, false);
-        for (let i = 0; i < syncIdx.length; i++) stssDv.setUint32(4 + i * 4, syncIdx[i], false);
-        const vStbl = box('stbl', vStsd, buildStts(vDurs), fullBox('stss', 0, 0, stssBuf), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(vChunks), buildStco(vOffsets));
-        const vTrak = box('trak', vTkhd, box('mdia', vMdhd, vHdlr, box('minf', fullBox('vmhd', 0, 1, new Uint8Array(8)), dinf, vStbl)));
-
-        const traks = [vTrak];
-        if (hasAudio) {
-          const aDurs = aChunks.map((c, i) => {
-            if (i + 1 < aChunks.length) return Math.max(1, Math.round(((aChunks[i + 1].timestamp - c.timestamp) / 1e6) * audioRate));
-            return Math.max(1, Math.round(((c.duration || (1024e6 / audioRate)) / 1e6) * audioRate));
-          });
-          const aTotalDur = aDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * audioRate);
-          const aTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(2), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0x0100), u16(0), unityMatrix, u32(0), u32(0));
-          const aMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(audioRate), u32(aTotalDur), u16(0x55c4), u16(0));
-          const aHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('soun'), new Uint8Array(12), te.encode('SoundHandler\\0'));
-          const srTable = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
-          const srIdx = Math.max(0, srTable.indexOf(audioRate));
-          const asc = (aDesc && aDesc.length >= 2) ? aDesc : new Uint8Array([(2 << 3) | (srIdx >> 1), ((srIdx & 1) << 7) | (audioCh << 3)]);
-          const tag05 = concat(new Uint8Array([0x05, asc.length]), asc);
-          const tag04 = concat(new Uint8Array([0x04, 13 + tag05.length, 0x40, 0x15, 0, 0, 0]), u32(192000), u32(192000), tag05);
-          const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
-          const tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
-          const mp4a = box('mp4a', new Uint8Array(6), u16(1), new Uint8Array(8), u16(audioCh), u16(16), u16(0), u16(0), u32((audioRate & 0xffff) << 16), fullBox('esds', 0, 0, tag03));
-          const aStbl = box('stbl', fullBox('stsd', 0, 0, u32(1), mp4a), buildStts(aDurs), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(aChunks), buildStco(aOffsets));
-          traks.push(box('trak', aTkhd, box('mdia', aMdhd, aHdlr, box('minf', fullBox('smhd', 0, 0, new Uint8Array(4)), dinf, aStbl))));
-        }
-
-        const moov = box('moov', mvhd, ...traks);
-        const out = new Uint8Array(ftyp.length + mdatHdr.length + mdatPayloadLen + moov.length);
-        let p = 0;
-        out.set(ftyp, p); p += ftyp.length;
-        out.set(mdatHdr, p); p += mdatHdr.length;
-        for (const c of vChunks) { out.set(c.data, p); p += c.data.length; }
-        for (const c of aChunks) { out.set(c.data, p); p += c.data.length; }
-        out.set(moov, p);
-        return out;
-      }
-
-      function buildWebm({ width, height, totalSec, vCodecId, vChunks, aChunks, audioRate, audioCh }) {
-        const te = new TextEncoder();
-        const concat = (...parts) => {
-          let total = 0; for (const p of parts) total += p.length;
-          const out = new Uint8Array(total);
-          let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
-          return out;
-        };
-        const vintSize = (val) => {
-          let len = 1;
-          while (len < 8 && val >= (Math.pow(2, 7 * len) - 1)) len++;
-          const out = new Uint8Array(len);
-          let v = val;
-          for (let i = len - 1; i >= 0; i--) { out[i] = v & 0xff; v = Math.floor(v / 256); }
-          out[0] |= (1 << (8 - len));
-          return out;
-        };
-        const idBytes = (id) => {
-          if (id <= 0xff) return new Uint8Array([id]);
-          if (id <= 0xffff) return new Uint8Array([(id >>> 8) & 0xff, id & 0xff]);
-          if (id <= 0xffffff) return new Uint8Array([(id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
-          return new Uint8Array([(id >>> 24) & 0xff, (id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
-        };
-        const el = (id, ...payloads) => {
-          const body = payloads.length === 1 ? payloads[0] : concat(...payloads);
-          return concat(idBytes(id), vintSize(body.length), body);
-        };
-        const elUint = (id, v) => {
-          const bytes = []; let n = Math.max(0, Math.floor(v));
-          do { bytes.unshift(n & 0xff); n = Math.floor(n / 256); } while (n > 0);
-          return el(id, new Uint8Array(bytes));
-        };
-        const elFloat64 = (id, v) => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat64(0, v, false); return el(id, b); };
-        const elStr = (id, s) => el(id, te.encode(s));
-
-        const ebml = el(0x1A45DFA3, elUint(0x4286, 1), elUint(0x42F7, 1), elUint(0x42F2, 4), elUint(0x42F3, 8), elStr(0x4282, 'webm'), elUint(0x4287, 2), elUint(0x4285, 2));
-        const info = el(0x1549A966, elUint(0x2AD7B1, 1000000), elStr(0x4D80, 'Sonora'), elStr(0x5741, 'Sonora'), elFloat64(0x4489, Math.max(1, totalSec * 1000)));
-        const trackEntries = [el(0xAE, elUint(0xD7, 1), elUint(0x73C5, 1), elUint(0x83, 1), elStr(0x86, vCodecId || 'V_VP8'), el(0xE0, elUint(0xB0, width), elUint(0xBA, height)))];
-        if (aChunks.length) {
-          const opusHead = new Uint8Array(19);
-          opusHead.set(te.encode('OpusHead'), 0);
-          opusHead[8] = 1; opusHead[9] = audioCh; opusHead[10] = 0x38; opusHead[11] = 0x01;
-          new DataView(opusHead.buffer).setUint32(12, audioRate, true);
-          trackEntries.push(el(0xAE, elUint(0xD7, 2), elUint(0x73C5, 2), elUint(0x83, 2), elStr(0x86, 'A_OPUS'), el(0x63A2, opusHead), el(0xE1, elFloat64(0xB5, audioRate), elUint(0x9F, audioCh))));
-        }
-        const tracks = el(0x1654AE6B, ...trackEntries);
-
-        const all = [];
-        for (const c of vChunks) all.push({ tr: 1, tMs: Math.round(c.timestamp / 1000), key: !!c.key, data: c.data });
-        for (const c of aChunks) all.push({ tr: 2, tMs: Math.round(c.timestamp / 1000), key: true, data: c.data });
-        all.sort((a, b) => a.tMs - b.tMs || a.tr - b.tr);
-
-        const clusters = []; let curItems = [], curT0 = 0;
-        const flushCluster = () => {
-          if (!curItems.length) return;
-          const blocks = [elUint(0xE7, curT0)];
-          for (const item of curItems) {
-            const rel = clamp(item.tMs - curT0, -32768, 32767);
-            const hdr = new Uint8Array([0x80 | item.tr, (rel >> 8) & 0xff, rel & 0xff, item.key ? 0x80 : 0x00]);
-            blocks.push(el(0xA3, hdr, item.data));
-          }
-          clusters.push(el(0x1F43B675, ...blocks));
-          curItems = [];
-        };
-        for (const item of all) {
-          if (!curItems.length) curT0 = item.tMs;
-          else if ((item.tMs - curT0 >= 2000 && item.tr === 1 && item.key) || (item.tMs - curT0 >= 10000)) { flushCluster(); curT0 = item.tMs; }
-          curItems.push(item);
-        }
-        flushCluster();
-        return concat(ebml, el(0x18538067, info, tracks, ...clusters));
-      }
-
-      async function pickSupportedPipeline(width, height, fps, vBps, chCount, pref) {
-        const mp4Order = async () => {
-          for (const vc of ['avc1.4D4028', 'avc1.4D401F', 'avc1.42E01E', 'avc1.640028']) {
-            try {
-              const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps, avc: { format: 'avc' } });
-              if (!vSup || !vSup.supported) continue;
-              for (const sr of [48000, 44100]) {
-                const aSup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: chCount, bitrate: 192000 });
-                if (aSup && aSup.supported) return { container: 'mp4', vCodec: vc, aCodec: 'mp4a.40.2', audioRate: sr };
-              }
-            } catch (e) {}
-          }
-          return null;
-        };
-        const webmOrder = async () => {
-          for (const [vc, cid] of [['vp09.00.10.08', 'V_VP9'], ['vp8', 'V_VP8']]) {
-            try {
-              const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps });
-              if (!vSup || !vSup.supported) continue;
-              const aSup = await AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 48000, numberOfChannels: chCount, bitrate: 128000 });
-              if (aSup && aSup.supported) return { container: 'webm', vCodec: vc, vCodecId: cid, aCodec: 'opus', audioRate: 48000 };
-            } catch (e) {}
-          }
-          return null;
-        };
-        if (pref === 'webm') return (await webmOrder()) || (await mp4Order());
-        return (await mp4Order()) || (await webmOrder());
-      }
-
-      async function runJob(job) {
-        if (typeof OffscreenCanvas === 'undefined' || typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
-          self.postMessage({ type: 'unsupported' }); return;
-        }
-        const { opts, channels, rate, fps, vBps, pref, coverBitmap } = job;
-        const tmpCv = new OffscreenCanvas(16, 16);
-        opts.coverImg = coverBitmap || null;
-        opts.bgVideo = null;
-        opts.peakHold = new Float32Array(64);
-        opts.tSec = 0; opts.progress = 0; opts.bins = null;
-        drawAudiogramFrame(tmpCv, opts);
-        const width = tmpCv.width, height = tmpCv.height;
-        const chCount = channels.length;
-        const totalSec = channels[0].length / rate;
-
-        const pipe = await pickSupportedPipeline(width, height, fps, vBps, chCount, pref);
-        if (!pipe) { self.postMessage({ type: 'unsupported' }); return; }
-
-        const vChunks = [], aChunks = [];
-        let vDesc = null, aDesc = null, encErr = null;
-        const vEnc = new VideoEncoder({
-          output: (chunk, meta) => {
-            const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
-            vChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration, key: chunk.type === 'key' });
-            if (!vDesc && meta && meta.decoderConfig && meta.decoderConfig.description) vDesc = new Uint8Array(meta.decoderConfig.description);
-          },
-          error: (err) => { encErr = err; }
-        });
-        const vCfg = { codec: pipe.vCodec, width, height, bitrate: vBps, framerate: fps };
-        if (pipe.container === 'mp4') vCfg.avc = { format: 'avc' };
-        vEnc.configure(vCfg);
-
-        const aEnc = new AudioEncoder({
-          output: (chunk, meta) => {
-            const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
-            aChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration });
-            if (!aDesc && meta && meta.decoderConfig && meta.decoderConfig.description) aDesc = new Uint8Array(meta.decoderConfig.description);
-          },
-          error: (err) => { encErr = err; }
-        });
-        aEnc.configure({ codec: pipe.aCodec, sampleRate: pipe.audioRate, numberOfChannels: chCount, bitrate: pipe.container === 'mp4' ? 192000 : 128000 });
-
-        // 1. Encode all audio chunks cleanly
-        const pcmA = resampleChannels(channels, rate, pipe.audioRate);
-        const totalASamples = pcmA[0].length;
-        const aBlock = 4096;
-        for (let pos = 0; pos < totalASamples && !cancelled && !encErr; pos += aBlock) {
-          const n = Math.min(aBlock, totalASamples - pos);
-          const planar = new Float32Array(n * chCount);
-          for (let ch = 0; ch < chCount; ch++) planar.set(pcmA[ch].subarray(pos, pos + n), ch * n);
-          const ad = new AudioData({ format: 'f32-planar', sampleRate: pipe.audioRate, numberOfFrames: n, numberOfChannels: chCount, timestamp: Math.round((pos / pipe.audioRate) * 1e6), data: planar });
-          aEnc.encode(ad);
-          ad.close();
-          if (aEnc.encodeQueueSize > 8) await new Promise((r) => setTimeout(r, 2));
-        }
-
-        // 2. Render & encode video frames faster than real-time
-        const totalFrames = Math.max(1, Math.round(totalSec * fps));
-        const frameDurUs = Math.round(1e6 / fps);
-        const smoothBins = new Uint8Array(128);
-        let lastProgMs = 0;
-        for (let f = 0; f < totalFrames && !cancelled && !encErr; f++) {
-          const tSec = Math.min(totalSec, f / fps);
-          opts.tSec = tSec;
-          opts.progress = totalFrames > 1 ? f / (totalFrames - 1) : 1;
-          opts.bins = computeBins(channels, rate, tSec, smoothBins);
-          drawAudiogramFrame(tmpCv, opts);
-          const vf = new VideoFrame(tmpCv, { timestamp: Math.round((f * 1e6) / fps), duration: frameDurUs });
-          vEnc.encode(vf, { keyFrame: f === 0 || (f % (fps * 2) === 0) });
-          vf.close();
-          while (vEnc.encodeQueueSize > 3 && !cancelled && !encErr) await new Promise((r) => setTimeout(r, 4));
-          if ((f & 1) === 1) await new Promise((r) => setTimeout(r, 0));
-          const nowMs = performance.now();
-          if (nowMs - lastProgMs >= 100 || f === totalFrames - 1) {
-            lastProgMs = nowMs;
-            self.postMessage({ type: 'progress', pct: Math.round(((f + 1) / totalFrames) * 96), el: tSec, totalSec });
-          }
-        }
-
-        if (cancelled) {
-          try { vEnc.close(); } catch (e) {}
-          try { aEnc.close(); } catch (e) {}
-          self.postMessage({ type: 'cancelled' });
-          return;
-        }
-        if (encErr) throw encErr;
-        await Promise.all([vEnc.flush(), aEnc.flush()]);
-        vEnc.close(); aEnc.close();
-        if (coverBitmap && typeof coverBitmap.close === 'function') coverBitmap.close();
-
-        self.postMessage({ type: 'progress', pct: 99, el: totalSec, totalSec, finalizing: true });
-        const outBytes = pipe.container === 'mp4'
-          ? buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate: pipe.audioRate, audioCh: chCount })
-          : buildWebm({ width, height, totalSec, vCodecId: pipe.vCodecId, vChunks, aChunks, audioRate: pipe.audioRate, audioCh: chCount });
-        const mime = pipe.container === 'mp4' ? 'video/mp4' : 'video/webm';
-        self.postMessage({ type: 'done', buffer: outBytes.buffer, mime, ext: pipe.container, totalSec }, [outBytes.buffer]);
-      }`;
-      const blob = new Blob([src], { type: 'application/javascript' });
-      const url = URL.createObjectURL(blob);
-      const w = new Worker(url);
-      w._blobUrl = url;
-      return w;
-    }
 
     if ($('#bgRenderCancel')) $('#bgRenderCancel').onclick = () => { if (agCancelRender) agCancelRender(); };
     if ($('#btnBgAudiogram')) $('#btnBgAudiogram').onclick = () => {
@@ -31257,7 +33338,6 @@ self.onmessage = function (e) {
         const useStudio = !$('#agStudio') || $('#agStudio').checked;
         let data = (useStudio && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
         if (useStudio && liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
-        if ($('#agFade') && $('#agFade').checked) D.fade(data, S.rate, [0, data[0].length], 120, 'cos', 'both');
         const totalSec = data[0].length / S.rate;
 
         const qVal = ($('#agQuality') && $('#agQuality').value) || (isLowEndDevice ? '720-30' : '1080-30');
@@ -31269,65 +33349,48 @@ self.onmessage = function (e) {
         opts.totalSec = totalSec; opts.startSec = a / S.rate;
         opts.markers = (Markers && Markers.list) ? Markers.list.map((m) => ({ t: m.t, name: m.name, note: m.note, color: m.color })) : [];
 
-        // 1. Primary path: Fast Background Web Worker (OffscreenCanvas + WebCodecs) — zero UI lag, runs in background
+        // 1. Primary path: Fast Background Web Worker (OffscreenCanvas + WebCodecs) with Resume-Safe IndexedDB Checkpoints
         const canWorker = !agBgVideo && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
         let usedWorker = false;
         if (canWorker) {
-          const workerRes = await new Promise((resolve, reject) => {
-            worker = createAudiogramWorker();
-            agCancelRender = () => {
-              cancelled = true;
-              if (worker) try { worker.postMessage({ type: 'cancel' }); } catch (e) {}
-            };
-            if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
-            worker.onmessage = (ev) => {
-              const m = ev.data || {};
-              if (m.type === 'progress') {
-                const msg = m.finalizing ? 'Finalizing video file…' : `Rendering ${m.pct}% · ${fmtTime(m.el, true)} / ${fmtTime(m.totalSec, true)}`;
-                setAgBgRenderUI(true, m.pct, msg);
-              } else if (m.type === 'done') {
-                resolve({ ok: true, buffer: m.buffer, mime: m.mime });
-              } else if (m.type === 'cancelled') {
-                resolve({ cancelled: true });
-              } else if (m.type === 'unsupported') {
-                resolve({ unsupported: true });
-              } else if (m.type === 'error') {
-                reject(new Error(m.message || 'Background video render failed'));
-              }
-            };
-            worker.onerror = (err) => reject(new Error(err.message || 'Video worker error'));
-            (async () => {
-              let coverBitmap = null;
-              if (agCoverImg && typeof createImageBitmap === 'function') {
-                try { coverBitmap = await createImageBitmap(agCoverImg); } catch (e) {}
-              }
-              const chCopies = data.map((ch) => new Float32Array(ch));
-              const transfer = chCopies.map((ch) => ch.buffer);
-              if (coverBitmap) transfer.push(coverBitmap);
-              worker.postMessage({
-                type: 'start',
-                opts,
-                channels: chCopies,
-                rate: S.rate,
-                fps,
-                vBps,
-                pref,
-                coverBitmap,
-              }, transfer);
-            })().catch(reject);
-          });
-          if (!workerRes.unsupported) {
+          let coverBlob = null;
+          if (agCoverImg && agCoverImg.src) {
+            try { coverBlob = await fetch(agCoverImg.src).then((r) => r.blob()); } catch (e) {}
+          }
+          const jobRecord = {
+            id: 'ag_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            title: opts.title || S.name || 'Sonora Video',
+            status: 'rendering',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            checkpointSafe: !$('#agAutoResume') || $('#agAutoResume').checked,
+            opts,
+            channels: data.map((ch) => new Float32Array(ch)),
+            rate: S.rate,
+            fps,
+            vBps,
+            pref,
+            coverBlob,
+            totalSec,
+            totalFrames: Math.max(1, Math.round(totalSec * fps)),
+            nextFrame: 0,
+            pct: 1,
+            el: 0,
+            vChunks: [],
+            vDesc: null,
+            aChunks: null,
+            aDesc: null,
+            pipe: null,
+          };
+          const wRes = await runWorkerRenderJob(jobRecord, { coverImg: agCoverImg });
+          if (wRes && !wRes.unsupported) {
             usedWorker = true;
-            if (workerRes.cancelled || cancelled) {
-              toast('Video render cancelled', 'info', 2200);
-              if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
-            } else if (workerRes.ok) {
-              await finishRender(new Blob([workerRes.buffer], { type: workerRes.mime }), workerRes.mime, totalSec, opts.title, false);
-            }
-          } else if (worker) {
-            try { worker.terminate(); } catch (e) {}
-            if (worker._blobUrl) try { URL.revokeObjectURL(worker._blobUrl); } catch (e) {}
-            worker = null;
+          } else {
+            await rqDel(jobRecord.id);
+            if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = true; $('#btnRenderAudiogram').textContent = 'Rendering video…'; }
+            if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = false;
+            if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = false;
+            setAgBgRenderUI(true, 1, 'Starting fallback renderer…');
           }
         }
 
@@ -31458,15 +33521,56 @@ self.onmessage = function (e) {
     idbReq = new Promise((res) => {
       try {
         if (typeof indexedDB === 'undefined') return res(null);
-        const r = indexedDB.open('sonicforge_autosave', 1);
+        const r = indexedDB.open('sonicforge_autosave', 2);
         r.onupgradeneeded = () => {
           if (!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv');
+          if (!r.result.objectStoreNames.contains('render_queue')) r.result.createObjectStore('render_queue', { keyPath: 'id' });
         };
         r.onsuccess = () => res(r.result);
         r.onerror = () => res(null);
       } catch (e) { res(null); }
     });
     return idbReq;
+  }
+  async function rqPut(job) {
+    const db = await idb(); if (!db || !db.objectStoreNames.contains('render_queue')) return;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('render_queue', 'readwrite');
+        tx.objectStore('render_queue').put(job);
+        tx.oncomplete = resolve; tx.onerror = resolve; tx.onabort = resolve;
+      } catch (e) { resolve(); }
+    });
+  }
+  async function rqGet(id) {
+    const db = await idb(); if (!db || !db.objectStoreNames.contains('render_queue')) return null;
+    return new Promise((res) => {
+      try {
+        const rq = db.transaction('render_queue', 'readonly').objectStore('render_queue').get(id);
+        rq.onsuccess = () => res(rq.result || null);
+        rq.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+  }
+  async function rqGetAll() {
+    const db = await idb(); if (!db || !db.objectStoreNames.contains('render_queue')) return [];
+    return new Promise((res) => {
+      try {
+        const rq = db.transaction('render_queue', 'readonly').objectStore('render_queue').getAll();
+        rq.onsuccess = () => res((rq.result || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)));
+        rq.onerror = () => res([]);
+      } catch (e) { res([]); }
+    });
+  }
+  async function rqDel(id) {
+    const db = await idb(); if (!db || !db.objectStoreNames.contains('render_queue')) return;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('render_queue', 'readwrite');
+        tx.objectStore('render_queue').delete(id);
+        tx.oncomplete = resolve; tx.onerror = resolve; tx.onabort = resolve;
+      } catch (e) { resolve(); }
+    });
   }
   async function kvSet(k, v) {
     const db = await idb(); if (!db) throw new Error('Storage unavailable');
@@ -31521,6 +33625,7 @@ self.onmessage = function (e) {
   }
 
   async function offerRestore() {
+    refreshDzRenderRecovery();
     const proj = await kvGet('active_project');
     if (proj && proj.mainChannels && proj.mainChannels.length) {
       const box = document.createElement('div');
@@ -32193,6 +34298,7 @@ self.onmessage = function (e) {
       toast(found.length ? `Highlighted ${found.length} silent gaps on waveform` : 'No silent gaps below threshold', found.length ? 'ok' : 'info', 2200);
     });
     $('#btnJumpApply').addEventListener('click', tightenPausesJumpCut);
+    if ($('#btnJumpClips')) $('#btnJumpClips').addEventListener('click', jumpCutToClips);
     $('#btnDetectBeats').addEventListener('click', detectBeatsAndBpm);
     $('#btnSnapBeats').addEventListener('click', snapSelectionToBeats);
     $('#btnRing30').addEventListener('click', () => setupRingtone(30));
@@ -32783,5 +34889,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a609e7dcda10d433',t:'MTc5NTcwNjcyNQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a609e7dcda10d433',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
