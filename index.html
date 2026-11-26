@@ -1378,6 +1378,18 @@ body.overlay-open { overflow: hidden; }
   background: rgba(28, 28, 36, .88); backdrop-filter: blur(22px); color: var(--txt); font-size: 12px; font-weight: 580;
 }
 .record-status { top: auto; bottom: calc(var(--dock-h) + 14px); color: #ffb4ae; background: rgba(58, 18, 20, .86); border-color: rgba(255, 69, 58, .5); }
+.bg-render-pill {
+  position: fixed; z-index: 96; left: 50%; transform: translateX(-50%);
+  top: calc(68px + var(--sat)); max-width: min(92vw, 390px); width: max-content;
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 14px;
+  border: 1px solid rgba(100, 210, 255, .38); border-radius: var(--r-pill);
+  background: rgba(18, 22, 32, .94); backdrop-filter: blur(22px); color: var(--txt);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45); font-size: 12px; font-weight: 600;
+}
+.bg-render-pill[hidden] { display: none; }
+.bg-render-pill .bg-r-bar { width: 62px; height: 5px; border-radius: 99px; background: rgba(255, 255, 255, .14); overflow: hidden; flex: none; }
+.bg-render-pill .bg-r-bar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, #64d2ff, #30d158); transition: width .12s linear; }
+.bg-render-pill .bg-r-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
 .is-busy #editor button, .is-busy #editor input, .is-busy #editor select, .is-busy #sheetBody button { pointer-events: none; opacity: .6; }
 
 /* ==========================================================================
@@ -2263,6 +2275,7 @@ body.overlay-open { overflow: hidden; }
 </div>
 
 <div id="globalStatus" class="global-status" role="status" hidden></div><div id="recordStatus" class="record-status" role="status" hidden></div>
+<div id="bgRenderPill" class="bg-render-pill" role="status" hidden><span class="bg-r-txt" id="bgRenderText">Rendering video 0%</span><span class="bg-r-bar"><i id="bgRenderBar"></i></span><button type="button" class="btn sm ghost" id="bgRenderCancel" aria-label="Cancel video render">Cancel</button></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <input type="file" id="fileInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff,.sonora,.overtone,.sonicforge,.zip" hidden>
 <input type="file" id="sessionInput" accept=".sonora,.overtone,.sonicforge,.zip,application/zip,audio/wav,.wav" hidden>
@@ -29722,10 +29735,9 @@ self.onmessage = function (e) {
   /* -------------------------------------- export audio-to-video studio */
   let agAnimRaf = 0, agCoverImg = null;
   let agBgVideo = null, agBgVideoUrl = '', agBgVideoName = '';
-  let agPrevBass = 0, agBeatEnv = 0;
   let agPreviewCtx = null, agPreviewSrc = null, agPreviewAn = null, agPreviewBins = null;
   let agPreviewPlaying = false, agPreviewStartAt = 0, agPreviewOffset = 0, agPreviewDur = 0;
-  let agCancelRender = null;
+  let agCancelRender = null, agRenderActive = false, agRenderPct = 0, agRenderMsg = '';
   const agPeakHold = new Float32Array(64);
   const agParticlesSeed = Array.from({ length: 24 }, (_, i) => ({
     x: ((i * 73 + 19) % 100) / 100,
@@ -29744,18 +29756,21 @@ self.onmessage = function (e) {
     agBgVideoName = '';
   }
 
-  function agBeatPulseEnvelope(o, bassEnergy, absSec) {
-    let hit = false;
-    if (bassEnergy - agPrevBass > 0.065 && bassEnergy > 0.30) hit = true;
-    agPrevBass = agPrevBass * 0.72 + bassEnergy * 0.28;
-    if (!hit && Markers && Markers.list && Markers.list.length) {
-      for (const m of Markers.list) {
-        if (Math.abs(absSec - m.t) < 0.09) { hit = true; break; }
-      }
+  function setAgBgRenderUI(active, pct, text) {
+    agRenderActive = !!active;
+    if (pct != null) agRenderPct = clamp(Math.round(pct), 0, 100);
+    if (text != null) agRenderMsg = text;
+    const pill = $('#bgRenderPill');
+    if (pill) {
+      pill.hidden = !agRenderActive;
+      if ($('#bgRenderText')) $('#bgRenderText').textContent = agRenderMsg || `Rendering video ${agRenderPct}%`;
+      if ($('#bgRenderBar')) $('#bgRenderBar').style.width = agRenderPct + '%';
     }
-    if (hit) agBeatEnv = 1.0;
-    else agBeatEnv = Math.max(0, agBeatEnv * 0.84);
-    return agBeatEnv;
+    if ($('#agProg')) {
+      $('#agProg').classList.toggle('on', agRenderActive);
+      if ($('#agProg').firstElementChild) $('#agProg').firstElementChild.style.width = agRenderPct + '%';
+    }
+    if ($('#agStatus') && agRenderActive && agRenderMsg) $('#agStatus').textContent = agRenderMsg;
   }
 
   function stopAudiogramPreview() {
@@ -29763,19 +29778,19 @@ self.onmessage = function (e) {
       try { agPreviewSrc.onended = null; agPreviewSrc.stop(); agPreviewSrc.disconnect(); } catch (e) {}
       agPreviewSrc = null;
     }
-    if (agBgVideo) { try { agBgVideo.pause(); } catch (e) {} }
+    if (agBgVideo && !agRenderActive) { try { agBgVideo.pause(); } catch (e) {} }
     agPreviewPlaying = false;
-    if (typeof agCancelRender === 'function') { try { agCancelRender(); } catch (e) {} }
     if ($('#agPreviewPlay')) {
       $('#agPreviewPlay').setAttribute('aria-label', 'Play preview');
       $('#agPreviewPlay').innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg>';
     }
   }
 
-  function agActiveCaption(absSec) {
-    if (!Markers || !Markers.list || !Markers.list.length) return null;
+  function agActiveCaption(absSec, markersList) {
+    const list = markersList || (typeof Markers !== 'undefined' && Markers && Markers.list) || null;
+    if (!list || !list.length) return null;
     let found = null;
-    for (const m of Markers.list) {
+    for (const m of list) {
       if (m.t <= absSec + 0.05) found = m;
     }
     if (!found) return null;
@@ -29797,13 +29812,17 @@ self.onmessage = function (e) {
       : ratio === '4:5' ? [base, Math.round(base * 5 / 4)]
       : ratio === '1:1' ? [base, base]
       : [Math.round(base * 16 / 9), base];
-    if (cv.width !== dims[0] || cv.height !== dims[1]) { cv.width = dims[0]; cv.height = dims[1]; }
+    const dw0 = dims[0] & ~1, dh0 = dims[1] & ~1;
+    if (cv.width !== dw0 || cv.height !== dh0) { cv.width = dw0; cv.height = dh0; }
     const w = cv.width, h = cv.height, c = cv.getContext('2d');
     const tSec = o.tSec || 0, totalSec = Math.max(0.01, o.totalSec || 1);
     const progress = clamp(o.progress != null ? o.progress : (tSec / totalSec), 0, 1);
     const bins = o.bins || null;
     const viz = o.viz || 'bars';
     const artStyle = o.artStyle || 'card';
+    const coverImg = o.coverImg !== undefined ? o.coverImg : (typeof agCoverImg !== 'undefined' ? agCoverImg : null);
+    const bgVideo = o.bgVideo !== undefined ? o.bgVideo : (typeof agBgVideo !== 'undefined' ? agBgVideo : null);
+    const peakHold = o.peakHold || (typeof agPeakHold !== 'undefined' ? agPeakHold : null);
     const palettes = {
       glass:   ['#09101f', '#132442', '#64d2ff', '#30d158'],
       gold:    ['#12100a', '#26200f', '#ffd60a', '#ff9f0a'],
@@ -29814,60 +29833,33 @@ self.onmessage = function (e) {
     };
     const pal = palettes[o.theme] || palettes.glass;
 
-    // Energy metrics from FFT bins or smooth preview synth
-    let avgEnergy = 0.24 + 0.12 * Math.sin(tSec * 2.8);
-    let bassEnergy = 0.28 + 0.14 * Math.sin(tSec * 3.6);
-    if (bins && bins.length) {
-      let sum = 0, bass = 0;
-      const bCount = Math.max(1, Math.min(8, bins.length));
-      for (let i = 0; i < bins.length; i++) sum += bins[i];
-      for (let i = 0; i < bCount; i++) bass += bins[i];
-      avgEnergy = sum / (bins.length * 255);
-      bassEnergy = bass / (bCount * 255);
-    }
-
-    const shakeNorm = clamp((o.shakeAmt != null ? o.shakeAmt : 45) / 100, 0, 1);
-    const beatEnv = o.beatPulse ? agBeatPulseEnvelope(o, bassEnergy, (o.startSec || 0) + tSec) : 0;
-
-    // 1. Base gradient + optional looping B-Roll video or blurred cover backdrop
+    // 1. Base gradient + optional looping B-Roll video or blurred cover backdrop (steady, no pulsing/blinking)
     const bg = c.createLinearGradient(0, 0, w, h);
     bg.addColorStop(0, pal[0]); bg.addColorStop(1, pal[1]);
     c.fillStyle = bg; c.fillRect(0, 0, w, h);
 
-    c.save();
-    if (o.beatPulse && beatEnv > 0.004 && shakeNorm > 0) {
-      const z = 1 + beatEnv * (0.055 * shakeNorm);
-      const sx = Math.sin(tSec * 52.3) * beatEnv * (w * 0.014 * shakeNorm);
-      const sy = Math.cos(tSec * 67.1) * beatEnv * (h * 0.014 * shakeNorm);
-      const rot = Math.sin(tSec * 39.7) * beatEnv * (0.016 * shakeNorm);
-      c.translate(w / 2 + sx, h / 2 + sy);
-      c.rotate(rot);
-      c.scale(z, z);
-      c.translate(-w / 2, -h / 2);
-    }
-
-    if (agBgVideo && agBgVideo.readyState >= 2 && agBgVideo.videoWidth > 0) {
+    if (bgVideo && bgVideo.readyState >= 2 && bgVideo.videoWidth > 0) {
       c.save();
-      const scVid = Math.max(w / agBgVideo.videoWidth, h / agBgVideo.videoHeight) * 1.06;
-      const vw = agBgVideo.videoWidth * scVid, vh = agBgVideo.videoHeight * scVid;
-      c.drawImage(agBgVideo, (w - vw) / 2, (h - vh) / 2, vw, vh);
+      const scVid = Math.max(w / bgVideo.videoWidth, h / bgVideo.videoHeight) * 1.02;
+      const vw = bgVideo.videoWidth * scVid, vh = bgVideo.videoHeight * scVid;
+      c.drawImage(bgVideo, (w - vw) / 2, (h - vh) / 2, vw, vh);
       const dimAlpha = clamp((o.brollDim != null ? o.brollDim : 48) / 100, 0.08, 0.9);
       c.fillStyle = `rgba(6, 8, 14, ${dimAlpha.toFixed(2)})`;
-      c.fillRect(-w * 0.08, -h * 0.08, w * 1.16, h * 1.16);
+      c.fillRect(0, 0, w, h);
       c.restore();
-    } else if (agCoverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
-      const blurKey = `${w}x${h}:${artStyle}:${agCoverImg.src || ''}`;
+    } else if (coverImg && (o.blurBg !== false || artStyle === 'backdrop')) {
+      const blurKey = `${w}x${h}:${artStyle}:${coverImg.src || (coverImg.width + 'x' + coverImg.height)}`;
       if (!drawAudiogramFrame._blurCache || drawAudiogramFrame._blurKey !== blurKey) {
-        const bc = drawAudiogramFrame._blurCache || (drawAudiogramFrame._blurCache = document.createElement('canvas'));
+        const bc = drawAudiogramFrame._blurCache || (drawAudiogramFrame._blurCache = (typeof OffscreenCanvas !== 'undefined' && typeof document === 'undefined') ? new OffscreenCanvas(w, h) : document.createElement('canvas'));
         bc.width = w; bc.height = h;
         const bx = bc.getContext('2d');
         bx.clearRect(0, 0, w, h);
         bx.save();
         bx.globalAlpha = artStyle === 'backdrop' ? 0.42 : 0.24;
         try { bx.filter = `blur(${Math.round(Math.min(w, h) * 0.045)}px) saturate(135%)`; } catch (e) {}
-        const scBg = Math.max(w / agCoverImg.width, h / agCoverImg.height) * 1.12;
-        const bgW = agCoverImg.width * scBg, bgH = agCoverImg.height * scBg;
-        bx.drawImage(agCoverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
+        const scBg = Math.max(w / coverImg.width, h / coverImg.height) * 1.12;
+        const bgW = coverImg.width * scBg, bgH = coverImg.height * scBg;
+        bx.drawImage(coverImg, (w - bgW) / 2, (h - bgH) / 2, bgW, bgH);
         bx.restore();
         const vig = bx.createLinearGradient(0, 0, 0, h);
         vig.addColorStop(0, 'rgba(6,8,14,.55)');
@@ -29879,29 +29871,22 @@ self.onmessage = function (e) {
       c.drawImage(drawAudiogramFrame._blurCache, 0, 0);
     }
 
-    // Ambient bass-reactive radial glow + beat flash
-    const rg = c.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * (0.48 + bassEnergy * 0.14 + beatEnv * 0.12));
-    rg.addColorStop(0, pal[2] + (o.beatFlash && beatEnv > 0.25 ? '77' : '44'));
-    rg.addColorStop(0.55, pal[3] + '14');
+    // Calm ambient radial glow (steady, zero flashing/blinking)
+    const rg = c.createRadialGradient(w * 0.5, h * 0.4, 20, w * 0.5, h * 0.4, Math.max(w, h) * 0.52);
+    rg.addColorStop(0, pal[2] + '38');
+    rg.addColorStop(0.55, pal[3] + '12');
     rg.addColorStop(1, 'transparent');
     c.fillStyle = rg; c.fillRect(0, 0, w, h);
-    if (o.beatFlash && beatEnv > 0.15) {
-      c.save();
-      c.globalAlpha = beatEnv * 0.14;
-      c.fillStyle = pal[2];
-      c.fillRect(0, 0, w, h);
-      c.restore();
-    }
 
-    // Optional reactive bokeh particles
+    // Optional smooth ambient bokeh particles (gentle drift, no blinking)
     if (o.particles !== false) {
       c.save();
+      c.globalAlpha = 0.22;
       for (let i = 0; i < agParticlesSeed.length; i++) {
         const pt = agParticlesSeed[i];
         const py = ((pt.y - tSec * pt.sp) % 1 + 1) % 1;
-        const px = pt.x + Math.sin(tSec * 0.8 + pt.ph) * 0.02;
-        const rad = (pt.r * (w / 720)) * (1 + bassEnergy * 0.75);
-        c.globalAlpha = 0.16 + 0.25 * (0.5 + 0.5 * Math.sin(tSec * 1.7 + pt.ph));
+        const px = pt.x + Math.sin(tSec * 0.65 + pt.ph) * 0.015;
+        const rad = pt.r * (w / 720);
         c.fillStyle = i % 2 === 0 ? pal[2] : pal[3];
         c.beginPath(); c.arc(px * w, py * h, rad, 0, Math.PI * 2); c.fill();
       }
@@ -29942,11 +29927,9 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // 2. Artwork frame (Glass Card, Spinning Vinyl, or Backdrop Label)
-    const pulse = 1 + bassEnergy * 0.045;
+    // 2. Artwork frame (Glass Card, Spinning Vinyl, or Backdrop Label — steady, no pulse)
     c.save();
     c.translate(artCx, artCy);
-    c.scale(pulse, pulse);
     if (artStyle === 'vinyl') {
       const vr = artSize * 0.5;
       c.fillStyle = pal[2] + '26';
@@ -29961,10 +29944,10 @@ self.onmessage = function (e) {
       c.rotate(tSec * 1.15);
       const lblR = vr * 0.56;
       c.beginPath(); c.arc(0, 0, lblR, 0, Math.PI * 2); c.clip();
-      if (agCoverImg) {
-        const sc = Math.max((lblR * 2) / agCoverImg.width, (lblR * 2) / agCoverImg.height);
-        const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
-        c.drawImage(agCoverImg, -dw / 2, -dh / 2, dw, dh);
+      if (coverImg) {
+        const sc = Math.max((lblR * 2) / coverImg.width, (lblR * 2) / coverImg.height);
+        const dw = coverImg.width * sc, dh = coverImg.height * sc;
+        c.drawImage(coverImg, -dw / 2, -dh / 2, dw, dh);
       } else {
         const cg = c.createLinearGradient(-lblR, -lblR, lblR, lblR);
         cg.addColorStop(0, pal[2]); cg.addColorStop(1, pal[3]);
@@ -29984,10 +29967,10 @@ self.onmessage = function (e) {
       c.fillStyle = 'rgba(255,255,255,.08)'; c.fill();
       c.save();
       roundRect(c, -artSize / 2, -artSize / 2, artSize, artSize, rad); c.clip();
-      if (agCoverImg) {
-        const sc = Math.max(artSize / agCoverImg.width, artSize / agCoverImg.height);
-        const dw = agCoverImg.width * sc, dh = agCoverImg.height * sc;
-        c.drawImage(agCoverImg, -dw / 2, -dh / 2, dw, dh);
+      if (coverImg) {
+        const sc = Math.max(artSize / coverImg.width, artSize / coverImg.height);
+        const dw = coverImg.width * sc, dh = coverImg.height * sc;
+        c.drawImage(coverImg, -dw / 2, -dh / 2, dw, dh);
       } else {
         const cg = c.createLinearGradient(-artSize / 2, -artSize / 2, artSize / 2, artSize / 2);
         cg.addColorStop(0, pal[2] + '55'); cg.addColorStop(1, pal[3] + '44');
@@ -30014,7 +29997,7 @@ self.onmessage = function (e) {
     c.textAlign = 'center'; c.textBaseline = 'top';
     c.fillStyle = '#ffffff';
     c.font = `700 ${titlePx}px -apple-system, BlinkMacSystemFont, sans-serif`;
-    c.fillText((o.title || S.name || 'Sonora Track').slice(0, 36), w / 2, textY, w - minDim * 0.12);
+    c.fillText((o.title || (typeof S !== 'undefined' && S && S.name) || 'Sonora Track').slice(0, 36), w / 2, textY, w - minDim * 0.12);
     c.fillStyle = 'rgba(255,255,255,.72)';
     c.font = `500 ${subPx}px -apple-system, BlinkMacSystemFont, sans-serif`;
     c.fillText((o.artist || 'Sonora Studio').slice(0, 44), w / 2, textY + Math.round(titlePx * 1.24), w - minDim * 0.12);
@@ -30037,9 +30020,9 @@ self.onmessage = function (e) {
           const bi = clamp(Math.floor((i / barCount) * (bins.length * 0.68)), 0, bins.length - 1);
           v = Math.max(0.07, bins[bi] / 255);
         }
-        agPeakHold[i] = Math.max(v, agPeakHold[i] * 0.94);
+        if (peakHold) peakHold[i] = Math.max(v, peakHold[i] * 0.94);
         const bh = Math.max(6, v * maxBarH);
-        const ph = Math.max(6, agPeakHold[i] * maxBarH);
+        const ph = Math.max(6, (peakHold ? peakHold[i] : v) * maxBarH);
         c.fillStyle = barGrad;
         roundRect(c, barsX + i * step, barBaseY - bh, bw, bh, bw / 2); c.fill();
         c.fillStyle = 'rgba(255,255,255,.78)';
@@ -30091,7 +30074,7 @@ self.onmessage = function (e) {
 
     // 5. Optional Marker Captions lower-third pill
     if (o.captions) {
-      const cap = agActiveCaption((o.startSec || 0) + tSec);
+      const cap = agActiveCaption((o.startSec || 0) + tSec, o.markers);
       if (cap) {
         c.save();
         c.globalAlpha = cap.alpha;
@@ -30142,13 +30125,14 @@ self.onmessage = function (e) {
       c.fillText('SONORA', w - bPad, bPad);
       c.restore();
     }
-    c.restore();
   }
 
   async function openAudiogramModal() {
     if (!hasAudio) return toast('Open an audio file first', 'info');
-    if (typeof HTMLCanvasElement === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
-      return toast('Canvas video capture is not supported in this browser', 'err', 3600);
+    const canWebCodecs = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
+    const canStream = typeof HTMLCanvasElement !== 'undefined' && !!HTMLCanvasElement.prototype.captureStream;
+    if (!canWebCodecs && !canStream) {
+      return toast('Video export is not supported in this browser', 'err', 3600);
     }
     stopAudiogramPreview();
     const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
@@ -30217,7 +30201,7 @@ self.onmessage = function (e) {
               <button type="button" class="ag-chip" data-ag-viz="bars" aria-pressed="true">Spectrum Bars</button>
               <button type="button" class="ag-chip" data-ag-viz="orbital" aria-pressed="false">Orbital Ring</button>
               <button type="button" class="ag-chip" data-ag-viz="wave" aria-pressed="false">Liquid Wave</button>
-              <button type="button" class="ag-chip" data-ag-viz="mirror" aria-pressed="false">Pulse Mirror</button>
+              <button type="button" class="ag-chip" data-ag-viz="mirror" aria-pressed="false">Mirror Bars</button>
               <button type="button" class="ag-chip" data-ag-viz="minimal" aria-pressed="false">Minimal</button>
             </div>
           </div>
@@ -30225,11 +30209,6 @@ self.onmessage = function (e) {
             <div class="ag-swatches" id="agSwatchRow">
               ${themes.map(([id, lbl, col], idx) => `<button type="button" class="ag-swatch" data-ag-theme="${id}" aria-pressed="${idx === 0}"><i style="background:${col}"></i>${lbl}</button>`).join('')}
             </div>
-          </div>
-          <label class="checkrow"><input type="checkbox" id="agBeatPulse" checked><span>Beat-synced camera shake &amp; zoom pulse</span></label>
-          <div class="grid-2">
-            <div><div class="range-row"><label for="agShakeAmt">Pulse intensity</label><output id="agShakeAmtOut">45%</output></div><input type="range" id="agShakeAmt" min="0" max="100" step="5" value="45"></div>
-            <label class="checkrow" style="align-self:end"><input type="checkbox" id="agBeatFlash"><span>Beat glow flash</span></label>
           </div>
         </div>
 
@@ -30254,7 +30233,7 @@ self.onmessage = function (e) {
             <div class="field"><label for="agArtist">Subtitle / Artist</label><input type="text" id="agArtist" value="${escHtml(defArtist)}"></div>
           </div>
           <label class="checkrow"><input type="checkbox" id="agBlurBg" checked><span>Blurred cover art backdrop</span></label>
-          <label class="checkrow"><input type="checkbox" id="agParticles" checked><span>Bass-reactive ambient bokeh particles</span></label>
+          <label class="checkrow"><input type="checkbox" id="agParticles" checked><span>Ambient floating bokeh particles</span></label>
           <label class="checkrow"><input type="checkbox" id="agCaptions" ${hasMarkers ? 'checked' : ''}><span>Show markers as timed captions (${hasMarkers ? Markers.list.length : '0'})</span></label>
           <label class="checkrow"><input type="checkbox" id="agBadge" checked><span>Show Sonora studio watermark</span></label>
         </div>
@@ -30289,6 +30268,7 @@ self.onmessage = function (e) {
         <div class="prog" id="agProg"><i></i></div>
         <div class="ag-actions">
           <button type="button" class="btn primary" id="btnRenderAudiogram">Render &amp; Download Video</button>
+          <button type="button" class="btn" id="btnBgAudiogram" hidden>Render in Background</button>
           <button type="button" class="btn warn" id="btnCancelAudiogram" hidden>Cancel</button>
         </div>
         <p class="hint" id="agStatus">Press ▶ above for live audio-reactive preview before rendering.</p>
@@ -30297,6 +30277,17 @@ self.onmessage = function (e) {
     $('#modal').classList.add('on');
     $('#scrim').classList.add('on');
     $('#modalClose').focus();
+
+    if (agRenderActive) {
+      $('#btnRenderAudiogram').disabled = true;
+      $('#btnRenderAudiogram').textContent = 'Rendering in background…';
+      if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = false;
+      if ($('#btnCancelAudiogram')) {
+        $('#btnCancelAudiogram').hidden = false;
+        $('#btnCancelAudiogram').onclick = () => { if (agCancelRender) agCancelRender(); };
+      }
+      setAgBgRenderUI(true, agRenderPct, agRenderMsg);
+    }
 
     const getOpts = (hd = false) => ({
       ratio: $('#agRatio') ? $('#agRatio').value : '9:16',
@@ -30309,9 +30300,6 @@ self.onmessage = function (e) {
       particles: $('#agParticles') ? $('#agParticles').checked : true,
       captions: $('#agCaptions') ? $('#agCaptions').checked : false,
       badge: $('#agBadge') ? $('#agBadge').checked : true,
-      beatPulse: $('#agBeatPulse') ? $('#agBeatPulse').checked : true,
-      shakeAmt: $('#agShakeAmt') ? Number($('#agShakeAmt').value) : 45,
-      beatFlash: $('#agBeatFlash') ? $('#agBeatFlash').checked : false,
       brollDim: $('#agBrollDim') ? Number($('#agBrollDim').value) : 48,
       hd,
     });
@@ -30367,7 +30355,6 @@ self.onmessage = function (e) {
         $('#agArtClear').hidden = true;
       };
     }
-    if ($('#agShakeAmt')) $('#agShakeAmt').oninput = (ev) => { if ($('#agShakeAmtOut')) $('#agShakeAmtOut').textContent = ev.target.value + '%'; };
     if ($('#agBrollDim')) $('#agBrollDim').oninput = (ev) => { if ($('#agBrollDimOut')) $('#agBrollDimOut').textContent = ev.target.value + '%'; };
     if ($('#agBrollChoose')) $('#agBrollChoose').onclick = () => $('#agBrollFile') && $('#agBrollFile').click();
     if ($('#agBrollFile')) {
@@ -30657,12 +30644,26 @@ self.onmessage = function (e) {
           return { type, dStart: start + hdr, end: start + size };
         };
         let mvhdTs = 1000;
+        const findMvhdTs = (start, limit) => {
+          let p = start;
+          while (p < limit) {
+            const box = readBox(p, limit); if (!box) break;
+            if (box.type === 'moov') findMvhdTs(box.dStart, box.end);
+            else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
+              const ver = out[box.dStart];
+              const tsOff = box.dStart + (ver === 1 ? 20 : 12);
+              if (tsOff + 4 <= box.end) mvhdTs = dv.getUint32(tsOff, false) || 1000;
+            }
+            p = box.end;
+          }
+        };
+        findMvhdTs(0, out.length);
         const walk = (start, limit) => {
           let p = start;
           while (p < limit) {
             const box = readBox(p, limit);
             if (!box) break;
-            if (box.type === 'moov' || box.type === 'trak' || box.type === 'mdia') {
+            if (box.type === 'moov' || box.type === 'trak' || box.type === 'mdia' || box.type === 'mvex') {
               walk(box.dStart, box.end);
             } else if (box.type === 'mvhd' && box.end - box.dStart >= 20) {
               const ver = out[box.dStart];
@@ -30670,9 +30671,8 @@ self.onmessage = function (e) {
               const durOff = box.dStart + (ver === 1 ? 24 : 16);
               if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
                 const ts = dv.getUint32(tsOff, false) || 1000;
-                mvhdTs = ts;
                 const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0) {
+                if (cur === 0 || cur === 0xffffffff) {
                   const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
                   if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
                   else dv.setUint32(durOff, nd, false);
@@ -30683,7 +30683,7 @@ self.onmessage = function (e) {
               const durOff = box.dStart + (ver === 1 ? 28 : 20);
               if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
                 const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0) {
+                if (cur === 0 || cur === 0xffffffff) {
                   const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
                   if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
                   else dv.setUint32(durOff, nd, false);
@@ -30696,8 +30696,19 @@ self.onmessage = function (e) {
               if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
                 const ts = dv.getUint32(tsOff, false) || 1000;
                 const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
-                if (cur === 0) {
+                if (cur === 0 || cur === 0xffffffff) {
                   const nd = Math.max(1, Math.round((durationMs / 1000) * ts));
+                  if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
+                  else dv.setUint32(durOff, nd, false);
+                }
+              }
+            } else if (box.type === 'mehd' && box.end - box.dStart >= 8) {
+              const ver = out[box.dStart];
+              const durOff = box.dStart + 4;
+              if (durOff + (ver === 1 ? 8 : 4) <= box.end) {
+                const cur = ver === 1 ? Number(dv.getBigUint64(durOff, false)) : dv.getUint32(durOff, false);
+                if (cur === 0 || cur === 0xffffffff) {
+                  const nd = Math.max(1, Math.round((durationMs / 1000) * mvhdTs));
                   if (ver === 1) dv.setBigUint64(durOff, BigInt(nd), false);
                   else dv.setUint32(durOff, nd, false);
                 }
@@ -30720,144 +30731,699 @@ self.onmessage = function (e) {
       } catch (e) { return blob; }
     }
 
-    let rendering = false;
+    function createAudiogramWorker() {
+      const src = `'use strict';
+      const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+      const agParticlesSeed = ${JSON.stringify(agParticlesSeed)};
+      ${fmtTime.toString()}
+      ${roundRect.toString()}
+      ${agActiveCaption.toString()}
+      ${drawAudiogramFrame.toString()}
+
+      let cancelled = false;
+      self.onmessage = (e) => {
+        if (e.data && e.data.type === 'cancel') { cancelled = true; return; }
+        if (e.data && e.data.type === 'start') runJob(e.data).catch((err) => self.postMessage({ type: 'error', message: err && err.message || String(err) }));
+      };
+
+      function resampleChannels(channels, inRate, outRate) {
+        if (inRate === outRate) return channels;
+        const ratio = inRate / outRate;
+        const outLen = Math.max(1, Math.round(channels[0].length / ratio));
+        return channels.map((ch) => {
+          const dst = new Float32Array(outLen);
+          const maxI = ch.length - 1;
+          for (let i = 0; i < outLen; i++) {
+            const p = i * ratio;
+            const i0 = p | 0;
+            const f = p - i0;
+            const s0 = ch[i0 <= maxI ? i0 : maxI];
+            const s1 = ch[i0 + 1 <= maxI ? i0 + 1 : maxI];
+            dst[i] = s0 + (s1 - s0) * f;
+          }
+          return dst;
+        });
+      }
+
+      // Fast 256-point Hann-windowed FFT for smooth spectrum bins
+      const FFT_N = 256;
+      const hann = new Float32Array(FFT_N);
+      const rev = new Uint8Array(FFT_N);
+      const cosT = new Float32Array(FFT_N / 2), sinT = new Float32Array(FFT_N / 2);
+      for (let i = 0; i < FFT_N; i++) {
+        hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (FFT_N - 1)));
+        let r = 0, x = i;
+        for (let b = 0; b < 8; b++) { r = (r << 1) | (x & 1); x >>= 1; }
+        rev[i] = r;
+      }
+      for (let i = 0; i < FFT_N / 2; i++) {
+        cosT[i] = Math.cos((-2 * Math.PI * i) / FFT_N);
+        sinT[i] = Math.sin((-2 * Math.PI * i) / FFT_N);
+      }
+      const fftRe = new Float32Array(FFT_N), fftIm = new Float32Array(FFT_N);
+      function computeBins(channels, rate, tSec, smoothOut) {
+        const ch0 = channels[0], ch1 = channels[1] || ch0;
+        const center = Math.floor(tSec * rate);
+        const start = Math.max(0, Math.min(ch0.length - FFT_N, center - (FFT_N >> 1)));
+        for (let i = 0; i < FFT_N; i++) {
+          const idx = rev[i];
+          const s = start + idx < ch0.length ? 0.5 * (ch0[start + idx] + ch1[start + idx]) : 0;
+          fftRe[i] = s * hann[idx];
+          fftIm[i] = 0;
+        }
+        for (let size = 2; size <= FFT_N; size <<= 1) {
+          const half = size >> 1;
+          const step = FFT_N / size;
+          for (let i = 0; i < FFT_N; i += size) {
+            for (let j = 0; j < half; j++) {
+              const k = j * step;
+              const wr = cosT[k], wi = sinT[k];
+              const tr = wr * fftRe[i + j + half] - wi * fftIm[i + j + half];
+              const ti = wr * fftIm[i + j + half] + wi * fftRe[i + j + half];
+              fftRe[i + j + half] = fftRe[i + j] - tr;
+              fftIm[i + j + half] = fftIm[i + j] - ti;
+              fftRe[i + j] += tr;
+              fftIm[i + j] += ti;
+            }
+          }
+        }
+        for (let i = 0; i < 128; i++) {
+          const mag = Math.hypot(fftRe[i], fftIm[i]) / (FFT_N * 0.5);
+          const db = 20 * Math.log10(mag + 1e-6);
+          const norm = clamp((db + 92) / 68, 0, 1) * 255;
+          smoothOut[i] = Math.round(smoothOut[i] * 0.72 + norm * 0.28);
+        }
+        return smoothOut;
+      }
+
+      function normalizeAvcChunks(vChunks, vDesc) {
+        const hasDesc = vDesc && vDesc.length >= 7 && vDesc[0] === 1;
+        const isAnnexB = (d) => d.length >= 4 && ((d[0] === 0 && d[1] === 0 && d[2] === 0 && d[3] === 1) || (d[0] === 0 && d[1] === 0 && d[2] === 1));
+        const splitAnnexB = (d) => {
+          const nalus = [];
+          let i = 0;
+          const findStart = (from) => {
+            for (let p = from; p + 3 < d.length; p++) {
+              if (d[p] === 0 && d[p + 1] === 0) {
+                if (d[p + 2] === 1) return { idx: p, len: 3 };
+                if (p + 3 < d.length && d[p + 2] === 0 && d[p + 3] === 1) return { idx: p, len: 4 };
+              }
+            }
+            return null;
+          };
+          let st = findStart(0);
+          while (st) {
+            const nStart = st.idx + st.len;
+            const next = findStart(nStart);
+            const nEnd = next ? next.idx : d.length;
+            if (nEnd > nStart) nalus.push(d.subarray(nStart, nEnd));
+            st = next;
+          }
+          return nalus;
+        };
+        let sps = null, pps = null;
+        let needConvert = !hasDesc || (vChunks.length && isAnnexB(vChunks[0].data));
+        if (needConvert) {
+          for (const c of vChunks) {
+            if (isAnnexB(c.data)) {
+              const nalus = splitAnnexB(c.data);
+              const outNalus = [];
+              for (const n of nalus) {
+                const nt = n[0] & 0x1f;
+                if (nt === 7 && !sps) sps = n.slice();
+                else if (nt === 8 && !pps) pps = n.slice();
+                else if (nt !== 9) outNalus.push(n);
+              }
+              let tot = 0; for (const n of outNalus) tot += 4 + n.length;
+              const avcc = new Uint8Array(tot);
+              let off = 0;
+              for (const n of outNalus) {
+                const l = n.length;
+                avcc[off] = (l >>> 24) & 255; avcc[off + 1] = (l >>> 16) & 255;
+                avcc[off + 2] = (l >>> 8) & 255; avcc[off + 3] = l & 255;
+                avcc.set(n, off + 4); off += 4 + l;
+              }
+              c.data = avcc;
+            }
+          }
+        }
+        let desc = hasDesc ? vDesc : null;
+        if (!desc && sps && pps) {
+          desc = new Uint8Array(11 + sps.length + pps.length);
+          desc[0] = 1; desc[1] = sps[1] || 0x42; desc[2] = sps[2] || 0xe0; desc[3] = sps[3] || 0x1e;
+          desc[4] = 0xff; desc[5] = 0xe1;
+          desc[6] = (sps.length >> 8) & 255; desc[7] = sps.length & 255;
+          desc.set(sps, 8);
+          const pOff = 8 + sps.length;
+          desc[pOff] = 1; desc[pOff + 1] = (pps.length >> 8) & 255; desc[pOff + 2] = pps.length & 255;
+          desc.set(pps, pOff + 3);
+        }
+        return desc;
+      }
+
+      function buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate, audioCh }) {
+        const te = new TextEncoder();
+        const u32 = (v) => new Uint8Array([(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]);
+        const u16 = (v) => new Uint8Array([(v >>> 8) & 255, v & 255]);
+        const concat = (...parts) => {
+          let total = 0; for (const p of parts) total += p.length;
+          const out = new Uint8Array(total);
+          let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+          return out;
+        };
+        const box = (type, ...payloads) => {
+          const body = concat(...payloads);
+          return concat(u32(8 + body.length), te.encode(type), body);
+        };
+        const fullBox = (type, ver, flags, ...payloads) => {
+          const vf = new Uint8Array([ver & 255, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]);
+          return box(type, vf, ...payloads);
+        };
+        const avcDesc = normalizeAvcChunks(vChunks, vDesc);
+        if (!avcDesc) throw new Error('Missing H.264 decoder config');
+
+        const ftyp = box('ftyp', te.encode('isom'), u32(512), te.encode('isom'), te.encode('iso2'), te.encode('avc1'), te.encode('mp41'));
+        let mdatPayloadLen = 0;
+        for (const c of vChunks) mdatPayloadLen += c.data.length;
+        for (const c of aChunks) mdatPayloadLen += c.data.length;
+        const mdatHdr = concat(u32(8 + mdatPayloadLen), te.encode('mdat'));
+        const mdatDataStart = ftyp.length + 8;
+
+        const vOffsets = [], aOffsets = [];
+        let cursor = mdatDataStart;
+        for (const c of vChunks) { vOffsets.push(cursor); cursor += c.data.length; }
+        for (const c of aChunks) { aOffsets.push(cursor); cursor += c.data.length; }
+
+        const durMs = Math.max(1, Math.round(totalSec * 1000));
+        const unityMatrix = concat(u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000));
+        const hasAudio = aChunks.length > 0;
+        const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(durMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(hasAudio ? 3 : 2));
+
+        const buildStts = (durs) => {
+          const entries = [];
+          for (const d of durs) {
+            const dd = Math.max(1, Math.round(d));
+            if (entries.length && entries[entries.length - 1][1] === dd) entries[entries.length - 1][0]++;
+            else entries.push([1, dd]);
+          }
+          const parts = [u32(entries.length)];
+          for (const [cnt, dd] of entries) parts.push(u32(cnt), u32(dd));
+          return fullBox('stts', 0, 0, ...parts);
+        };
+        const buildStsz = (chunks) => {
+          const buf = new Uint8Array(8 + chunks.length * 4);
+          const dv = new DataView(buf.buffer);
+          dv.setUint32(0, 0, false); dv.setUint32(4, chunks.length, false);
+          for (let i = 0; i < chunks.length; i++) dv.setUint32(8 + i * 4, chunks[i].data.length, false);
+          return fullBox('stsz', 0, 0, buf);
+        };
+        const buildStco = (offsets) => {
+          const buf = new Uint8Array(4 + offsets.length * 4);
+          const dv = new DataView(buf.buffer);
+          dv.setUint32(0, offsets.length, false);
+          for (let i = 0; i < offsets.length; i++) dv.setUint32(4 + i * 4, offsets[i], false);
+          return fullBox('stco', 0, 0, buf);
+        };
+        const dinf = box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1)));
+
+        const vTimescale = 90000;
+        const vDurs = vChunks.map((c, i) => {
+          if (i + 1 < vChunks.length) return Math.max(1, Math.round(((vChunks[i + 1].timestamp - c.timestamp) / 1e6) * vTimescale));
+          return Math.max(1, Math.round(((c.duration || (1e6 / fps)) / 1e6) * vTimescale));
+        });
+        const vTotalDur = vDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * vTimescale);
+        const vTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), unityMatrix, u32((width & 0xffff) << 16), u32((height & 0xffff) << 16));
+        const vMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(vTimescale), u32(vTotalDur), u16(0x55c4), u16(0));
+        const vHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('vide'), new Uint8Array(12), te.encode('VideoHandler\\0'));
+        const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), new Uint8Array(32), u16(0x0018), new Uint8Array([0xff, 0xff]), box('avcC', avcDesc));
+        const vStsd = fullBox('stsd', 0, 0, u32(1), avc1);
+        const syncIdx = [];
+        for (let i = 0; i < vChunks.length; i++) if (vChunks[i].key) syncIdx.push(i + 1);
+        if (!syncIdx.length && vChunks.length) syncIdx.push(1);
+        const stssBuf = new Uint8Array(4 + syncIdx.length * 4);
+        const stssDv = new DataView(stssBuf.buffer);
+        stssDv.setUint32(0, syncIdx.length, false);
+        for (let i = 0; i < syncIdx.length; i++) stssDv.setUint32(4 + i * 4, syncIdx[i], false);
+        const vStbl = box('stbl', vStsd, buildStts(vDurs), fullBox('stss', 0, 0, stssBuf), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(vChunks), buildStco(vOffsets));
+        const vTrak = box('trak', vTkhd, box('mdia', vMdhd, vHdlr, box('minf', fullBox('vmhd', 0, 1, new Uint8Array(8)), dinf, vStbl)));
+
+        const traks = [vTrak];
+        if (hasAudio) {
+          const aDurs = aChunks.map((c, i) => {
+            if (i + 1 < aChunks.length) return Math.max(1, Math.round(((aChunks[i + 1].timestamp - c.timestamp) / 1e6) * audioRate));
+            return Math.max(1, Math.round(((c.duration || (1024e6 / audioRate)) / 1e6) * audioRate));
+          });
+          const aTotalDur = aDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * audioRate);
+          const aTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(2), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0x0100), u16(0), unityMatrix, u32(0), u32(0));
+          const aMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(audioRate), u32(aTotalDur), u16(0x55c4), u16(0));
+          const aHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('soun'), new Uint8Array(12), te.encode('SoundHandler\\0'));
+          const srTable = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+          const srIdx = Math.max(0, srTable.indexOf(audioRate));
+          const asc = (aDesc && aDesc.length >= 2) ? aDesc : new Uint8Array([(2 << 3) | (srIdx >> 1), ((srIdx & 1) << 7) | (audioCh << 3)]);
+          const tag05 = concat(new Uint8Array([0x05, asc.length]), asc);
+          const tag04 = concat(new Uint8Array([0x04, 13 + tag05.length, 0x40, 0x15, 0, 0, 0]), u32(192000), u32(192000), tag05);
+          const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
+          const tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
+          const mp4a = box('mp4a', new Uint8Array(6), u16(1), new Uint8Array(8), u16(audioCh), u16(16), u16(0), u16(0), u32((audioRate & 0xffff) << 16), fullBox('esds', 0, 0, tag03));
+          const aStbl = box('stbl', fullBox('stsd', 0, 0, u32(1), mp4a), buildStts(aDurs), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(aChunks), buildStco(aOffsets));
+          traks.push(box('trak', aTkhd, box('mdia', aMdhd, aHdlr, box('minf', fullBox('smhd', 0, 0, new Uint8Array(4)), dinf, aStbl))));
+        }
+
+        const moov = box('moov', mvhd, ...traks);
+        const out = new Uint8Array(ftyp.length + mdatHdr.length + mdatPayloadLen + moov.length);
+        let p = 0;
+        out.set(ftyp, p); p += ftyp.length;
+        out.set(mdatHdr, p); p += mdatHdr.length;
+        for (const c of vChunks) { out.set(c.data, p); p += c.data.length; }
+        for (const c of aChunks) { out.set(c.data, p); p += c.data.length; }
+        out.set(moov, p);
+        return out;
+      }
+
+      function buildWebm({ width, height, totalSec, vCodecId, vChunks, aChunks, audioRate, audioCh }) {
+        const te = new TextEncoder();
+        const concat = (...parts) => {
+          let total = 0; for (const p of parts) total += p.length;
+          const out = new Uint8Array(total);
+          let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+          return out;
+        };
+        const vintSize = (val) => {
+          let len = 1;
+          while (len < 8 && val >= (Math.pow(2, 7 * len) - 1)) len++;
+          const out = new Uint8Array(len);
+          let v = val;
+          for (let i = len - 1; i >= 0; i--) { out[i] = v & 0xff; v = Math.floor(v / 256); }
+          out[0] |= (1 << (8 - len));
+          return out;
+        };
+        const idBytes = (id) => {
+          if (id <= 0xff) return new Uint8Array([id]);
+          if (id <= 0xffff) return new Uint8Array([(id >>> 8) & 0xff, id & 0xff]);
+          if (id <= 0xffffff) return new Uint8Array([(id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
+          return new Uint8Array([(id >>> 24) & 0xff, (id >>> 16) & 0xff, (id >>> 8) & 0xff, id & 0xff]);
+        };
+        const el = (id, ...payloads) => {
+          const body = payloads.length === 1 ? payloads[0] : concat(...payloads);
+          return concat(idBytes(id), vintSize(body.length), body);
+        };
+        const elUint = (id, v) => {
+          const bytes = []; let n = Math.max(0, Math.floor(v));
+          do { bytes.unshift(n & 0xff); n = Math.floor(n / 256); } while (n > 0);
+          return el(id, new Uint8Array(bytes));
+        };
+        const elFloat64 = (id, v) => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat64(0, v, false); return el(id, b); };
+        const elStr = (id, s) => el(id, te.encode(s));
+
+        const ebml = el(0x1A45DFA3, elUint(0x4286, 1), elUint(0x42F7, 1), elUint(0x42F2, 4), elUint(0x42F3, 8), elStr(0x4282, 'webm'), elUint(0x4287, 2), elUint(0x4285, 2));
+        const info = el(0x1549A966, elUint(0x2AD7B1, 1000000), elStr(0x4D80, 'Sonora'), elStr(0x5741, 'Sonora'), elFloat64(0x4489, Math.max(1, totalSec * 1000)));
+        const trackEntries = [el(0xAE, elUint(0xD7, 1), elUint(0x73C5, 1), elUint(0x83, 1), elStr(0x86, vCodecId || 'V_VP8'), el(0xE0, elUint(0xB0, width), elUint(0xBA, height)))];
+        if (aChunks.length) {
+          const opusHead = new Uint8Array(19);
+          opusHead.set(te.encode('OpusHead'), 0);
+          opusHead[8] = 1; opusHead[9] = audioCh; opusHead[10] = 0x38; opusHead[11] = 0x01;
+          new DataView(opusHead.buffer).setUint32(12, audioRate, true);
+          trackEntries.push(el(0xAE, elUint(0xD7, 2), elUint(0x73C5, 2), elUint(0x83, 2), elStr(0x86, 'A_OPUS'), el(0x63A2, opusHead), el(0xE1, elFloat64(0xB5, audioRate), elUint(0x9F, audioCh))));
+        }
+        const tracks = el(0x1654AE6B, ...trackEntries);
+
+        const all = [];
+        for (const c of vChunks) all.push({ tr: 1, tMs: Math.round(c.timestamp / 1000), key: !!c.key, data: c.data });
+        for (const c of aChunks) all.push({ tr: 2, tMs: Math.round(c.timestamp / 1000), key: true, data: c.data });
+        all.sort((a, b) => a.tMs - b.tMs || a.tr - b.tr);
+
+        const clusters = []; let curItems = [], curT0 = 0;
+        const flushCluster = () => {
+          if (!curItems.length) return;
+          const blocks = [elUint(0xE7, curT0)];
+          for (const item of curItems) {
+            const rel = clamp(item.tMs - curT0, -32768, 32767);
+            const hdr = new Uint8Array([0x80 | item.tr, (rel >> 8) & 0xff, rel & 0xff, item.key ? 0x80 : 0x00]);
+            blocks.push(el(0xA3, hdr, item.data));
+          }
+          clusters.push(el(0x1F43B675, ...blocks));
+          curItems = [];
+        };
+        for (const item of all) {
+          if (!curItems.length) curT0 = item.tMs;
+          else if ((item.tMs - curT0 >= 2000 && item.tr === 1 && item.key) || (item.tMs - curT0 >= 10000)) { flushCluster(); curT0 = item.tMs; }
+          curItems.push(item);
+        }
+        flushCluster();
+        return concat(ebml, el(0x18538067, info, tracks, ...clusters));
+      }
+
+      async function pickSupportedPipeline(width, height, fps, vBps, chCount, pref) {
+        const mp4Order = async () => {
+          for (const vc of ['avc1.4D4028', 'avc1.4D401F', 'avc1.42E01E', 'avc1.640028']) {
+            try {
+              const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps, avc: { format: 'avc' } });
+              if (!vSup || !vSup.supported) continue;
+              for (const sr of [48000, 44100]) {
+                const aSup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: chCount, bitrate: 192000 });
+                if (aSup && aSup.supported) return { container: 'mp4', vCodec: vc, aCodec: 'mp4a.40.2', audioRate: sr };
+              }
+            } catch (e) {}
+          }
+          return null;
+        };
+        const webmOrder = async () => {
+          for (const [vc, cid] of [['vp09.00.10.08', 'V_VP9'], ['vp8', 'V_VP8']]) {
+            try {
+              const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps });
+              if (!vSup || !vSup.supported) continue;
+              const aSup = await AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 48000, numberOfChannels: chCount, bitrate: 128000 });
+              if (aSup && aSup.supported) return { container: 'webm', vCodec: vc, vCodecId: cid, aCodec: 'opus', audioRate: 48000 };
+            } catch (e) {}
+          }
+          return null;
+        };
+        if (pref === 'webm') return (await webmOrder()) || (await mp4Order());
+        return (await mp4Order()) || (await webmOrder());
+      }
+
+      async function runJob(job) {
+        if (typeof OffscreenCanvas === 'undefined' || typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
+          self.postMessage({ type: 'unsupported' }); return;
+        }
+        const { opts, channels, rate, fps, vBps, pref, coverBitmap } = job;
+        const tmpCv = new OffscreenCanvas(16, 16);
+        opts.coverImg = coverBitmap || null;
+        opts.bgVideo = null;
+        opts.peakHold = new Float32Array(64);
+        opts.tSec = 0; opts.progress = 0; opts.bins = null;
+        drawAudiogramFrame(tmpCv, opts);
+        const width = tmpCv.width, height = tmpCv.height;
+        const chCount = channels.length;
+        const totalSec = channels[0].length / rate;
+
+        const pipe = await pickSupportedPipeline(width, height, fps, vBps, chCount, pref);
+        if (!pipe) { self.postMessage({ type: 'unsupported' }); return; }
+
+        const vChunks = [], aChunks = [];
+        let vDesc = null, aDesc = null, encErr = null;
+        const vEnc = new VideoEncoder({
+          output: (chunk, meta) => {
+            const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+            vChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration, key: chunk.type === 'key' });
+            if (!vDesc && meta && meta.decoderConfig && meta.decoderConfig.description) vDesc = new Uint8Array(meta.decoderConfig.description);
+          },
+          error: (err) => { encErr = err; }
+        });
+        const vCfg = { codec: pipe.vCodec, width, height, bitrate: vBps, framerate: fps };
+        if (pipe.container === 'mp4') vCfg.avc = { format: 'avc' };
+        vEnc.configure(vCfg);
+
+        const aEnc = new AudioEncoder({
+          output: (chunk, meta) => {
+            const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+            aChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration });
+            if (!aDesc && meta && meta.decoderConfig && meta.decoderConfig.description) aDesc = new Uint8Array(meta.decoderConfig.description);
+          },
+          error: (err) => { encErr = err; }
+        });
+        aEnc.configure({ codec: pipe.aCodec, sampleRate: pipe.audioRate, numberOfChannels: chCount, bitrate: pipe.container === 'mp4' ? 192000 : 128000 });
+
+        // 1. Encode all audio chunks cleanly
+        const pcmA = resampleChannels(channels, rate, pipe.audioRate);
+        const totalASamples = pcmA[0].length;
+        const aBlock = 4096;
+        for (let pos = 0; pos < totalASamples && !cancelled && !encErr; pos += aBlock) {
+          const n = Math.min(aBlock, totalASamples - pos);
+          const planar = new Float32Array(n * chCount);
+          for (let ch = 0; ch < chCount; ch++) planar.set(pcmA[ch].subarray(pos, pos + n), ch * n);
+          const ad = new AudioData({ format: 'f32-planar', sampleRate: pipe.audioRate, numberOfFrames: n, numberOfChannels: chCount, timestamp: Math.round((pos / pipe.audioRate) * 1e6), data: planar });
+          aEnc.encode(ad);
+          ad.close();
+          if (aEnc.encodeQueueSize > 8) await new Promise((r) => setTimeout(r, 2));
+        }
+
+        // 2. Render & encode video frames faster than real-time
+        const totalFrames = Math.max(1, Math.round(totalSec * fps));
+        const frameDurUs = Math.round(1e6 / fps);
+        const smoothBins = new Uint8Array(128);
+        let lastProgMs = 0;
+        for (let f = 0; f < totalFrames && !cancelled && !encErr; f++) {
+          const tSec = Math.min(totalSec, f / fps);
+          opts.tSec = tSec;
+          opts.progress = totalFrames > 1 ? f / (totalFrames - 1) : 1;
+          opts.bins = computeBins(channels, rate, tSec, smoothBins);
+          drawAudiogramFrame(tmpCv, opts);
+          const vf = new VideoFrame(tmpCv, { timestamp: Math.round((f * 1e6) / fps), duration: frameDurUs });
+          vEnc.encode(vf, { keyFrame: f === 0 || (f % (fps * 2) === 0) });
+          vf.close();
+          while (vEnc.encodeQueueSize > 3 && !cancelled && !encErr) await new Promise((r) => setTimeout(r, 4));
+          if ((f & 1) === 1) await new Promise((r) => setTimeout(r, 0));
+          const nowMs = performance.now();
+          if (nowMs - lastProgMs >= 100 || f === totalFrames - 1) {
+            lastProgMs = nowMs;
+            self.postMessage({ type: 'progress', pct: Math.round(((f + 1) / totalFrames) * 96), el: tSec, totalSec });
+          }
+        }
+
+        if (cancelled) {
+          try { vEnc.close(); } catch (e) {}
+          try { aEnc.close(); } catch (e) {}
+          self.postMessage({ type: 'cancelled' });
+          return;
+        }
+        if (encErr) throw encErr;
+        await Promise.all([vEnc.flush(), aEnc.flush()]);
+        vEnc.close(); aEnc.close();
+        if (coverBitmap && typeof coverBitmap.close === 'function') coverBitmap.close();
+
+        self.postMessage({ type: 'progress', pct: 99, el: totalSec, totalSec, finalizing: true });
+        const outBytes = pipe.container === 'mp4'
+          ? buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate: pipe.audioRate, audioCh: chCount })
+          : buildWebm({ width, height, totalSec, vCodecId: pipe.vCodecId, vChunks, aChunks, audioRate: pipe.audioRate, audioCh: chCount });
+        const mime = pipe.container === 'mp4' ? 'video/mp4' : 'video/webm';
+        self.postMessage({ type: 'done', buffer: outBytes.buffer, mime, ext: pipe.container, totalSec }, [outBytes.buffer]);
+      }`;
+      const blob = new Blob([src], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const w = new Worker(url);
+      w._blobUrl = url;
+      return w;
+    }
+
+    if ($('#bgRenderCancel')) $('#bgRenderCancel').onclick = () => { if (agCancelRender) agCancelRender(); };
+    if ($('#btnBgAudiogram')) $('#btnBgAudiogram').onclick = () => {
+      closeOverlays();
+      toast('Rendering continues in background…', 'info', 2200);
+    };
+
     $('#btnRenderAudiogram').onclick = async () => {
-      if (rendering) return;
+      if (agRenderActive) return;
       stopAudiogramPreview();
-      rendering = true;
       let cancelled = false;
       let wakeLock = null;
-      let renderTimer = 0;
+      let worker = null;
       const btn = $('#btnRenderAudiogram');
+      const bgBtn = $('#btnBgAudiogram');
       const cancelBtn = $('#btnCancelAudiogram');
       btn.disabled = true; btn.textContent = 'Rendering video…';
+      if (bgBtn) bgBtn.hidden = false;
       if (cancelBtn) cancelBtn.hidden = false;
-      $('#agProg').classList.add('on');
+      setAgBgRenderUI(true, 1, 'Preparing audio & background encoder…');
+
+      const cleanupUI = () => {
+        if (worker) {
+          try { worker.terminate(); } catch (e) {}
+          if (worker._blobUrl) try { URL.revokeObjectURL(worker._blobUrl); } catch (e) {}
+          worker = null;
+        }
+        if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+        agCancelRender = null;
+        setAgBgRenderUI(false, 0, '');
+        if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = false; $('#btnRenderAudiogram').textContent = 'Render & Download Video'; }
+        if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = true;
+        if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = true;
+      };
+
+      const finishRender = async (rawBlob, mime, totalSec, titleStr, needsContainerFix) => {
+        const blob = needsContainerFix ? await fixVideoContainerDuration(rawBlob, mime, totalSec * 1000) : rawBlob;
+        const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
+        const fname = sanitizeName(titleStr || S.name) + '-video.' + ext;
+        downloadBlob(blob, fname);
+        toast(`Exported ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`, 'ok', 4000);
+        if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`;
+      };
+
       try {
         if (navigator.wakeLock && navigator.wakeLock.request) {
           try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
         }
-        const c = AC();
-        if (c.state === 'suspended') await c.resume();
         const [a, b] = scopeRange();
         const useStudio = !$('#agStudio') || $('#agStudio').checked;
         let data = (useStudio && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
         if (useStudio && liveFxDirty()) data = await renderLiveFxOffline(data, S.rate);
         if ($('#agFade') && $('#agFade').checked) D.fade(data, S.rate, [0, data[0].length], 120, 'cos', 'both');
         const totalSec = data[0].length / S.rate;
-        const buf = c.createBuffer(data.length, data[0].length, S.rate);
-        for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
 
         const qVal = ($('#agQuality') && $('#agQuality').value) || (isLowEndDevice ? '720-30' : '1080-30');
         const is1080 = qVal.startsWith('1080');
         const fps = qVal.endsWith('60') ? 60 : 30;
-        const offCv = document.createElement('canvas');
-        const opts = getOpts(is1080);
-        opts.tSec = 0; opts.totalSec = totalSec; opts.startSec = a / S.rate; opts.progress = 0; opts.bins = null;
-        drawAudiogramFrame(offCv, opts);
-
-        const dest = c.createMediaStreamDestination();
-        const agAn = c.createAnalyser(); agAn.fftSize = 256;
-        const agBins = new Uint8Array(agAn.frequencyBinCount);
-        const srcN = c.createBufferSource(); srcN.buffer = buf;
-        srcN.connect(agAn); agAn.connect(dest);
-
-        const vStream = offCv.captureStream(fps);
-        const vTrack = vStream.getVideoTracks()[0];
-        const combo = new MediaStream([...vStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
-        const pref = ($('#agFormat') && $('#agFormat').value) || 'auto';
-        const mp4List = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4'];
-        const webmList = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
-        const mimes = pref === 'mp4' ? [...mp4List, ...webmList] : pref === 'webm' ? [...webmList, ...mp4List] : [...mp4List, ...webmList];
-        const mime = mimes.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
         const vBps = is1080 ? (fps === 60 ? 6000000 : 4200000) : 2500000;
-        const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: vBps, audioBitsPerSecond: 192000 } : undefined);
-        const chunks = [];
-        let recErrMsg = '';
-        recV.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
-        recV.onerror = (ev) => { recErrMsg = (ev && ev.error && ev.error.message) || 'Video encoder error'; };
+        const pref = ($('#agFormat') && $('#agFormat').value) || 'auto';
+        const opts = getOpts(is1080);
+        opts.totalSec = totalSec; opts.startSec = a / S.rate;
+        opts.markers = (Markers && Markers.list) ? Markers.list.map((m) => ({ t: m.t, name: m.name, note: m.note, color: m.color })) : [];
 
-        const startAt = c.currentTime;
-        let stopDraw = false;
-        let lastFrameMs = -1000;
-        const frameGapMs = Math.max(12, Math.floor(1000 / fps));
-        agCancelRender = () => {
-          cancelled = true; stopDraw = true;
-          clearInterval(renderTimer);
-          try { srcN.onended = null; srcN.stop(); } catch (e) {}
-          try { if (recV.state !== 'inactive') recV.stop(); } catch (e) {}
-        };
-        if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
+        // 1. Primary path: Fast Background Web Worker (OffscreenCanvas + WebCodecs) — zero UI lag, runs in background
+        const canWorker = !agBgVideo && typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
+        let usedWorker = false;
+        if (canWorker) {
+          const workerRes = await new Promise((resolve, reject) => {
+            worker = createAudiogramWorker();
+            agCancelRender = () => {
+              cancelled = true;
+              if (worker) try { worker.postMessage({ type: 'cancel' }); } catch (e) {}
+            };
+            if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
+            worker.onmessage = (ev) => {
+              const m = ev.data || {};
+              if (m.type === 'progress') {
+                const msg = m.finalizing ? 'Finalizing video file…' : `Rendering ${m.pct}% · ${fmtTime(m.el, true)} / ${fmtTime(m.totalSec, true)}`;
+                setAgBgRenderUI(true, m.pct, msg);
+              } else if (m.type === 'done') {
+                resolve({ ok: true, buffer: m.buffer, mime: m.mime });
+              } else if (m.type === 'cancelled') {
+                resolve({ cancelled: true });
+              } else if (m.type === 'unsupported') {
+                resolve({ unsupported: true });
+              } else if (m.type === 'error') {
+                reject(new Error(m.message || 'Background video render failed'));
+              }
+            };
+            worker.onerror = (err) => reject(new Error(err.message || 'Video worker error'));
+            (async () => {
+              let coverBitmap = null;
+              if (agCoverImg && typeof createImageBitmap === 'function') {
+                try { coverBitmap = await createImageBitmap(agCoverImg); } catch (e) {}
+              }
+              const chCopies = data.map((ch) => new Float32Array(ch));
+              const transfer = chCopies.map((ch) => ch.buffer);
+              if (coverBitmap) transfer.push(coverBitmap);
+              worker.postMessage({
+                type: 'start',
+                opts,
+                channels: chCopies,
+                rate: S.rate,
+                fps,
+                vBps,
+                pref,
+                coverBitmap,
+              }, transfer);
+            })().catch(reject);
+          });
+          if (!workerRes.unsupported) {
+            usedWorker = true;
+            if (workerRes.cancelled || cancelled) {
+              toast('Video render cancelled', 'info', 2200);
+              if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
+            } else if (workerRes.ok) {
+              await finishRender(new Blob([workerRes.buffer], { type: workerRes.mime }), workerRes.mime, totalSec, opts.title, false);
+            }
+          } else if (worker) {
+            try { worker.terminate(); } catch (e) {}
+            if (worker._blobUrl) try { URL.revokeObjectURL(worker._blobUrl); } catch (e) {}
+            worker = null;
+          }
+        }
 
-        const drawNextFrame = () => {
-          if (stopDraw || cancelled || !$('#modal').classList.contains('on')) return;
-          const nowMs = performance.now();
-          if (nowMs - lastFrameMs < frameGapMs * 0.65) return;
-          lastFrameMs = nowMs;
-          if (c.state === 'suspended') c.resume().catch(() => {});
-          const el = Math.min(totalSec, Math.max(0, c.currentTime - startAt));
-          agAn.getByteFrequencyData(agBins);
-          opts.tSec = el; opts.progress = el / Math.max(0.01, totalSec); opts.bins = agBins;
+        // 2. Fallback path (B-Roll <video> or browsers without WebCodecs): Non-blocking setTimeout-paced MediaRecorder
+        if (!usedWorker && !cancelled) {
+          if (typeof HTMLCanvasElement === 'undefined' || !HTMLCanvasElement.prototype.captureStream) {
+            throw new Error('Video export is not supported in this browser');
+          }
+          const c = AC();
+          if (c.state === 'suspended') await c.resume();
+          const buf = c.createBuffer(data.length, data[0].length, S.rate);
+          for (let i = 0; i < data.length; i++) buf.copyToChannel(data[i], i);
+
+          const offCv = document.createElement('canvas');
+          opts.tSec = 0; opts.progress = 0; opts.bins = null;
           drawAudiogramFrame(offCv, opts);
-          if (vTrack && typeof vTrack.requestFrame === 'function') {
-            try { vTrack.requestFrame(); } catch (e) {}
-          }
-          $('#agProg').firstElementChild.style.width = Math.round((el / Math.max(0.01, totalSec)) * 100) + '%';
-          if ($('#agStatus')) $('#agStatus').textContent = `Rendering ${fmtTime(el, true)} / ${fmtTime(totalSec, true)} · ${is1080 ? '1080p' : '720p'} ${fps}fps…`;
-        };
-        const stepRaf = () => {
-          if (stopDraw || cancelled || !$('#modal').classList.contains('on')) return;
-          drawNextFrame();
-          requestAnimationFrame(stepRaf);
-        };
 
-        const rawBlob = await new Promise((resolve) => {
-          recV.onstop = () => {
-            clearInterval(renderTimer);
-            if (agBgVideo) try { agBgVideo.pause(); } catch (e) {}
-            resolve(cancelled ? null : new Blob(chunks, { type: mime || 'video/webm' }));
+          const dest = c.createMediaStreamDestination();
+          const agAn = c.createAnalyser(); agAn.fftSize = 256;
+          const agBins = new Uint8Array(agAn.frequencyBinCount);
+          const srcN = c.createBufferSource(); srcN.buffer = buf;
+          srcN.connect(agAn); agAn.connect(dest);
+
+          const fbFps = Math.min(fps, isLowEndDevice ? 24 : 30);
+          const vStream = offCv.captureStream(fbFps);
+          const vTrack = vStream.getVideoTracks()[0];
+          const combo = new MediaStream([...vStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+          const mp4List = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4'];
+          const webmList = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+          const mimes = pref === 'mp4' ? [...mp4List, ...webmList] : pref === 'webm' ? [...webmList, ...mp4List] : [...mp4List, ...webmList];
+          const mime = mimes.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+          const recV = new MediaRecorder(combo, mime ? { mimeType: mime, videoBitsPerSecond: vBps, audioBitsPerSecond: 192000 } : undefined);
+          const chunks = [];
+          let recErrMsg = '';
+          recV.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+          recV.onerror = (ev) => { recErrMsg = (ev && ev.error && ev.error.message) || 'Video encoder error'; };
+
+          const startAt = c.currentTime;
+          let stopDraw = false, paceTimer = 0;
+          const frameGapMs = Math.max(24, Math.floor(1000 / fbFps));
+          agCancelRender = () => {
+            cancelled = true; stopDraw = true;
+            clearTimeout(paceTimer);
+            try { srcN.onended = null; srcN.stop(); } catch (e) {}
+            try { if (recV.state !== 'inactive') recV.stop(); } catch (e) {}
           };
-          srcN.onended = () => {
-            stopDraw = true;
-            clearInterval(renderTimer);
-            opts.tSec = totalSec; opts.progress = 1;
-            drawAudiogramFrame(offCv, opts);
-            if (vTrack && typeof vTrack.requestFrame === 'function') { try { vTrack.requestFrame(); } catch (e) {} }
-            try { if (recV.state === 'recording' && typeof recV.requestData === 'function') recV.requestData(); } catch (e) {}
-            setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 350);
-          };
-          if (agBgVideo && isFinite(agBgVideo.duration) && agBgVideo.duration > 0) {
-            try { agBgVideo.currentTime = 0; agBgVideo.play().catch(() => {}); } catch (e) {}
+          if (cancelBtn) cancelBtn.onclick = () => { if (agCancelRender) agCancelRender(); };
+
+          const rawBlob = await new Promise((resolve) => {
+            recV.onstop = () => {
+              stopDraw = true; clearTimeout(paceTimer);
+              if (agBgVideo) try { agBgVideo.pause(); } catch (e) {}
+              resolve(cancelled ? null : new Blob(chunks, { type: mime || 'video/webm' }));
+            };
+            srcN.onended = () => {
+              stopDraw = true; clearTimeout(paceTimer);
+              opts.tSec = totalSec; opts.progress = 1;
+              drawAudiogramFrame(offCv, opts);
+              if (vTrack && typeof vTrack.requestFrame === 'function') { try { vTrack.requestFrame(); } catch (e) {} }
+              try { if (recV.state === 'recording' && typeof recV.requestData === 'function') recV.requestData(); } catch (e) {}
+              setTimeout(() => { if (recV.state !== 'inactive') recV.stop(); }, 350);
+            };
+            const pumpFrame = () => {
+              if (stopDraw || cancelled) return;
+              const t0 = performance.now();
+              if (c.state === 'suspended') c.resume().catch(() => {});
+              const el = Math.min(totalSec, Math.max(0, c.currentTime - startAt));
+              agAn.getByteFrequencyData(agBins);
+              opts.tSec = el; opts.progress = el / Math.max(0.01, totalSec); opts.bins = agBins;
+              drawAudiogramFrame(offCv, opts);
+              if (vTrack && typeof vTrack.requestFrame === 'function') { try { vTrack.requestFrame(); } catch (e) {} }
+              const pct = Math.round((el / Math.max(0.01, totalSec)) * 100);
+              setAgBgRenderUI(true, pct, `Rendering ${pct}% · ${fmtTime(el, true)} / ${fmtTime(totalSec, true)}`);
+              const elapsedDraw = performance.now() - t0;
+              paceTimer = setTimeout(pumpFrame, Math.max(10, frameGapMs - elapsedDraw));
+            };
+            if (agBgVideo && isFinite(agBgVideo.duration) && agBgVideo.duration > 0) {
+              try { agBgVideo.currentTime = 0; agBgVideo.play().catch(() => {}); } catch (e) {}
+            }
+            recV.start(1000);
+            srcN.start();
+            pumpFrame();
+          });
+          if (recErrMsg) throw new Error(recErrMsg);
+          if (cancelled || !rawBlob) {
+            toast('Video render cancelled', 'info', 2200);
+            if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
+          } else {
+            setAgBgRenderUI(true, 99, 'Writing video duration metadata…');
+            await finishRender(rawBlob, mime, totalSec, opts.title, true);
           }
-          recV.start(1000);
-          srcN.start();
-          renderTimer = setInterval(drawNextFrame, frameGapMs);
-          requestAnimationFrame(stepRaf);
-        });
-        agCancelRender = null;
-        if (recErrMsg) throw new Error(recErrMsg);
-        if (cancelled || !rawBlob) {
-          toast('Video render cancelled', 'info', 2200);
-          if ($('#agStatus')) $('#agStatus').textContent = 'Render cancelled.';
-        } else {
-          if ($('#agStatus')) $('#agStatus').textContent = 'Writing video duration metadata…';
-          const blob = await fixVideoContainerDuration(rawBlob, mime, totalSec * 1000);
-          const ext = (mime && mime.includes('mp4')) ? 'mp4' : 'webm';
-          const fname = sanitizeName(opts.title || S.name) + '-video.' + ext;
-          downloadBlob(blob, fname);
-          toast(`Exported ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`, 'ok', 3600);
-          if ($('#agStatus')) $('#agStatus').textContent = `Saved ${fname} (${fmtBytes(blob.size)} · ${fmtTime(totalSec, true)})`;
         }
       } catch (e) {
         toast('Video export failed: ' + e.message, 'err', 4200);
       } finally {
-        clearInterval(renderTimer);
-        if (wakeLock) try { await wakeLock.release(); } catch (e) {}
-        agCancelRender = null;
-        rendering = false;
-        btn.disabled = false; btn.textContent = 'Render & Download Video';
-        if (cancelBtn) cancelBtn.hidden = true;
-        $('#agProg').classList.remove('on');
+        cleanupUI();
       }
     };
   }
