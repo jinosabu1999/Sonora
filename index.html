@@ -471,6 +471,20 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 }
 .volwrap { display: flex; align-items: center; gap: 6px; }
 .volwrap input[type=range] { width: 82px; }
+.vol-pct { font-size: 11px; color: var(--txt-2); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+.worklet-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: var(--r-pill);
+  font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  background: rgba(48, 209, 88, .14); color: #8ff5ae; border: 1px solid rgba(48, 209, 88, .32);
+}
+.worklet-badge.is-fallback { background: rgba(255, 214, 10, .14); color: #ffe58f; border-color: rgba(255, 214, 10, .32); }
+.worklet-badge.is-off { background: rgba(255, 255, 255, .07); color: var(--txt-3); border-color: rgba(255, 255, 255, .12); }
+.stem-sep-card {
+  display: flex; flex-direction: column; gap: 9px; padding: 10px 11px; border-radius: var(--r-md);
+  background: rgba(191, 90, 242, .06); border: 1px solid rgba(191, 90, 242, .25);
+}
+.stem-sep-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.stem-sep-head b { font-size: 12.5px; color: #f5e6ff; }
 .transport-pills {
   display: inline-flex; align-items: center; gap: 3px; padding: 3px;
   border-radius: var(--r-pill); background: rgba(0, 0, 0, .32); border: 1px solid rgba(255, 255, 255, .1);
@@ -1369,6 +1383,11 @@ body.overlay-open { overflow: hidden; }
   .transport { flex-direction: column; align-items: stretch; padding: 10px 11px; gap: 9px; }
   .transport-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
   .transport-row.row-tools { padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .07); }
+  .transport .volwrap {
+    padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, .07);
+    width: 100%; justify-content: space-between; gap: 8px;
+  }
+  .transport .volwrap input[type=range] { flex: 1 1 auto; width: auto; min-width: 0; }
   .transport .tgroup { gap: 5px; }
   .transport-row.row-tools .tbtn { width: 32px; height: 32px; }
   .transport-row.row-tools .tbtn svg { width: 15px; height: 15px; }
@@ -1761,9 +1780,10 @@ body.overlay-open { overflow: hidden; }
             <button type="button" class="speed-pill" id="btnSpeedPill" title="Playback preview speed" aria-expanded="false">1.00×</button>
           </div>
         </div>
-        <div class="volwrap desktop-only">
+        <div class="volwrap">
           <button class="tbtn sm" id="btnMute" title="Mute (M)" aria-label="Mute"><svg id="icVol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l4 3.5v-15L7 10z"/><path d="M16 9.5a4 4 0 0 1 0 5M18.5 7a7.5 7.5 0 0 1 0 10"/></svg><svg id="icMute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M4 10v4h3l4 3.5v-15L7 10z"/><path d="m16 10 4 4M20 10l-4 4"/></svg></button>
           <input type="range" id="vol" min="0" max="100" step="1" value="100" aria-label="Volume">
+          <span class="vol-pct mono" id="volOut">100%</span>
         </div>
       </div>
 
@@ -19395,23 +19415,35 @@ lamejs();
     const fft = getFFT(fftSize);
     const win = hann(fftSize);
     const re = new Float32Array(fftSize), im = new Float32Array(fftSize);
+    const dbBuf = new Float32Array(cols * bins);
     const mag = new Uint8ClampedArray(cols * bins); // row = freq bin (low->high), col = time
-    const dbRange = o.dbRange || 90;
+    const dbRange = o.dbRange || 84;
+    let peakDb = -140, peakLin = 0;
     for (let c = 0; c < cols; c++) {
       const pos = c * stride * (fftSize / 2);
       for (let i = 0; i < fftSize; i++) {
         const idx = pos + i;
-        re[i] = (idx < ch.length ? ch[idx] : 0) * win[i];
+        const s = idx < ch.length ? ch[idx] : 0;
+        if (Math.abs(s) > peakLin) peakLin = Math.abs(s);
+        re[i] = s * win[i];
         im[i] = 0;
       }
       fft.forward(re, im);
       for (let k = 0; k < bins; k++) {
         const m = Math.hypot(re[k], im[k]) / (fftSize / 4);
         const db = 20 * Math.log10(Math.max(m, 1e-7));
-        mag[c * bins + k] = clamp(Math.round(((db + dbRange) / dbRange) * 255), 0, 255);
+        dbBuf[c * bins + k] = db;
+        if (db > peakDb) peakDb = db;
       }
     }
-    return { data: mag, cols, bins, fftSize, stride, sampleRate: fs, hop: (fftSize / 2) * stride };
+    const isSilent = peakLin < 1e-6;
+    const refDb = isSilent ? 0 : clamp(peakDb, -54, 0);
+    const floorDb = refDb - dbRange;
+    for (let i = 0; i < dbBuf.length; i++) {
+      const norm = clamp((dbBuf[i] - floorDb) / dbRange, 0, 1);
+      mag[i] = clamp(Math.round(Math.pow(norm, 0.80) * 255), 0, 255);
+    }
+    return { data: mag, cols, bins, fftSize, stride, sampleRate: fs, hop: (fftSize / 2) * stride, peakLin, isSilent };
   }
 
   /* ---------------------------------------------- spectral repair / inpaint */
@@ -20156,11 +20188,293 @@ lamejs();
     return [L, R];
   }
 
+  /* ------------------------------ smart stem separation (STFT M/S + HPSS) */
+  function medianSmall(arr, len) {
+    // Fast insertion-sorted median for small odd windows (<= 11)
+    for (let i = 1; i < len; i++) {
+      const v = arr[i];
+      let j = i - 1;
+      while (j >= 0 && arr[j] > v) { arr[j + 1] = arr[j]; j--; }
+      arr[j + 1] = v;
+    }
+    return arr[len >> 1];
+  }
+
+  function separateStems(data, sampleRate, opts, onProgress) {
+    const fs = sampleRate || 48000;
+    const o = opts || {};
+    const mode = o.mode === '4stem' ? '4stem' : '2stem';
+    const focus = clamp((o.strength == null ? 85 : o.strength) / 100, 0.25, 1.0);
+    const isStereo = data && data.length >= 2;
+    const len = data[0].length;
+    if (!len) return mode === '4stem' ? { vocals: [new Float32Array(0)], drums: [new Float32Array(0)], bass: [new Float32Array(0)], other: [new Float32Array(0)] } : { vocals: [new Float32Array(0)], instrumental: [new Float32Array(0)] };
+
+    const fftSize = 2048;
+    const hop = 512;
+    const bins = (fftSize >> 1) + 1;
+    const fft = getFFT(fftSize);
+    const win = hann(fftSize);
+    const numFrames = Math.max(1, Math.ceil((len + fftSize) / hop));
+    const outCh = isStereo ? 2 : 1;
+
+    // Precompute frequency priors per bin
+    const ssRange = (e0, e1, x) => smoothstep(clamp((x - e0) / Math.max(1e-6, e1 - e0), 0, 1));
+    const vocPrior = new Float32Array(bins);
+    const bassPrior = new Float32Array(bins);
+    for (let k = 0; k < bins; k++) {
+      const hz = (k * fs) / fftSize;
+      // Vocal presence window: smooth ramp 105..240 Hz, plateau to 4.8 kHz, gentle rolloff to 9.6 kHz
+      const lo = ssRange(105, 240, hz);
+      const hi = 1 - ssRange(4800, 9600, hz) * 0.72;
+      vocPrior[k] = lo * hi;
+      // Bass crossover < 190 Hz
+      bassPrior[k] = 1 - ssRange(135, 220, hz);
+    }
+
+    // Store STFT frames (Mid+Side if stereo, or mono)
+    const mReAll = new Float32Array(numFrames * bins);
+    const mImAll = new Float32Array(numFrames * bins);
+    const sReAll = isStereo ? new Float32Array(numFrames * bins) : null;
+    const sImAll = isStereo ? new Float32Array(numFrames * bins) : null;
+    const mMagAll = new Float32Array(numFrames * bins);
+    const instMagAll = new Float32Array(numFrames * bins);
+
+    const re = new Float32Array(fftSize);
+    const im = new Float32Array(fftSize);
+    const chL = data[0];
+    const chR = isStereo ? data[1] : data[0];
+
+    for (let f = 0; f < numFrames; f++) {
+      if (onProgress && (f & 31) === 0) onProgress(0.32 * (f / numFrames));
+      const pos = f * hop - (fftSize >> 1);
+      for (let i = 0; i < fftSize; i++) {
+        const idx = pos + i;
+        const l = (idx >= 0 && idx < len) ? chL[idx] : 0;
+        const r = (idx >= 0 && idx < len) ? chR[idx] : 0;
+        re[i] = (isStereo ? 0.5 * (l + r) : l) * win[i];
+        im[i] = 0;
+      }
+      fft.forward(re, im);
+      const off = f * bins;
+      for (let k = 0; k < bins; k++) {
+        const mr = re[k], mi = im[k];
+        mReAll[off + k] = mr;
+        mImAll[off + k] = mi;
+        mMagAll[off + k] = Math.hypot(mr, mi);
+      }
+      if (isStereo) {
+        for (let i = 0; i < fftSize; i++) {
+          const idx = pos + i;
+          const l = (idx >= 0 && idx < len) ? chL[idx] : 0;
+          const r = (idx >= 0 && idx < len) ? chR[idx] : 0;
+          re[i] = 0.5 * (l - r) * win[i];
+          im[i] = 0;
+        }
+        fft.forward(re, im);
+        for (let k = 0; k < bins; k++) {
+          sReAll[off + k] = re[k];
+          sImAll[off + k] = im[k];
+        }
+      }
+    }
+
+    // Pass 2: Harmonic/Percussive 2D Median Filtering on Mid (mono) or Instrumental residual
+    // First estimate initial vocal mask to compute instrumental magnitude for HPSS
+    const vocMask = new Float32Array(numFrames * bins);
+    const centerBias = 0.55 + 0.95 * focus;
+    const sharp = 1.15 + 1.45 * focus;
+
+    for (let f = 0; f < numFrames; f++) {
+      const off = f * bins;
+      for (let k = 0; k < bins; k++) {
+        const mm = mMagAll[off + k];
+        if (isStereo) {
+          const sm = Math.hypot(sReAll[off + k], sImAll[off + k]);
+          const ratio = clamp((mm - centerBias * sm * 0.68) / (mm + sm + 1e-8), 0, 1);
+          const vm = Math.pow(ratio, sharp) * vocPrior[k];
+          vocMask[off + k] = vm;
+          instMagAll[off + k] = Math.hypot(mMagAll[off + k] * (1 - vm), sm);
+        } else {
+          vocMask[off + k] = vocPrior[k] * focus;
+          instMagAll[off + k] = mm;
+        }
+      }
+    }
+
+    // 2D HPSS Median Filter (tHalf=2 -> 5 frames, fHalf=3 -> 7 bins)
+    // Run on instMagAll for 4-stem drum/harmonic split, and mMagAll for mono vocal harmonicity
+    const harmMag = new Float32Array(numFrames * bins);
+    const percMag = new Float32Array(numFrames * bins);
+    const tmpT = new Float32Array(7);
+    const tmpF = new Float32Array(9);
+    const tHalf = 2, fHalf = 3;
+    const hpssSrc = isStereo ? instMagAll : mMagAll;
+
+    if (mode === '4stem' || !isStereo) {
+      for (let f = 0; f < numFrames; f++) {
+        if (onProgress && (f & 31) === 0) onProgress(0.32 + 0.36 * (f / numFrames));
+        const f0 = Math.max(0, f - tHalf), f1 = Math.min(numFrames - 1, f + tHalf);
+        const tLen = f1 - f0 + 1;
+        const off = f * bins;
+        for (let k = 0; k < bins; k++) {
+          for (let fi = 0; fi < tLen; fi++) tmpT[fi] = hpssSrc[(f0 + fi) * bins + k];
+          harmMag[off + k] = medianSmall(tmpT, tLen);
+
+          const k0 = Math.max(0, k - fHalf), k1 = Math.min(bins - 1, k + fHalf);
+          const kLen = k1 - k0 + 1;
+          for (let ki = 0; ki < kLen; ki++) tmpF[ki] = hpssSrc[off + k0 + ki];
+          percMag[off + k] = medianSmall(tmpF, kLen);
+        }
+      }
+    }
+
+    // Refine vocal mask with temporal EMA smoothing to kill watery artifacts
+    const prevVoc = new Float32Array(bins);
+    for (let f = 0; f < numFrames; f++) {
+      const off = f * bins;
+      for (let k = 0; k < bins; k++) {
+        let vm;
+        if (isStereo) {
+          vm = vocMask[off + k];
+        } else {
+          const h2 = harmMag[off + k] * harmMag[off + k];
+          const p2 = percMag[off + k] * percMag[off + k];
+          const harmRatio = (h2 + p2 > 1e-12) ? (h2 / (h2 + p2)) : 0.5;
+          vm = vocPrior[k] * Math.pow(harmRatio, 1.1 + 0.7 * focus) * (0.5 + 0.5 * focus);
+        }
+        vm = clamp(0.35 * prevVoc[k] + 0.65 * vm, 0, 1);
+        prevVoc[k] = vm;
+        vocMask[off + k] = vm;
+      }
+    }
+
+    // Prepare OLA output buffers
+    const makeStemBufs = () => Array.from({ length: outCh }, () => new Float32Array(len));
+    const vocOut = makeStemBufs();
+    const instOut = mode === '2stem' ? makeStemBufs() : null;
+    const drumOut = mode === '4stem' ? makeStemBufs() : null;
+    const bassOut = mode === '4stem' ? makeStemBufs() : null;
+    const otherOut = mode === '4stem' ? makeStemBufs() : null;
+    const winNorm = new Float32Array(len);
+
+    // Helper: inverse FFT a single channel spectrum & OLA accumulate
+    const synthRe = new Float32Array(fftSize);
+    const synthIm = new Float32Array(fftSize);
+    const olaSpectrum = (specRe, specIm, targetCh, pos, normAcc) => {
+      synthRe[0] = specRe[0]; synthIm[0] = 0;
+      synthRe[bins - 1] = specRe[bins - 1]; synthIm[bins - 1] = 0;
+      for (let k = 1; k < bins - 1; k++) {
+        synthRe[k] = specRe[k]; synthIm[k] = specIm[k];
+        synthRe[fftSize - k] = specRe[k]; synthIm[fftSize - k] = -specIm[k];
+      }
+      fft.inverse(synthRe, synthIm);
+      for (let i = 0; i < fftSize; i++) {
+        const idx = pos + i;
+        if (idx >= 0 && idx < len) {
+          const w = win[i];
+          targetCh[idx] += synthRe[i] * w;
+          if (normAcc) winNorm[idx] += w * w;
+        }
+      }
+    };
+
+    const tmpReL = new Float32Array(bins), tmpImL = new Float32Array(bins);
+    const tmpReR = new Float32Array(bins), tmpImR = new Float32Array(bins);
+    const dReL = new Float32Array(bins), dImL = new Float32Array(bins);
+    const dReR = new Float32Array(bins), dImR = new Float32Array(bins);
+    const bReL = new Float32Array(bins), bImL = new Float32Array(bins);
+    const bReR = new Float32Array(bins), bImR = new Float32Array(bins);
+    const oReL = new Float32Array(bins), oImL = new Float32Array(bins);
+    const oReR = new Float32Array(bins), oImR = new Float32Array(bins);
+
+    for (let f = 0; f < numFrames; f++) {
+      if (onProgress && (f & 31) === 0) onProgress(0.68 + 0.30 * (f / numFrames));
+      const pos = f * hop - (fftSize >> 1);
+      const off = f * bins;
+      for (let k = 0; k < bins; k++) {
+        const mr = mReAll[off + k], mi = mImAll[off + k];
+        const sr = isStereo ? sReAll[off + k] : 0;
+        const si = isStereo ? sImAll[off + k] : 0;
+        const vm = vocMask[off + k];
+
+        // Center vocal extracted cleanly from Mid (with slight stereo halo at low strength)
+        const vRe = mr * vm, vIm = mi * vm;
+        const vSide = (1 - focus) * 0.25 * vm;
+        tmpReL[k] = vRe + sr * vSide; tmpImL[k] = vIm + si * vSide;
+        if (isStereo) { tmpReR[k] = vRe - sr * vSide; tmpImR[k] = vIm - si * vSide; }
+
+        // Remaining instrumental spectrum (Mid residual ± Side residual)
+        const imRe = mr - vRe, imIm = mi - vIm;
+        const isRe = sr * (1 - vSide), isIm = si * (1 - vSide);
+        const ilRe = imRe + isRe, ilIm = imIm + isIm;
+        const irRe = imRe - isRe, irIm = imIm - isIm;
+
+        if (mode === '2stem') {
+          dReL[k] = ilRe; dImL[k] = ilIm;
+          if (isStereo) { dReR[k] = irRe; dImR[k] = irIm; }
+        } else {
+          const h2 = harmMag[off + k] * harmMag[off + k];
+          const p2 = percMag[off + k] * percMag[off + k];
+          const pMask = p2 / (h2 + p2 + 1e-12);
+          const bp = bassPrior[k];
+          // Drums: percussive energy across full spectrum (weighted against pure sub sine)
+          const wDrum = clamp(pMask * (1 - 0.35 * bp), 0, 1);
+          const wHarm = 1 - wDrum;
+          const wBass = wHarm * bp;
+          const wOther = wHarm * (1 - bp);
+
+          dReL[k] = ilRe * wDrum; dImL[k] = ilIm * wDrum;
+          bReL[k] = ilRe * wBass; bImL[k] = ilIm * wBass;
+          oReL[k] = ilRe * wOther; oImL[k] = ilIm * wOther;
+          if (isStereo) {
+            dReR[k] = irRe * wDrum; dImR[k] = irIm * wDrum;
+            bReR[k] = irRe * wBass; bImR[k] = irIm * wBass;
+            oReR[k] = irRe * wOther; oImR[k] = irIm * wOther;
+          }
+        }
+      }
+
+      olaSpectrum(tmpReL, tmpImL, vocOut[0], pos, true);
+      if (isStereo) olaSpectrum(tmpReR, tmpImR, vocOut[1], pos, false);
+
+      if (mode === '2stem') {
+        olaSpectrum(dReL, dImL, instOut[0], pos, false);
+        if (isStereo) olaSpectrum(dReR, dImR, instOut[1], pos, false);
+      } else {
+        olaSpectrum(dReL, dImL, drumOut[0], pos, false);
+        olaSpectrum(bReL, bImL, bassOut[0], pos, false);
+        olaSpectrum(oReL, oImL, otherOut[0], pos, false);
+        if (isStereo) {
+          olaSpectrum(dReR, dImR, drumOut[1], pos, false);
+          olaSpectrum(bReR, bImR, bassOut[1], pos, false);
+          olaSpectrum(oReR, oImR, otherOut[1], pos, false);
+        }
+      }
+    }
+
+    const finalize = (bufs) => {
+      for (let c = 0; c < bufs.length; c++) {
+        const ch = bufs[c];
+        for (let i = 0; i < len; i++) {
+          const d = winNorm[i] > 1e-6 ? winNorm[i] : 1;
+          ch[i] = softLimitSample(ch[i] / d, 0.995);
+        }
+      }
+      return bufs;
+    };
+
+    if (onProgress) onProgress(1);
+    if (mode === '2stem') {
+      return { mode: '2stem', vocals: finalize(vocOut), instrumental: finalize(instOut) };
+    }
+    return { mode: '4stem', vocals: finalize(vocOut), drums: finalize(drumOut), bass: finalize(bassOut), other: finalize(otherOut) };
+  }
+
   /* ------------------------------------------------------------ public API */
   const SonicDSP = {
     FFT, getFFT, hann, nextPow2, clamp, dbToLin, linToDb, lerp, smoothstep, smootherstep,
     resample, resampleChannel, fade, applyFade, gain, removeDC, peakOf, rmsOf, stats, normalize,
-    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, stereoDelay, masterImagerAndLimit, scanClipping, declip, scanClicks, declick, synthJingle, vocalTools, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
+    overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, stereoDelay, masterImagerAndLimit, scanClipping, declip, scanClicks, declick, synthJingle, vocalTools, separateStems, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
     concat, crossfade, biquadCoeffs, applyBiquad, eqCurve, applyEq, eq, makeIR, fftConvolve, reverb,
     measureLufs, compress, deess, applyEnvelope,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, formantShiftChannel, formantShift,
@@ -20361,6 +20675,9 @@ self.onmessage = function (e) {
       case 'profile': r = D.makeNoiseProfile(m.data[0], m.start || 0, m.len || 0, m.fftSize || 2048); break;
       case 'spectrogram': r = D.spectrogram(m.data[0], m.rate, m.opts || {}); break;
       case 'spectralRepair': r = m.data.map(function (ch) { return D.spectralRepair(ch, m.rate, m.opts || {}); }); break;
+      case 'stemSplit': r = D.separateStems(m.data, m.rate, m.opts || {}, function (p) {
+        self.postMessage({ id: m.id, prog: p });
+      }); break;
       case 'resample': r = D.resample(m.data, m.rate, m.to, 4); break;
       case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null, m.id3 || null); break;
       default: throw new Error('unknown task ' + m.act);
@@ -20438,6 +20755,7 @@ self.onmessage = function (e) {
       case 'profile': return D.makeNoiseProfile(m.data[0], m.start || 0, m.len || 0, m.fftSize || 2048);
       case 'spectrogram': return D.spectrogram(m.data[0], m.rate, m.opts || {});
       case 'spectralRepair': return m.data.map((ch) => D.spectralRepair(ch, m.rate, m.opts || {}));
+      case 'stemSplit': return D.separateStems(m.data, m.rate, m.opts || {}, p);
       case 'resample': return D.resample(m.data, m.rate, m.to, 4);
       case 'wav': return D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null);
       default: throw new Error('unknown task ' + m.act);
@@ -20463,9 +20781,228 @@ self.onmessage = function (e) {
   const MasterBus = { widthPct: 100, monoBelowHz: 0, brickEnable: false, driveDb: 0, ceilingDb: -0.5 };
   const RefTrack = { active: false, name: '', data: null, buffer: null, rate: 48000, lufs: -14, mixLufs: -14, matchLoudness: true, matchDb: 0, listeningRef: false, showOnEq: true, spectrumDb: null, src: null, gainNode: null };
   const FXRack = {
-    order: ['hpEq', 'gainEnv', 'compLim', 'deess', 'masterMsLim'],
-    bypass: { hpEq: false, gainEnv: false, compLim: false, deess: false, masterMsLim: false }
+    order: ['hpEq', 'gainEnv', 'compLim', 'deess', 'workletFx', 'masterMsLim'],
+    bypass: { hpEq: false, gainEnv: false, compLim: false, deess: false, workletFx: false, masterMsLim: false }
   };
+  const LiveWorkletFX = {
+    enabled: true,
+    ready: false,
+    fallback: false,
+    initPromise: null,
+    node: null,
+    inNode: null,
+    outNode: null,
+    fbWave: null,
+    fbDry: null,
+    fbWet: null,
+    params: {
+      satDrive: 0,
+      satMix: 65,
+      choOn: false,
+      choRate: 1.2,
+      choDepthMs: 6.0,
+      choMix: 42,
+      delOn: false,
+      delMs: 260,
+      delFb: 42,
+      delMix: 35,
+      delToneHz: 4800,
+      lofiOn: false,
+      lofiBits: 8,
+      lofiDown: 4,
+      lofiDrive: 30,
+      panOn: false,
+      panRate: 2.2,
+      panDepth: 75,
+      panMode: 'autopan',
+    },
+  };
+  const SONORA_WORKLET_SRC = `
+class SonoraLiveFxProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    const maxSec = 1.5;
+    this.maxDel = Math.max(4096, Math.ceil(sampleRate * maxSec));
+    this.choMax = Math.max(2048, Math.ceil(sampleRate * 0.06));
+    this.choBufL = new Float32Array(this.choMax);
+    this.choBufR = new Float32Array(this.choMax);
+    this.choIdx = 0;
+    this.choPhase = 0;
+    this.delBufL = new Float32Array(this.maxDel);
+    this.delBufR = new Float32Array(this.maxDel);
+    this.delIdx = 0;
+    this.delLpL = 0;
+    this.delLpR = 0;
+    this.dcX0 = 0; this.dcY0 = 0;
+    this.dcX1 = 0; this.dcY1 = 0;
+    this.lofiCount = 0;
+    this.lofiHoldL = 0;
+    this.lofiHoldR = 0;
+    this.panPhase = 0;
+    this.p = {
+      bypass: false,
+      satDrive: 0, satMix: 0.65,
+      choOn: false, choRate: 1.2, choDepthMs: 6.0, choMix: 0.42,
+      delOn: false, delMs: 260, delFb: 0.42, delMix: 0.35, delToneHz: 4800,
+      lofiOn: false, lofiBits: 8, lofiDown: 4, lofiDrive: 0.3,
+      panOn: false, panRate: 2.2, panDepth: 0.75, panMode: 'autopan'
+    };
+    this.sSat = 0;
+    this.sCho = 0;
+    this.sDel = 0;
+    this.sPan = 0;
+    this.port.onmessage = (ev) => {
+      const m = ev.data;
+      if (m && m.type === 'params' && m.p) {
+        Object.assign(this.p, m.p);
+      }
+    };
+  }
+  readFrac(buf, idx, delaySamples, len) {
+    let r = idx - delaySamples;
+    while (r < 0) r += len;
+    while (r >= len) r -= len;
+    const i0 = r | 0;
+    const i1 = (i0 + 1) % len;
+    const f = r - i0;
+    return buf[i0] + (buf[i1] - buf[i0]) * f;
+  }
+  process(inputs, outputs) {
+    const inp = inputs[0];
+    const out = outputs[0];
+    if (!out || !out.length) return true;
+    const n = out[0].length;
+    const inL = (inp && inp[0]) ? inp[0] : null;
+    const inR = (inp && inp[1]) ? inp[1] : inL;
+    const outL = out[0];
+    const outR = out.length > 1 ? out[1] : null;
+    if (!inL) {
+      outL.fill(0);
+      if (outR) outR.fill(0);
+      return true;
+    }
+    const p = this.p;
+    if (p.bypass) {
+      for (let i = 0; i < n; i++) {
+        outL[i] = inL[i];
+        if (outR) outR[i] = inR[i];
+      }
+      return true;
+    }
+    const fs = sampleRate;
+    const tau = 6.283185307179586;
+    const tgtSat = p.satDrive > 0.01 ? (p.satDrive / 100) : 0;
+    const tgtCho = p.choOn ? p.choMix : 0;
+    const tgtDel = p.delOn ? p.delMix : 0;
+    const tgtPan = p.panOn ? p.panDepth : 0;
+
+    const choBase = Math.max(2, 0.008 * fs);
+    const choDepthSamp = Math.max(1, (p.choDepthMs / 1000) * fs);
+    const choInc = (tau * p.choRate) / fs;
+
+    const delSampsL = Math.max(16, Math.min(this.maxDel - 4, (p.delMs / 1000) * fs));
+    const delSampsR = Math.max(16, Math.min(this.maxDel - 4, (p.delMs * 1.33 / 1000) * fs));
+    const delFb = Math.min(0.84, Math.max(0, p.delFb));
+    const lpAlpha = Math.min(0.95, Math.max(0.05, (tau * p.delToneHz) / (fs + tau * p.delToneHz)));
+
+    const lofiOn = !!p.lofiOn;
+    const lofiHoldN = Math.max(1, Math.round(p.lofiDown || 4));
+    const lofiLevels = Math.pow(2, Math.max(3, Math.min(16, p.lofiBits || 8)) - 1);
+    const lofiGrit = Math.max(0, Math.min(1, p.lofiDrive || 0));
+
+    const panInc = (tau * p.panRate) / fs;
+    const isTrem = p.panMode === 'tremolo';
+
+    for (let i = 0; i < n; i++) {
+      this.sSat += (tgtSat - this.sSat) * 0.004;
+      this.sCho += (tgtCho - this.sCho) * 0.004;
+      this.sDel += (tgtDel - this.sDel) * 0.004;
+      this.sPan += (tgtPan - this.sPan) * 0.004;
+
+      let l = inL[i];
+      let r = inR[i];
+
+      // 1. Tape Warmth / Asymmetric Soft-Clip Saturation + DC Block
+      if (this.sSat > 0.001) {
+        const drv = 1 + this.sSat * 5.2;
+        const comp = 1 / Math.tanh(drv * 0.88);
+        const wL = Math.tanh((l + 0.03 * this.sSat) * drv) * comp;
+        const wR = Math.tanh((r + 0.03 * this.sSat) * drv) * comp;
+        const y0 = wL - this.dcX0 + 0.995 * this.dcY0; this.dcX0 = wL; this.dcY0 = y0;
+        const y1 = wR - this.dcX1 + 0.995 * this.dcY1; this.dcX1 = wR; this.dcY1 = y1;
+        const m = p.satMix;
+        l = l * (1 - m) + y0 * m;
+        r = r * (1 - m) + y1 * m;
+      }
+
+      // 2. Lo-Fi Bitcrusher & Decimator
+      if (lofiOn) {
+        if (this.lofiCount <= 0) {
+          const dDrive = 1 + lofiGrit * 2.2;
+          const qL = Math.round(Math.max(-1, Math.min(1, l * dDrive)) * lofiLevels) / lofiLevels;
+          const qR = Math.round(Math.max(-1, Math.min(1, r * dDrive)) * lofiLevels) / lofiLevels;
+          this.lofiHoldL = Math.tanh(qL * (1 + lofiGrit * 0.6));
+          this.lofiHoldR = Math.tanh(qR * (1 + lofiGrit * 0.6));
+          this.lofiCount = lofiHoldN;
+        }
+        this.lofiCount--;
+        l = this.lofiHoldL;
+        r = this.lofiHoldR;
+      }
+
+      // 3. Stereo Chorus / Quadrature Doubler
+      this.choBufL[this.choIdx] = l;
+      this.choBufR[this.choIdx] = r;
+      if (this.sCho > 0.001) {
+        const modL = choBase + (0.5 + 0.5 * Math.sin(this.choPhase)) * choDepthSamp;
+        const modR = choBase + (0.5 + 0.5 * Math.cos(this.choPhase)) * choDepthSamp;
+        const cL = this.readFrac(this.choBufL, this.choIdx, modL, this.choMax);
+        const cR = this.readFrac(this.choBufR, this.choIdx, modR, this.choMax);
+        l = l * (1 - this.sCho * 0.5) + cL * this.sCho;
+        r = r * (1 - this.sCho * 0.5) + cR * this.sCho;
+      }
+      this.choIdx = (this.choIdx + 1) % this.choMax;
+      this.choPhase += choInc;
+      if (this.choPhase >= tau) this.choPhase -= tau;
+
+      // 4. Stereo Ping-Pong Delay with Damping
+      const tapL = this.readFrac(this.delBufL, this.delIdx, delSampsL, this.maxDel);
+      const tapR = this.readFrac(this.delBufR, this.delIdx, delSampsR, this.maxDel);
+      this.delLpL += lpAlpha * (tapL - this.delLpL);
+      this.delLpR += lpAlpha * (tapR - this.delLpR);
+      this.delBufL[this.delIdx] = l + this.delLpR * delFb;
+      this.delBufR[this.delIdx] = r + this.delLpL * delFb;
+      this.delIdx = (this.delIdx + 1) % this.maxDel;
+      if (this.sDel > 0.001) {
+        l += this.delLpL * this.sDel;
+        r += this.delLpR * this.sDel;
+      }
+
+      // 5. Auto-Pan / Tremolo
+      if (this.sPan > 0.001) {
+        const lfo = Math.sin(this.panPhase);
+        if (isTrem) {
+          const g = 1 - this.sPan * 0.5 * (1 - lfo);
+          l *= g; r *= g;
+        } else {
+          const pPos = lfo * this.sPan;
+          const gL = Math.sqrt(0.5 * (1 - pPos));
+          const gR = Math.sqrt(0.5 * (1 + pPos));
+          l *= gL * 1.25;
+          r *= gR * 1.25;
+        }
+      }
+      this.panPhase += panInc;
+      if (this.panPhase >= tau) this.panPhase -= tau;
+
+      outL[i] = Math.max(-0.995, Math.min(0.995, l));
+      if (outR) outR[i] = Math.max(-0.995, Math.min(0.995, r));
+    }
+    return true;
+  }
+}
+registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
+`;
   const Comp = { takes: [], auditionSrc: null };
   const Stems = { clips: [], sources: [], mute: false, nextId: 1 };
   const Regions = { list: [], sources: [], nextId: 1, selectedId: null, clipEdit: false };
@@ -20700,6 +21237,11 @@ self.onmessage = function (e) {
       fxCompNode.connect(fxMakeupNode);
       fxMakeupNode.connect(fxLimiterNode);
 
+      LiveWorkletFX.inNode = ctx.createGain();
+      LiveWorkletFX.outNode = ctx.createGain();
+      LiveWorkletFX.inNode.connect(LiveWorkletFX.outNode);
+      initWorkletFX(ctx);
+
       analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.7;
@@ -20712,6 +21254,124 @@ self.onmessage = function (e) {
     }
     return ctx;
   }
+  function workletParamsPayload(bypassAll) {
+    const wp = LiveWorkletFX.params;
+    return {
+      bypass: !!bypassAll,
+      satDrive: wp.satDrive || 0,
+      satMix: clamp((wp.satMix ?? 65) / 100, 0, 1),
+      choOn: !!wp.choOn,
+      choRate: wp.choRate || 1.2,
+      choDepthMs: wp.choDepthMs || 6.0,
+      choMix: clamp((wp.choMix ?? 42) / 100, 0, 1),
+      delOn: !!wp.delOn,
+      delMs: wp.delMs || 260,
+      delFb: clamp((wp.delFb ?? 42) / 100, 0, 0.84),
+      delMix: clamp((wp.delMix ?? 35) / 100, 0, 1),
+      delToneHz: wp.delToneHz || 4800,
+      lofiOn: !!wp.lofiOn,
+      lofiBits: wp.lofiBits || 8,
+      lofiDown: wp.lofiDown || 4,
+      lofiDrive: clamp((wp.lofiDrive ?? 30) / 100, 0, 1),
+      panOn: !!wp.panOn,
+      panRate: wp.panRate || 2.2,
+      panDepth: clamp((wp.panDepth ?? 75) / 100, 0, 1),
+      panMode: wp.panMode || 'autopan',
+    };
+  }
+  function setupWorkletFallback(c) {
+    if (!c || LiveWorkletFX.fbWave) return;
+    try {
+      const sh = c.createWaveShaper();
+      const dry = c.createGain();
+      const wet = c.createGain();
+      dry.gain.value = 1;
+      wet.gain.value = 0;
+      const curve = new Float32Array(1025);
+      for (let i = 0; i < 1025; i++) {
+        const x = (i / 512) - 1;
+        curve[i] = Math.tanh(x * 2.4) / Math.tanh(2.4);
+      }
+      sh.curve = curve;
+      sh.oversample = '2x';
+      try { LiveWorkletFX.inNode.disconnect(); } catch (e) {}
+      LiveWorkletFX.inNode.connect(dry);
+      LiveWorkletFX.inNode.connect(sh);
+      sh.connect(wet);
+      dry.connect(LiveWorkletFX.outNode);
+      wet.connect(LiveWorkletFX.outNode);
+      LiveWorkletFX.fbWave = sh;
+      LiveWorkletFX.fbDry = dry;
+      LiveWorkletFX.fbWet = wet;
+      LiveWorkletFX.fallback = true;
+      LiveWorkletFX.ready = true;
+    } catch (e) {}
+  }
+  function initWorkletFX(c) {
+    if (!c || LiveWorkletFX.initPromise || !LiveWorkletFX.inNode) return;
+    if (!c.audioWorklet || typeof AudioWorkletNode === 'undefined') {
+      setupWorkletFallback(c);
+      syncWorkletBadge();
+      return;
+    }
+    LiveWorkletFX.initPromise = (async () => {
+      try {
+        const url = URL.createObjectURL(new Blob([SONORA_WORKLET_SRC], { type: 'application/javascript' }));
+        try {
+          await c.audioWorklet.addModule(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        const node = new AudioWorkletNode(c, 'sonora-live-fx', {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [2],
+        });
+        try { LiveWorkletFX.inNode.disconnect(); } catch (e) {}
+        LiveWorkletFX.inNode.connect(node);
+        node.connect(LiveWorkletFX.outNode);
+        LiveWorkletFX.node = node;
+        LiveWorkletFX.ready = true;
+        LiveWorkletFX.fallback = false;
+        syncWorkletParams();
+      } catch (e) {
+        setupWorkletFallback(c);
+      }
+      syncWorkletBadge();
+    })();
+  }
+  function syncWorkletParams() {
+    const active = P.liveFx && !P.liveBypass && !comparing && !FXRack.bypass.workletFx && LiveWorkletFX.enabled;
+    const dirty = fxModuleDirty('workletFx');
+    const bypassAll = !active || !dirty;
+    if (LiveWorkletFX.node && LiveWorkletFX.node.port) {
+      LiveWorkletFX.node.port.postMessage({ type: 'params', p: workletParamsPayload(bypassAll) });
+    } else if (LiveWorkletFX.fallback && LiveWorkletFX.fbDry && LiveWorkletFX.fbWet && ctx) {
+      const t = ctx.currentTime;
+      const w = bypassAll ? 0 : clamp((LiveWorkletFX.params.satDrive || 0) / 100 * ((LiveWorkletFX.params.satMix || 65) / 100), 0, 1);
+      LiveWorkletFX.fbDry.gain.setTargetAtTime(1 - w * 0.5, t, 0.02);
+      LiveWorkletFX.fbWet.gain.setTargetAtTime(w, t, 0.02);
+    }
+    syncWorkletBadge();
+  }
+  function syncWorkletBadge() {
+    const b = $('#workletEngineBadge');
+    if (!b) return;
+    const on = P.liveFx && !P.liveBypass && !FXRack.bypass.workletFx && LiveWorkletFX.enabled;
+    if (!on) {
+      b.className = 'worklet-badge is-off';
+      b.textContent = 'Bypassed';
+    } else if (LiveWorkletFX.node && LiveWorkletFX.ready) {
+      b.className = 'worklet-badge';
+      b.textContent = 'AudioWorklet Active';
+    } else if (LiveWorkletFX.fallback) {
+      b.className = 'worklet-badge is-fallback';
+      b.textContent = 'WebAudio Fallback';
+    } else {
+      b.className = 'worklet-badge';
+      b.textContent = 'Worklet Ready';
+    }
+  }
   function reconnectRackNodes() {
     if (!ctx || !mainTrackPanNode) return;
     const msActive = !FXRack.bypass.masterMsLim && fxModuleDirty('masterMsLim');
@@ -20721,6 +21381,7 @@ self.onmessage = function (e) {
       gainEnv: [fxGainNode, fxEnvNode],
       compLim: [fxCompNode, fxLimiterNode],
       deess: [fxDeEssNode, fxDeEssNode],
+      workletFx: (LiveWorkletFX.inNode && LiveWorkletFX.outNode) ? [LiveWorkletFX.inNode, LiveWorkletFX.outNode] : null,
       masterMsLim: msActive ? [msInNode, msOutNode] : null,
     };
     try { mainTrackPanNode.disconnect(); } catch (e) {}
@@ -20746,6 +21407,10 @@ self.onmessage = function (e) {
     if (id === 'gainEnv') return Math.abs(val('#fxGain')) > 0.05 || (Env.enabled && Env.points.length >= 2);
     if (id === 'compLim') return compActive();
     if (id === 'deess') return val('#fxDeEssAmt') > 0.2;
+    if (id === 'workletFx') {
+      const wp = LiveWorkletFX.params;
+      return !!LiveWorkletFX.enabled && ((wp.satDrive || 0) > 0.5 || !!wp.choOn || !!wp.delOn || !!wp.lofiOn || !!wp.panOn);
+    }
     if (id === 'masterMsLim') return Math.abs((MasterBus.widthPct ?? 100) - 100) > 1 || (MasterBus.monoBelowHz || 0) >= 20 || !!MasterBus.brickEnable;
     return false;
   }
@@ -20902,6 +21567,7 @@ self.onmessage = function (e) {
       }
     }
     syncMixNodes();
+    if (typeof syncWorkletParams === 'function') syncWorkletParams();
     if (typeof renderRackList === 'function') renderRackList();
     const dot = $('#fxLiveDot'), lbl = $('#fxLiveState'), sub = $('#fxLiveSub'), tgl = $('#fxLiveToggle'), byp = $('#fxLiveBypass');
     if (dot && lbl && sub && tgl) {
@@ -21595,6 +22261,7 @@ self.onmessage = function (e) {
     Sel.a = a; Sel.b = b;
     P.t = clamp(keepPos ? P.t : Sel.a / S.rate, 0, d);
     S.spec = null; S.specCanvas = null; Sil.list = [];
+    if (P.waveMode === 'spec' || P.waveMode === 'mix') ensureSpectrogram();
     $('#silCount').textContent = 'Scan again after editing.';
     Markers.list = Markers.list.filter(m => m.t <= d); renderMarkers();
     fitView();
@@ -21983,14 +22650,112 @@ self.onmessage = function (e) {
       if ($('#fxStPan')) { $('#fxStPan').value = 0; $('#fxStPanOut').textContent = 'Center'; }
     });
   }
+  function syncWorkletUI() {
+    const wp = LiveWorkletFX.params;
+    if ($('#wlEnable')) $('#wlEnable').checked = !!LiveWorkletFX.enabled;
+    if ($('#wlSatDrive')) { $('#wlSatDrive').value = wp.satDrive || 0; if ($('#wlSatDriveOut')) $('#wlSatDriveOut').textContent = Math.round(wp.satDrive || 0) + '%'; }
+    if ($('#wlSatMix')) { $('#wlSatMix').value = wp.satMix ?? 65; if ($('#wlSatMixOut')) $('#wlSatMixOut').textContent = Math.round(wp.satMix ?? 65) + '%'; }
+    if ($('#wlChoOn')) $('#wlChoOn').checked = !!wp.choOn;
+    if ($('#wlDelOn')) $('#wlDelOn').checked = !!wp.delOn;
+    if ($('#wlLofiOn')) $('#wlLofiOn').checked = !!wp.lofiOn;
+    if ($('#wlPanOn')) $('#wlPanOn').checked = !!wp.panOn;
+    syncWorkletBadge();
+  }
+  async function runSmartStemSeparation() {
+    if (!hasAudio) return toast('Open an audio file first', 'info');
+    if (processing) return;
+    const modeBtn = $('#stemModeSeg [data-stemmode][aria-pressed="true"]');
+    const mode = modeBtn ? modeBtn.dataset.stemmode : '2stem';
+    const focus = val('#stemFocus') || 85;
+    const dest = $('#stemDest') ? $('#stemDest').value : 'multitrack';
+    const label = mode === '4stem' ? 'Smart 4-Stem Separation' : 'Smart 2-Stem Separation';
+    if (dest === 'vocals' || dest === 'instrumental') {
+      await edit(label, async () => {
+        const res = await runTask({ act: 'stemSplit', data: S.data, rate: S.rate, opts: { mode: '2stem', strength: focus } }, 'Separating vocals & instrumental…');
+        S.data = dest === 'vocals' ? res.vocals : res.instrumental;
+      }, 'Separating stems');
+      toast(dest === 'vocals' ? 'Track 1 replaced with isolated vocals' : 'Track 1 replaced with instrumental', 'ok', 2200);
+      return;
+    }
+    // Non-destructive Multitrack Stem Split: T1 = Vocals, T2 = Instrumental/Drums, T3 = Bass & Other
+    let splitRes = null;
+    await edit(label + ' (Multitrack)', async () => {
+      splitRes = await runTask({ act: 'stemSplit', data: S.data, rate: S.rate, opts: { mode, strength: focus } }, mode === '4stem' ? 'Splitting Vocals / Drums / Bass / Other…' : 'Separating Vocals & Instrumental…');
+      if (!splitRes || !splitRes.vocals) throw new Error('Stem separation produced no output');
+      S.data = splitRes.vocals;
+      S.name = (S.name || 'Track').replace(/\s*\(Vocals\)$/i, '') + ' (Vocals)';
+    }, 'Separating stems');
+    if (!splitRes) return;
+    const c = AC();
+    if (mode === '2stem') {
+      const inst = splitRes.instrumental;
+      const b = c.createBuffer(inst.length, inst[0].length, S.rate);
+      for (let i = 0; i < inst.length; i++) b.copyToChannel(inst[i], i);
+      Layer.active = true;
+      Layer.name = 'Instrumental';
+      Layer.data = inst;
+      Layer.buffer = b;
+      Layer.rate = S.rate;
+      Layer.offset = 0;
+      Layer.trimInSec = 0;
+      Layer.trimOutSec = 0;
+      Layer.fadeInMs = 0;
+      Layer.fadeOutMs = 0;
+      Layer.gainDb = 0;
+      Layer.pan = 0;
+      Layer.mute = false;
+      Layer.solo = false;
+      Layer.loopBed = false;
+      Layer.duck = false;
+      renderLayersUI();
+      baseDirty = fxDirty = true;
+      render(true);
+      toast('Split into T1 (Vocals) + T2 (Instrumental)', 'ok', 2800);
+    } else {
+      const drums = splitRes.drums;
+      const b = c.createBuffer(drums.length, drums[0].length, S.rate);
+      for (let i = 0; i < drums.length; i++) b.copyToChannel(drums[i], i);
+      Layer.active = true;
+      Layer.name = 'Drums (Percussive)';
+      Layer.data = drums;
+      Layer.buffer = b;
+      Layer.rate = S.rate;
+      Layer.offset = 0;
+      Layer.trimInSec = 0;
+      Layer.trimOutSec = 0;
+      Layer.fadeInMs = 0;
+      Layer.fadeOutMs = 0;
+      Layer.gainDb = 0;
+      Layer.pan = 0;
+      Layer.mute = false;
+      Layer.solo = false;
+      Layer.loopBed = false;
+      Layer.duck = false;
+      await addStemClip(splitRes.bass, S.rate, 'Bass', 0);
+      await addStemClip(splitRes.other, S.rate, 'Other (Harmonic)', 0);
+      renderLayersUI();
+      renderStemList();
+      baseDirty = fxDirty = true;
+      render(true);
+      toast('Split into 4 stems: T1 Vocals · T2 Drums · T3 Bass & Other', 'ok', 3200);
+    }
+  }
   function doVocalTool(mode) {
     if (!hasAudio) return;
-    if (S.data.length < 2) return toast('Vocal isolation tools require a stereo track', 'info', 2800);
     const [a, b] = effRange();
     const strength = val('#fxVocStrength') || 85;
     const label = mode === 'isolate' ? 'Isolate center vocals' : 'Remove center vocals';
     edit(label, async () => {
-      S.data = D.vocalTools(S.data, [a, b], S.rate, mode, strength);
+      if (S.data.length >= 2) {
+        S.data = D.vocalTools(S.data, [a, b], S.rate, mode, strength);
+      } else {
+        const slice = S.data.map((ch) => ch.slice(a, b));
+        const res = await runTask({ act: 'stemSplit', data: slice, rate: S.rate, opts: { mode: '2stem', strength } }, label + '…');
+        const rep = mode === 'isolate' ? res.vocals : res.instrumental;
+        const out = S.data.map((ch) => ch.slice());
+        for (let i = 0; i < rep[0].length && a + i < out[0].length; i++) out[0][a + i] = rep[0][i];
+        S.data = out;
+      }
     });
   }
   let activeCreativeMode = 'chorus';
@@ -22882,13 +23647,24 @@ self.onmessage = function (e) {
     return cv;
   }
   async function ensureSpectrogram() {
-    if (!hasAudio || S.spec || specPending) return;
+    if (!hasAudio || S.spec || specPending || !S.data || !S.data.length || !S.data[0].length) return;
     specPending = true;
     try {
-      const res = await runTask({ act: 'spectrogram', data: S.data, rate: S.rate, opts: { fftSize: 1024, maxCols: 1200, dbRange: 84 } });
+      let mono = S.data[0];
+      if (S.data.length > 1) {
+        const len = S.data[0].length;
+        mono = new Float32Array(len);
+        const inv = 1 / S.data.length;
+        for (let c = 0; c < S.data.length; c++) {
+          const ch = S.data[c];
+          for (let i = 0; i < len; i++) mono[i] += ch[i] * inv;
+        }
+      }
+      const res = await runTask({ act: 'spectrogram', data: [mono], rate: S.rate, opts: { fftSize: 1024, maxCols: 1200, dbRange: 84 } });
       S.spec = res;
       S.specCanvas = buildSpecCanvas(res);
-      baseDirty = true;
+      baseDirty = fxDirty = true;
+      render(true);
     } catch (e) { toast('Spectrogram unavailable: ' + e.message, 'err'); P.waveMode = 'wave'; }
     finally { specPending = false; }
   }
@@ -23064,6 +23840,13 @@ self.onmessage = function (e) {
         }
         if (P.waveMode === 'mix') {
           drawWaveLane(c, computePeaks(0), top, mainH, xa, xb, '', true);
+        }
+        if (S.spec && S.spec.isSilent) {
+          c.fillStyle = 'rgba(255,255,255,.55)';
+          c.font = '500 11.5px Inter, system-ui, sans-serif';
+          c.textAlign = 'center';
+          c.fillText('Silent track (no audio signal)', canvasW / 2, top + mainH / 2);
+          c.textAlign = 'left';
         }
         if (xb - xa > 1.2) {
           c.fillStyle = 'rgba(216,140,255,.11)';
@@ -23259,9 +24042,9 @@ self.onmessage = function (e) {
       items.push({ kind: 'vol', mode: trackKey + 'Vol', trackKey, stemIdx, label, x: startX + mW + sW + panW + gap * 3, y, w: volW, h, db, mute, color, bg });
     };
 
-    pushCluster('t1', -1, 'T1', canvasW - 14, lanes.top + 5, 20, MainMix.gainDb || 0, MainMix.pan || 0, !!MainMix.mute, !!MainMix.solo, '#64d2ff', 'rgba(8, 16, 28, .88)');
+    pushCluster('t1', -1, 'T1', canvasW - 22, lanes.top + 5, 22, MainMix.gainDb || 0, MainMix.pan || 0, !!MainMix.mute, !!MainMix.solo, '#64d2ff', 'rgba(8, 14, 24, .92)');
     if (lanes.hasT2 && Layer.data) {
-      pushCluster('t2', -1, 'T2', canvasW - 14, lanes.t2Top + 4, 18, Layer.gainDb || 0, Layer.pan || 0, !!Layer.mute, !!Layer.solo, '#30d158', 'rgba(8, 18, 12, .88)');
+      pushCluster('t2', -1, 'T2', canvasW - 22, lanes.t2Top + 4, 19, Layer.gainDb || 0, Layer.pan || 0, !!Layer.mute, !!Layer.solo, '#30d158', 'rgba(8, 18, 12, .92)');
     }
     if (lanes.hasT3 && Stems.clips.length) {
       const placed = [];
@@ -23910,19 +24693,28 @@ self.onmessage = function (e) {
         c.fillStyle = vp.bg; c.fill();
         c.save(); c.clip();
         c.fillStyle = vp.color;
-        c.globalAlpha = active ? 0.36 : 0.22;
+        c.globalAlpha = active ? 0.44 : 0.30;
         c.fillRect(vp.x, vp.y, vp.w * frac, vp.h);
+        // Subtle bottom slider track + thumb indicator
+        c.globalAlpha = 0.88;
+        c.fillStyle = 'rgba(255,255,255,.18)';
+        c.fillRect(vp.x + 6, vp.y + vp.h - 3.5, vp.w - 12, 1.5);
+        c.fillStyle = vp.color;
+        c.fillRect(vp.x + 6, vp.y + vp.h - 3.5, Math.max(2, (vp.w - 12) * frac), 1.5);
+        const knobX = vp.x + 6 + (vp.w - 12) * frac;
+        c.fillStyle = active ? '#ffffff' : '#e6f6ff';
+        c.beginPath(); c.arc(knobX, vp.y + vp.h - 2.75, active ? 3.2 : 2.3, 0, TAU); c.fill();
         c.restore();
         c.strokeStyle = active ? '#ffffff' : vp.color;
-        c.globalAlpha = active ? 1 : 0.72;
-        c.lineWidth = active ? 1.5 : 1;
+        c.globalAlpha = active ? 1 : 0.85;
+        c.lineWidth = active ? 1.6 : 1.1;
         roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2); c.stroke();
         c.globalAlpha = 1;
-        c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f4f6fc';
+        c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f8fbff';
         c.font = '700 9.5px ui-monospace, monospace';
         c.textAlign = 'center'; c.textBaseline = 'middle';
         const dbStr = vp.mute ? 'MUTE' : ((vp.db > 0 ? '+' : '') + vp.db.toFixed(1) + 'dB');
-        c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 8);
+        c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 - 1, vp.w - 8);
         if (active) {
           const hudTxt = `${vp.label} Vol: ${(vp.db > 0 ? '+' : '') + vp.db.toFixed(1)} dB`;
           c.font = '700 10.5px ui-monospace, monospace';
@@ -25336,7 +26128,59 @@ self.onmessage = function (e) {
         </div>
         <div class="field"><label for="cfxPanMode">Modulation mode</label><select id="cfxPanMode"><option value="autopan" selected>Stereo Auto-Pan (L ↔ R)</option><option value="tremolo">Amplitude Tremolo</option></select></div>
       </div>
-      <button class="btn sm primary wide" data-act="creativeFx">Apply Creative FX</button>
+      <button class="btn sm primary wide" data-act="creativeFx">Apply Creative FX (Bake Selection)</button>
+    </div></div></div>
+  </div>
+
+  <div class="acc" data-acc id="workletFxAcc">
+    <button class="acc-h" type="button"><span class="dot"></span>Live AudioWorklet FX (Zero-Bake)<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <div class="acc-b"><div><div class="inner">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span class="worklet-badge" id="workletEngineBadge">Worklet Ready</span>
+        <label class="checkrow" style="padding:0;border:0;background:none;margin:0"><input type="checkbox" id="wlEnable" checked><span>Enable real-time DSP</span></label>
+      </div>
+      <p class="hint" style="margin:2px 0">Audition Tape Saturation, Chorus, Echo, Lo-Fi &amp; Auto-Pan instantaneously while playing — zero baking until export or Bake.</p>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="wlSatDrive">Tape Warmth</label><output id="wlSatDriveOut">0%</output></div><input type="range" id="wlSatDrive" min="0" max="100" step="2" value="0"></div>
+        <div><div class="range-row"><label for="wlSatMix">Warmth Mix</label><output id="wlSatMixOut">65%</output></div><input type="range" id="wlSatMix" min="10" max="100" step="5" value="65"></div>
+      </div>
+      <div class="grid-2">
+        <label class="checkrow"><input type="checkbox" id="wlChoOn"><span>Live Chorus</span></label>
+        <label class="checkrow"><input type="checkbox" id="wlDelOn"><span>Live Echo</span></label>
+        <label class="checkrow"><input type="checkbox" id="wlLofiOn"><span>Live Lo-Fi</span></label>
+        <label class="checkrow"><input type="checkbox" id="wlPanOn"><span>Live Auto-Pan</span></label>
+      </div>
+      <p class="hint" style="margin:0">Fine-tune Chorus, Echo, Lo-Fi &amp; Auto-Pan sliders in <b>Creative voice &amp; sound FX</b> above — changes stream live to the AudioWorklet.</p>
+      <div class="btn-row">
+        <button type="button" class="btn sm primary" id="btnBakeWorkletFx">Bake Live FX to T1</button>
+        <button type="button" class="btn sm ghost" id="btnResetWorkletFx">Reset</button>
+      </div>
+    </div></div></div>
+  </div>
+
+  <div class="acc" data-acc id="stemSepAcc">
+    <button class="acc-h" type="button"><span class="dot"></span>Smart Stem Separation<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <div class="acc-b"><div><div class="inner">
+      <div class="stem-sep-card">
+        <div class="stem-sep-head">
+          <b>STFT + HPSS Vocal &amp; Instrument Isolator</b>
+          <span class="chip" style="font-size:10px">Mono &amp; Stereo</span>
+        </div>
+        <p class="hint" style="margin:0">Separates Vocals, Drums (Percussive), Bass, and Harmonic Instruments using 2048-pt STFT center masking &amp; 2D median HPSS.</p>
+        <div class="seg" id="stemModeSeg" style="align-self:stretch">
+          <button type="button" data-stemmode="2stem" aria-pressed="true" style="flex:1;justify-content:center">2-Stem (Voc + Inst)</button>
+          <button type="button" data-stemmode="4stem" aria-pressed="false" style="flex:1;justify-content:center">4-Stem (V / D / B / O)</button>
+        </div>
+        <div><div class="range-row"><label for="stemFocus">Vocal / Center Focus</label><output id="stemFocusOut">85%</output></div><input type="range" id="stemFocus" min="30" max="100" step="5" value="85"></div>
+        <div class="field"><label for="stemDest">Output destination</label>
+          <select id="stemDest">
+            <option value="multitrack" selected>Split into Multitrack Lanes (Non-Destructive)</option>
+            <option value="vocals">Replace Track 1 with Isolated Vocals</option>
+            <option value="instrumental">Replace Track 1 with Instrumental Only</option>
+          </select>
+        </div>
+        <button type="button" class="btn sm primary wide" id="btnRunStemSplit">Separate Stems</button>
+      </div>
     </div></div></div>
   </div>`;
 
@@ -26259,6 +27103,16 @@ self.onmessage = function (e) {
         accIdx: 4
       };
     }
+    if (id === 'workletFx') {
+      const wp = LiveWorkletFX.params;
+      const parts = [];
+      if ((wp.satDrive || 0) > 0.5) parts.push('Sat ' + Math.round(wp.satDrive) + '%');
+      if (wp.lofiOn) parts.push('Lo-Fi');
+      if (wp.choOn) parts.push('Chorus');
+      if (wp.delOn) parts.push('Echo');
+      if (wp.panOn) parts.push(wp.panMode === 'tremolo' ? 'Trem' : 'AutoPan');
+      return { name: 'Live Worklet FX Engine', sub: parts.length ? parts.join(' · ') : 'Neutral', accIdx: 9 };
+    }
     if (id === 'masterMsLim') {
       const parts = [];
       if (Math.abs((MasterBus.widthPct ?? 100) - 100) > 1) parts.push('W ' + Math.round(MasterBus.widthPct) + '%');
@@ -26630,6 +27484,29 @@ self.onmessage = function (e) {
       for (let c = 0; c < rendered.numberOfChannels; c++) tmp.push(Float32Array.from(rendered.getChannelData(c)));
       out = tmp;
     }
+    if (!FXRack.bypass.workletFx && fxModuleDirty('workletFx')) {
+      const wp = LiveWorkletFX.params;
+      if ((wp.satDrive || 0) > 0.5) {
+        const amt = clamp((wp.satDrive || 0) / 100, 0, 1);
+        const mix = clamp((wp.satMix ?? 65) / 100, 0, 1);
+        const drv = 1 + amt * 5.2;
+        const comp = 1 / Math.tanh(drv * 0.88);
+        out = out.map((ch) => {
+          const dst = Float32Array.from(ch);
+          let dcX = 0, dcY = 0;
+          for (let i = 0; i < dst.length; i++) {
+            const w = Math.tanh((dst[i] + 0.03 * amt) * drv) * comp;
+            const y = w - dcX + 0.995 * dcY; dcX = w; dcY = y;
+            dst[i] = clamp(dst[i] * (1 - mix) + y * mix, -0.995, 0.995);
+          }
+          return dst;
+        });
+      }
+      if (wp.lofiOn) out = D.lofi(out, null, rate, { bits: wp.lofiBits, downsample: wp.lofiDown, drive: (wp.lofiDrive ?? 30) / 100 });
+      if (wp.choOn) out = D.chorus(out, null, rate, { rateHz: wp.choRate, depthMs: wp.choDepthMs, mix: (wp.choMix ?? 42) / 100 });
+      if (wp.delOn) out = D.echoDelay(out, null, rate, { delayMs: wp.delMs, feedback: (wp.delFb ?? 42) / 100, mix: (wp.delMix ?? 35) / 100, pingPong: true });
+      if (wp.panOn) out = D.autopan(out, null, rate, { rateHz: wp.panRate, depth: (wp.panDepth ?? 75) / 100, mode: wp.panMode || 'autopan' });
+    }
     if (!FXRack.bypass.masterMsLim && fxModuleDirty('masterMsLim')) {
       out = D.masterImagerAndLimit(out, rate, MasterBus);
     }
@@ -26649,7 +27526,13 @@ self.onmessage = function (e) {
     if ($('#fxBrickEnable')) $('#fxBrickEnable').checked = false;
     if ($('#fxBrickDrive')) { $('#fxBrickDrive').value = 0; $('#fxBrickDriveOut').textContent = '0.0 dB'; }
     if ($('#fxBrickCeil')) { $('#fxBrickCeil').value = -0.5; $('#fxBrickCeilOut').textContent = '-0.5 dBTP'; }
-    FXRack.bypass = { hpEq: false, gainEnv: false, compLim: false, deess: false, masterMsLim: false };
+    LiveWorkletFX.params.satDrive = 0;
+    LiveWorkletFX.params.choOn = false;
+    LiveWorkletFX.params.delOn = false;
+    LiveWorkletFX.params.lofiOn = false;
+    LiveWorkletFX.params.panOn = false;
+    if (typeof syncWorkletUI === 'function') syncWorkletUI();
+    FXRack.bypass = { hpEq: false, gainEnv: false, compLim: false, deess: false, workletFx: false, masterMsLim: false };
     syncLiveFxNodes();
   }
 
@@ -27125,7 +28008,8 @@ self.onmessage = function (e) {
       SpecBrush.masks = [];
       SpecBrush.draft = null;
       syncSpecBrushUI();
-      if (S.spec) S.spec = null;
+      S.spec = null;
+      S.specCanvas = null;
     });
     if (masksCopy.length) toast('Spectral repair applied (Undo available)', 'ok', 2000);
   }
@@ -27704,8 +28588,28 @@ self.onmessage = function (e) {
         if (id === 'fxMasterMonoHz') MasterBus.monoBelowHz = v;
         if (id === 'fxBrickDrive') MasterBus.driveDb = v;
         if (id === 'fxBrickCeil') MasterBus.ceilingDb = v;
+        if (id === 'cfxChoRate') LiveWorkletFX.params.choRate = v;
+        if (id === 'cfxChoDepth') LiveWorkletFX.params.choDepthMs = v;
+        if (id === 'cfxChoMix') LiveWorkletFX.params.choMix = v;
+        if (id === 'cfxDelMs') LiveWorkletFX.params.delMs = v;
+        if (id === 'cfxDelFb') LiveWorkletFX.params.delFb = v;
+        if (id === 'cfxDelMix') LiveWorkletFX.params.delMix = v;
+        if (id === 'cfxLofiBits') LiveWorkletFX.params.lofiBits = v;
+        if (id === 'cfxLofiDown') LiveWorkletFX.params.lofiDown = v;
+        if (id === 'cfxLofiDrive') LiveWorkletFX.params.lofiDrive = v;
+        if (id === 'cfxPanRate') LiveWorkletFX.params.panRate = v;
+        if (id === 'cfxPanDepth') LiveWorkletFX.params.panDepth = v;
+        if (id === 'wlSatDrive') {
+          LiveWorkletFX.params.satDrive = v;
+          if ($('#wlSatDriveOut')) $('#wlSatDriveOut').textContent = Math.round(v) + '%';
+        }
+        if (id === 'wlSatMix') {
+          LiveWorkletFX.params.satMix = v;
+          if ($('#wlSatMixOut')) $('#wlSatMixOut').textContent = Math.round(v) + '%';
+        }
+        if (id === 'stemFocus' && $('#stemFocusOut')) $('#stemFocusOut').textContent = Math.round(v) + '%';
         if (id.indexOf('eq') === 0) drawEqCurve();
-        if (id === 'fxGain' || id.indexOf('eq') === 0 || id.indexOf('fxComp') === 0 || id.indexOf('fxLim') === 0 || id.indexOf('fxDeEss') === 0 || id.indexOf('fxMaster') === 0 || id.indexOf('fxBrick') === 0) syncLiveFxNodes();
+        if (id === 'fxGain' || id.indexOf('eq') === 0 || id.indexOf('fxComp') === 0 || id.indexOf('fxLim') === 0 || id.indexOf('fxDeEss') === 0 || id.indexOf('fxMaster') === 0 || id.indexOf('fxBrick') === 0 || id.indexOf('cfx') === 0 || id.indexOf('wl') === 0) syncLiveFxNodes();
       }
     });
     $('#fxStretchPct').addEventListener('click', () => setStretchMode('pct'));
@@ -27731,6 +28635,12 @@ self.onmessage = function (e) {
         haptic(5);
       });
     }
+    if ($('#cfxPanMode')) {
+      $('#cfxPanMode').addEventListener('change', (e) => {
+        LiveWorkletFX.params.panMode = e.target.value || 'autopan';
+        syncLiveFxNodes();
+      });
+    }
     if ($('#btnDelaySyncBpm')) {
       $('#btnDelaySyncBpm').addEventListener('click', () => {
         const bpmTxt = $('#beatBpmOut') ? $('#beatBpmOut').textContent : '';
@@ -27738,10 +28648,63 @@ self.onmessage = function (e) {
         const eighthMs = clamp(Math.round((60000 / bpmVal) * 0.5), 40, 1000);
         $('#cfxDelMs').value = eighthMs;
         $('#cfxDelMsOut').textContent = eighthMs + ' ms';
+        LiveWorkletFX.params.delMs = eighthMs;
+        syncLiveFxNodes();
         toast(`Echo synced to 1/8 note @ ${Math.round(bpmVal)} BPM (${eighthMs} ms)`, 'ok', 2000);
         haptic(6);
       });
     }
+    if ($('#wlEnable')) $('#wlEnable').addEventListener('change', (e) => { LiveWorkletFX.enabled = !!e.target.checked; syncLiveFxNodes(); haptic(5); });
+    for (const [elId, prop] of [['wlChoOn', 'choOn'], ['wlDelOn', 'delOn'], ['wlLofiOn', 'lofiOn'], ['wlPanOn', 'panOn']]) {
+      if ($('#' + elId)) $('#' + elId).addEventListener('change', (e) => {
+        LiveWorkletFX.params[prop] = !!e.target.checked;
+        if (LiveWorkletFX.params[prop] && !LiveWorkletFX.enabled) {
+          LiveWorkletFX.enabled = true;
+          if ($('#wlEnable')) $('#wlEnable').checked = true;
+        }
+        syncLiveFxNodes();
+        haptic(5);
+      });
+    }
+    if ($('#wlSatDrive')) $('#wlSatDrive').addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value) || 0;
+      LiveWorkletFX.params.satDrive = v;
+      if ($('#wlSatDriveOut')) $('#wlSatDriveOut').textContent = Math.round(v) + '%';
+      syncLiveFxNodes();
+    });
+    if ($('#wlSatMix')) $('#wlSatMix').addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value) || 65;
+      LiveWorkletFX.params.satMix = v;
+      if ($('#wlSatMixOut')) $('#wlSatMixOut').textContent = Math.round(v) + '%';
+      syncLiveFxNodes();
+    });
+    if ($('#btnBakeWorkletFx')) $('#btnBakeWorkletFx').addEventListener('click', () => {
+      if (!hasAudio) return;
+      if (!fxModuleDirty('workletFx')) return toast('Enable Tape Warmth or a Live FX toggle first', 'info', 2000);
+      bakeRackToMain();
+    });
+    if ($('#btnResetWorkletFx')) $('#btnResetWorkletFx').addEventListener('click', () => {
+      LiveWorkletFX.params.satDrive = 0;
+      LiveWorkletFX.params.choOn = false;
+      LiveWorkletFX.params.delOn = false;
+      LiveWorkletFX.params.lofiOn = false;
+      LiveWorkletFX.params.panOn = false;
+      syncWorkletUI();
+      syncLiveFxNodes();
+      toast('Live Worklet FX reset', 'info', 1400);
+    });
+    if ($('#stemModeSeg')) {
+      $('#stemModeSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-stemmode]');
+        if (!b) return;
+        $$('#stemModeSeg [data-stemmode]').forEach((btn) => btn.setAttribute('aria-pressed', btn === b));
+        haptic(5);
+      });
+    }
+    if ($('#stemFocus')) $('#stemFocus').addEventListener('input', (e) => {
+      if ($('#stemFocusOut')) $('#stemFocusOut').textContent = Math.round(parseFloat(e.target.value) || 85) + '%';
+    });
+    if ($('#btnRunStemSplit')) $('#btnRunStemSplit').addEventListener('click', runSmartStemSeparation);
     $('#fxLiveToggle').addEventListener('click', () => {
       P.liveFx = !P.liveFx; syncLiveFxNodes(); haptic(6);
     });
@@ -28669,6 +29632,7 @@ self.onmessage = function (e) {
       mainMix: { ...MainMix },
       sendBus: { ...SendBus },
       masterBus: { ...MasterBus },
+      workletFx: { enabled: !!LiveWorkletFX.enabled, params: { ...LiveWorkletFX.params } },
       fxRack: {
         order: FXRack.order.slice(),
         bypass: { ...FXRack.bypass },
@@ -28779,6 +29743,11 @@ self.onmessage = function (e) {
       if ($('#fxBrickCeil')) { $('#fxBrickCeil').value = MasterBus.ceilingDb ?? -0.5; $('#fxBrickCeilOut').textContent = (MasterBus.ceilingDb ?? -0.5).toFixed(1) + ' dBTP'; }
     }
 
+    if (proj.workletFx) {
+      LiveWorkletFX.enabled = proj.workletFx.enabled !== false;
+      if (proj.workletFx.params) Object.assign(LiveWorkletFX.params, proj.workletFx.params);
+      if (typeof syncWorkletUI === 'function') syncWorkletUI();
+    }
     if (proj.fxRack) {
       if (Array.isArray(proj.fxRack.order)) FXRack.order = proj.fxRack.order.slice();
       if (proj.fxRack.bypass) Object.assign(FXRack.bypass, proj.fxRack.bypass);
@@ -30461,6 +31430,8 @@ self.onmessage = function (e) {
     { t: 'Apply M/S Stereo Width & Bass Lock', cat: 'Effects', sub: 'Widen stereo while keeping bass mono', run: doStereoShape },
     { t: 'Remove center vocals (Karaoke)', cat: 'Effects', sub: 'M/S vocal removal keeping stereo music', run: () => doVocalTool('remove') },
     { t: 'Isolate center vocals', cat: 'Effects', sub: 'Extract lead center voice via M/S masking', run: () => doVocalTool('isolate') },
+    { t: 'Smart Stem Separation (Vocals / Drums / Bass / Other)', cat: 'Effects', sub: 'STFT + HPSS split into multitrack stems', run: () => { switchSideTab('fx'); if ($('#stemSepAcc')) $('#stemSepAcc').classList.add('open'); } },
+    { t: 'Live AudioWorklet FX Engine (Zero-Bake)', cat: 'Effects', sub: 'Real-time tape warmth, chorus, echo, lo-fi & auto-pan', run: () => { switchSideTab('fx'); if ($('#workletFxAcc')) $('#workletFxAcc').classList.add('open'); } },
 
     { t: 'Zoom in', cat: 'View', sub: 'Inspect waveform detail', k: '+', run: () => zoomAt(1.4) },
     { t: 'Zoom out', cat: 'View', sub: 'See wider timeline', k: '−', run: () => zoomAt(1 / 1.4) },
@@ -31572,11 +32543,15 @@ self.onmessage = function (e) {
       ov.addEventListener('pointercancel', () => { mode = null; });
     })();
     const vol = $('#vol');
+    const syncVolOut = () => {
+      if ($('#volOut')) $('#volOut').textContent = P.volume <= 0.001 ? 'Mute' : Math.round(P.volume * 100) + '%';
+    };
     vol.addEventListener('input', () => {
       P.volume = clamp(parseFloat(vol.value) / 100, 0, 1);
       if (master) master.gain.value = P.volume;
       $('#icMute').style.display = P.volume === 0 ? '' : 'none';
       $('#icVol').style.display = P.volume === 0 ? 'none' : '';
+      syncVolOut();
     });
     $('#btnMute').addEventListener('click', () => {
       const m = P.volume > 0;
@@ -31585,6 +32560,7 @@ self.onmessage = function (e) {
       if (master) master.gain.value = P.volume;
       $('#icMute').style.display = m ? '' : 'none';
       $('#icVol').style.display = m ? 'none' : '';
+      syncVolOut();
       haptic(6);
     });
     $('#btnPlay').addEventListener('click', togglePlay);
@@ -32283,5 +33259,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60fa2292976fbe5',t:'MTc5NTc2Njc4NQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60fa2292976fbe5',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
