@@ -156,6 +156,15 @@ body:not(.has-audio) #btnExportTop { display: none !important; }
 .btn.sm { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
 .btn.sm svg { width: 14px; height: 14px; }
 .btn.icon.sm { width: 34px; padding: 0; }
+.btn.prefs-btn {
+  width: 44px; min-height: 44px; padding: 0; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .12) 0%, rgba(255, 255, 255, .04) 100%), rgba(22, 24, 34, .62);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 8px 20px -10px rgba(0, 0, 0, .75);
+  color: var(--txt);
+}
+.btn.prefs-btn:hover { border-color: rgba(100, 210, 255, .48); color: var(--acc); }
+.btn.prefs-btn svg { width: 22px; height: 22px; }
 .btn.primary {
   background: linear-gradient(180deg, #ffffff 0%, #eceef2 100%);
   color: #000000; border-color: rgba(255, 255, 255, .9); font-weight: 660;
@@ -214,44 +223,93 @@ kbd {
 .hint { font-size: 12px; color: var(--txt-3); line-height: 1.45; margin: 0; }
 .divider { height: 1px; background: rgba(255, 255, 255, .08); margin: 2px 0; }
 
-/* ------------------------------------------- iOS 27 Spatial Homescreen */
+/* ------------------------------------------- Spatial Sonic Console Homescreen */
 .dropzone {
   flex: 1; display: flex; flex-direction: column;
-  padding: 6px 16px calc(22px + var(--sab));
+  padding: 10px 16px calc(24px + var(--sab));
   overflow-y: auto;
+  background:
+    radial-gradient(60% 34% at 50% 8%, rgba(100, 210, 255, .10), transparent 70%),
+    radial-gradient(45% 28% at 85% 32%, rgba(191, 90, 242, .07), transparent 72%);
 }
 .dz {
   margin: auto;
-  width: min(540px, 100%);
+  width: min(580px, 100%);
   padding: 4px 0 8px;
   transition: transform var(--med);
 }
 .dz.hot { transform: scale(1.015); }
-.dz.hot .launch-card.primary { box-shadow: 0 0 0 3px rgba(100, 210, 255, .55), 0 18px 40px -12px rgba(100, 210, 255, .4); }
+.dz.hot .launch-card.primary { box-shadow: 0 0 0 3px rgba(100, 210, 255, .58), 0 18px 42px -12px rgba(100, 210, 255, .45); }
 
-.dz-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-bottom: 18px; }
+.dz-stage {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; margin-bottom: 14px; padding: 20px 18px 16px;
+  border-radius: 26px; border: 1px solid rgba(255, 255, 255, .16);
+  background:
+    radial-gradient(90% 100% at 50% 0%, rgba(100, 210, 255, .13), rgba(16, 18, 26, .66) 65%),
+    rgba(14, 15, 22, .72);
+  backdrop-filter: blur(36px) saturate(200%); -webkit-backdrop-filter: blur(36px) saturate(200%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 24px 48px -24px rgba(0, 0, 0, .9);
+}
+.dz-stage-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; font-weight: 680; letter-spacing: .9px; text-transform: uppercase;
+  color: var(--txt-3); font-family: ui-monospace, monospace;
+}
+.dz-live-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(48, 209, 88, .12); border: 1px solid rgba(48, 209, 88, .28);
+  color: #7ef2a3; font-size: 9.5px; letter-spacing: .5px;
+}
+.dz-live-badge i { width: 6px; height: 6px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; }
+.dz-ic-ring {
+  position: relative; width: 64px; height: 64px; display: grid; place-items: center; margin-top: 2px;
+}
+.dz-ic-ring::before {
+  content: ""; position: absolute; inset: -6px; border-radius: 22px;
+  border: 1px dashed rgba(100, 210, 255, .28);
+  animation: dzSpin 22s linear infinite;
+}
+@keyframes dzSpin { to { transform: rotate(360deg); } }
 .dz-ic {
   width: 58px; height: 58px; border-radius: 17px; display: grid; place-items: center;
-  background: linear-gradient(160deg, rgba(255, 255, 255, .20) 0%, rgba(100, 210, 255, .12) 55%, rgba(255, 255, 255, .06) 100%);
-  border: 1px solid rgba(255, 255, 255, .26);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 18px 36px -14px rgba(100, 210, 255, .28);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .22) 0%, rgba(100, 210, 255, .14) 55%, rgba(191, 90, 242, .08) 100%);
+  border: 1px solid rgba(255, 255, 255, .28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .36), 0 18px 36px -14px rgba(100, 210, 255, .34);
   color: var(--acc);
 }
 .dz-ic svg { width: 27px; height: 27px; }
-.dz-hero h1 { margin: 0; font-size: clamp(26px, 6vw, 34px); font-weight: 720; letter-spacing: -.85px; line-height: 1.06; }
-.dz-hero .dz-tagline { margin: -2px 0 0; font-size: 13.5px; font-weight: 600; letter-spacing: -.15px; color: var(--acc); }
-.dz-hero p { margin: 0; color: var(--txt-2); font-size: 13.5px; max-width: 34ch; line-height: 1.4; }
+.dz-stage h1 { margin: 2px 0 0; font-size: clamp(27px, 6vw, 35px); font-weight: 740; letter-spacing: -.9px; line-height: 1.04; }
+.dz-stage .dz-tagline { margin: -2px 0 0; font-size: 13px; font-weight: 620; letter-spacing: -.15px; color: var(--acc); }
+.dz-stage p { margin: 0; color: var(--txt-2); font-size: 13px; max-width: 36ch; line-height: 1.42; }
 .dz-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 2px; }
 .dz-pills span {
-  font-size: 11px; font-weight: 580; color: var(--txt-2); padding: 4px 10px; border-radius: var(--r-pill);
+  font-size: 10.5px; font-weight: 600; color: var(--txt-2); padding: 4px 9px; border-radius: var(--r-pill);
   background: rgba(255, 255, 255, .065); border: 1px solid var(--rim);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+.dz-bars {
+  width: 100%; height: 34px; display: flex; align-items: flex-end; justify-content: center;
+  gap: 3px; margin-top: 6px; padding: 0 4px;
+}
+.dz-bars i {
+  flex: 1; max-width: 7px; height: 32%; border-radius: 99px;
+  background: linear-gradient(180deg, #64d2ff 0%, #bf5af2 60%, #30d158 100%);
+  opacity: .56; transform-origin: bottom center;
+  animation: dzBarPulse 1.4s ease-in-out infinite alternate;
+  transition: height 140ms ease, opacity 140ms ease;
+}
+@keyframes dzBarPulse {
+  0% { transform: scaleY(.28); opacity: .35; }
+  55% { transform: scaleY(.92); opacity: .75; }
+  100% { transform: scaleY(.45); opacity: .48; }
 }
 
 .launcher-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .launch-card {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; padding: 15px;
-  border-radius: 24px; border: 1px solid var(--rim);
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: 100%; padding: 14px;
+  border-radius: 22px; border: 1px solid var(--rim);
   background: var(--glass-grad), var(--glass);
   backdrop-filter: blur(34px) saturate(190%); -webkit-backdrop-filter: blur(34px) saturate(190%);
   box-shadow: var(--spec), 0 16px 36px -20px rgba(0, 0, 0, .85);
@@ -261,34 +319,35 @@ kbd {
 .launch-card:hover { background: var(--glass-grad), var(--glass-hi); border-color: var(--rim-2); }
 .launch-card:active { transform: scale(.965); }
 .launch-card.primary {
-  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 13px; padding: 16px 18px;
-  background: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%);
+  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 13px; padding: 15px 17px;
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f8 100%);
   border-color: rgba(255, 255, 255, .92); color: #000000;
-  box-shadow: inset 0 1px 0 #ffffff, 0 16px 38px -14px rgba(255, 255, 255, .34);
+  box-shadow: inset 0 1px 0 #ffffff, 0 16px 38px -14px rgba(255, 255, 255, .32);
 }
 .launch-card.primary:hover { background: #ffffff; }
 .launch-ic {
-  width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none;
+  width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; flex: none;
   background: rgba(100, 210, 255, .14); border: 1px solid rgba(100, 210, 255, .28); color: var(--acc);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
 }
 .launch-card[id="btnDzRecord"] .launch-ic { color: var(--red); background: rgba(255, 69, 58, .15); border-color: rgba(255, 69, 58, .3); }
+.launch-card[id="btnDzPodcast"] .launch-ic { color: #ff9f0a; background: rgba(255, 159, 10, .14); border-color: rgba(255, 159, 10, .3); }
+.launch-card[id="btnDzDemo"] .launch-ic { color: #bf5af2; background: rgba(191, 90, 242, .15); border-color: rgba(191, 90, 242, .32); }
 .launch-card.primary .launch-ic { background: rgba(0, 0, 0, .07); border-color: transparent; color: #000000; box-shadow: none; }
 .launch-ic svg { width: 19px; height: 19px; }
 .launch-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.launch-txt b { font-size: 14.5px; font-weight: 660; letter-spacing: -.22px; }
-.launch-txt span { font-size: 11.5px; color: var(--txt-2); line-height: 1.32; }
-.launch-card.primary .launch-txt span { color: rgba(0, 0, 0, .64); font-weight: 520; }
+.launch-txt b { font-size: 14px; font-weight: 670; letter-spacing: -.22px; }
+.launch-txt span { font-size: 11px; color: var(--txt-2); line-height: 1.32; }
+.launch-card.primary .launch-txt span { color: rgba(0, 0, 0, .66); font-weight: 540; }
 .launch-arr { opacity: .45; flex: none; }
 .launch-card:not(.primary) .launch-arr { display: none; }
-.dz-formats { margin-top: 14px; text-align: center; font-size: 11px; color: var(--txt-3); }
 .dz .restore-row { margin-top: 12px; justify-content: center; }
 
 @media (min-width: 760px) {
   .dz {
-    padding: 28px 28px 24px;
+    padding: 22px 22px 18px;
     border-radius: 32px;
-    background: var(--glass-grad), rgba(20, 20, 26, .48);
+    background: var(--glass-grad), rgba(20, 20, 26, .46);
     backdrop-filter: blur(40px) saturate(190%); -webkit-backdrop-filter: blur(40px) saturate(190%);
     border: 1px solid var(--rim-2);
     box-shadow: var(--spec), 0 36px 80px -30px rgba(0, 0, 0, .9);
@@ -413,14 +472,105 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .zoom-pill .btn:hover { background: rgba(255, 255, 255, .16); }
 .zoom-pill .btn svg { width: 14px; height: 14px; }
 .busy {
-  position: absolute; inset: 0; display: none; place-items: center; background: rgba(0, 0, 0, .7);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 5;
+  position: absolute; inset: 0; display: none; place-items: center; background: rgba(8, 10, 16, .74);
+  backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); z-index: 5;
 }
 .busy.on { display: grid; }
-.busy .box { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.spinner { width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.16); border-top-color: #fff; animation: spin .8s linear infinite; }
+.busy .box {
+  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 16px 22px; border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,.1) 0%, rgba(255,255,255,.03) 100%), rgba(18, 20, 28, .86);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 18px 40px -16px rgba(0, 0, 0, .9);
+}
+.spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 2.5px solid rgba(100, 210, 255, .18);
+  border-top-color: #64d2ff; border-right-color: #bf5af2;
+  animation: spin .75s linear infinite;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
-.busy .box p { margin: 0; font-size: 12.5px; color: var(--txt-2); }
+.busy .box p { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--txt); }
+
+/* ------------------------------------------- Out-of-the-box Acoustic Loader */
+.studio-loader {
+  position: fixed; inset: 0; z-index: 98; display: grid; place-items: center; padding: 20px;
+  background:
+    radial-gradient(60% 42% at 50% 38%, rgba(100, 210, 255, .12), transparent 70%),
+    rgba(6, 8, 14, .76);
+  backdrop-filter: blur(24px) saturate(190%); -webkit-backdrop-filter: blur(24px) saturate(190%);
+  animation: slFadeIn 180ms var(--ease);
+}
+.studio-loader[hidden] { display: none; }
+@keyframes slFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.sl-card {
+  width: min(350px, 100%); padding: 22px 20px 18px; border-radius: 28px;
+  background:
+    radial-gradient(100% 70% at 50% 0%, rgba(100, 210, 255, .14), transparent 62%),
+    var(--glass-grad), rgba(16, 18, 26, .90);
+  border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28), 0 32px 72px -20px rgba(0, 0, 0, .95);
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+}
+.sl-orb {
+  position: relative; width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center;
+  background: linear-gradient(155deg, rgba(100, 210, 255, .18), rgba(191, 90, 242, .12));
+  border: 1px solid rgba(255, 255, 255, .24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), 0 16px 34px -12px rgba(100, 210, 255, .4);
+}
+.sl-orb::before {
+  content: ""; position: absolute; inset: -6px; border-radius: 26px; padding: 1.5px;
+  background: conic-gradient(from 0deg, rgba(100, 210, 255, .85), rgba(191, 90, 242, .7), rgba(48, 209, 88, .75), rgba(100, 210, 255, .85));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: spin 1.9s linear infinite;
+}
+.sl-bars { display: flex; align-items: center; justify-content: center; gap: 4px; height: 28px; }
+.sl-bars i {
+  width: 3.5px; height: 100%; border-radius: 99px;
+  background: linear-gradient(180deg, #64d2ff 0%, #bf5af2 55%, #30d158 100%);
+  animation: slWave .9s ease-in-out infinite alternate;
+}
+.sl-bars i:nth-child(2) { animation-delay: .12s; }
+.sl-bars i:nth-child(3) { animation-delay: .24s; }
+.sl-bars i:nth-child(4) { animation-delay: .36s; }
+.sl-bars i:nth-child(5) { animation-delay: .48s; }
+@keyframes slWave { 0% { transform: scaleY(.28); opacity: .55; } 100% { transform: scaleY(1); opacity: 1; } }
+.sl-title { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.3px; color: var(--txt); }
+.sl-file {
+  max-width: 100%; padding: 4px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .12);
+  font: 550 11px ui-monospace, monospace; color: var(--acc);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-file[hidden] { display: none; }
+.sl-steps {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%;
+}
+.sl-step {
+  padding: 6px 4px; border-radius: 11px; font-size: 10.5px; font-weight: 620; color: var(--txt-3);
+  background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08);
+  transition: background 180ms, color 180ms, border-color 180ms;
+}
+.sl-step.is-active {
+  color: #e6f8ff; background: rgba(100, 210, 255, .18); border-color: rgba(100, 210, 255, .52);
+}
+.sl-step.is-done {
+  color: #9df5b6; background: rgba(48, 209, 88, .14); border-color: rgba(48, 209, 88, .38);
+}
+.sl-rail {
+  position: relative; width: 100%; height: 5px; border-radius: 99px; overflow: hidden;
+  background: rgba(255, 255, 255, .1);
+}
+.sl-rail i {
+  display: block; height: 100%; width: 35%; border-radius: 99px;
+  background: linear-gradient(90deg, #64d2ff, #bf5af2, #30d158);
+  transition: width 220ms var(--ease);
+}
+.sl-rail.is-indet i {
+  width: 45%; animation: slSlide 1.15s ease-in-out infinite;
+}
+@keyframes slSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(240%); } }
 
 .overview-wrap {
   position: relative; height: 34px; border-radius: 11px; overflow: hidden;
@@ -578,25 +728,26 @@ body.has-multitrack #wave { height: clamp(258px, 38dvh, 415px); }
 .mini-transport {
   position: fixed; left: 50%; top: calc(var(--topbar-h, 54px) + 8px);
   transform: translate(-50%, -14px) scale(.96);
-  z-index: 48; display: flex; align-items: center; gap: 7px;
-  width: min(calc(100% - 20px), 380px); padding: 6px 8px 6px 6px;
+  z-index: 64; display: flex; align-items: center; gap: 6px;
+  width: min(calc(100% - 16px), 420px); padding: 6px 8px 6px 6px;
   border-radius: var(--r-pill);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .03) 100%), rgba(16, 18, 26, .68);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .03) 100%), rgba(16, 18, 26, .78);
   backdrop-filter: blur(26px) saturate(210%); -webkit-backdrop-filter: blur(26px) saturate(210%);
-  border: 1px solid rgba(255, 255, 255, .22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30), 0 16px 36px -14px rgba(0, 0, 0, .82);
+  border: 1px solid rgba(255, 255, 255, .24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30), 0 16px 36px -14px rgba(0, 0, 0, .86);
   opacity: 0; pointer-events: none;
-  transition: opacity 200ms var(--ease), transform 220ms var(--ease);
+  transition: opacity 200ms var(--ease), transform 220ms var(--ease), top 200ms var(--ease);
 }
+body.sheet-open .mini-transport { top: calc(var(--sat, 0px) + 8px); }
 .mini-transport.on { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
-body.overlay-open .mini-transport { opacity: 0 !important; pointer-events: none !important; }
-.mini-transport .tbtn { width: 32px; height: 32px; flex: none; }
+body.overlay-open:not(.sheet-open) .mini-transport { opacity: 0 !important; pointer-events: none !important; }
+.mini-transport .tbtn { width: 30px; height: 30px; flex: none; }
 .mini-transport .tbtn.main { width: 34px; height: 34px; }
 .mini-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.mini-meta b { font-size: 11.5px; font-weight: 630; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--txt); }
-.mini-meta span { font-size: 10.5px; color: var(--acc); }
+.mini-meta b { font-size: 11px; font-weight: 630; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--txt); }
+.mini-meta span { font-size: 10.5px; color: var(--acc); white-space: nowrap; }
 @media (min-width: 760px) {
-  .mini-transport { left: auto; right: 20px; bottom: 20px; top: auto; transform: translateY(14px) scale(.96); width: 340px; }
+  .mini-transport { left: auto; right: 20px; bottom: 20px; top: auto !important; transform: translateY(14px) scale(.96); width: 380px; }
   .mini-transport.on { transform: translateY(0) scale(1); }
 }
 
@@ -704,6 +855,10 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
   transition: background var(--fast), border-color var(--fast), transform var(--fast);
 }
 .mpill:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+.mpill.is-editing {
+  background: rgba(100,210,255,.14); border-color: var(--cue-col, rgba(100,210,255,.6));
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 4px 14px -4px rgba(100,210,255,.38);
+}
 .mpill-jump {
   display: inline-flex; align-items: center; gap: 6px; padding: 2px 2px 2px 0;
   background: none; border: 0; color: inherit; font: inherit; cursor: pointer;
@@ -719,16 +874,51 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .mpill-edit:hover { background: rgba(255,255,255,.12); color: var(--txt); }
 .mpill-del { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.58); }
 .mpill-del:hover, .mpill-del:active { background: rgba(255,69,58,.24); color: #ff8e86; }
+@keyframes markerDeckIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .marker-pop {
-  position: absolute; top: 34px; left: 12px; z-index: 26; width: min(304px, calc(100% - 16px));
-  border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 9px;
-  background: rgba(16, 18, 28, .92); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow: 0 18px 48px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.18);
+  --cue-col: var(--acc);
+  margin-top: 6px;
+  border-radius: 16px;
+  padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 9px;
+  background: linear-gradient(155deg, rgba(255,255,255,.065) 0%, rgba(14,16,26,.88) 52%), rgba(12,14,22,.92);
+  border: 1px solid rgba(255,255,255,.13);
+  border-left: 3.5px solid var(--cue-col);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 10px 26px -14px rgba(0,0,0,.72);
+  animation: markerDeckIn 170ms var(--ease);
 }
 .marker-pop[hidden] { display: none; }
-.marker-pop-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.marker-pop-h b { font: 600 11.5px/1 ui-monospace, monospace; color: var(--acc); }
+.marker-pop-h { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.marker-pop-h .mdeck-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cue-col); box-shadow: 0 0 10px var(--cue-col); flex: none; }
+.marker-pop-h b { font: 650 12px/1 ui-monospace, monospace; color: var(--txt); letter-spacing: -.2px; }
+.mdeck-nav {
+  display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 999px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+}
+.mdeck-nav button {
+  width: 24px; height: 22px; border-radius: 999px; border: 0; background: transparent;
+  color: var(--txt-2); font-size: 13px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+}
+.mdeck-nav button:hover:not(:disabled) { background: rgba(255,255,255,.12); color: #fff; }
+.mdeck-nav button:disabled { opacity: .32; cursor: default; }
+.mdeck-nav span { font: 600 10.5px/1 ui-monospace, monospace; color: var(--txt-3); padding: 0 5px; }
+.mdeck-jog {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  padding: 5px 7px; border-radius: 12px;
+  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.08);
+}
+.mdeck-jog-lbl { font-size: 10px; font-weight: 650; letter-spacing: .5px; text-transform: uppercase; color: var(--txt-3); margin-right: 2px; }
+.mdeck-jog button {
+  height: 25px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05); color: var(--txt-2); font: 600 10.5px/1 ui-monospace, monospace; cursor: pointer;
+}
+.mdeck-jog button:hover { background: rgba(255,255,255,.12); color: #fff; }
+.mdeck-jog button.is-snap { color: var(--acc); border-color: rgba(100,210,255,.32); background: rgba(100,210,255,.10); margin-left: auto; }
+.mdeck-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+@media (min-width: 680px) { .mdeck-grid { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: start; } }
 .cue-tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .cue-chip {
   display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px;
@@ -752,9 +942,71 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .bpm-in { width: 64px !important; height: 30px !important; text-align: center; font: 600 12px ui-monospace, monospace; padding: 2px 6px !important; }
 .pref-grid { display: flex; flex-direction: column; gap: 11px; }
 .pref-card {
-  display: flex; flex-direction: column; gap: 8px; padding: 11px 12px; border-radius: 16px;
-  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
+  display: flex; flex-direction: column; gap: 9px; padding: 12px 13px; border-radius: 17px;
+  background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.11);
 }
+.pref-tabs {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;
+  padding: 4px; border-radius: 16px; background: rgba(0, 0, 0, .36);
+  border: 1px solid rgba(255, 255, 255, .1); margin-bottom: 12px;
+}
+.pref-tabs button {
+  padding: 8px 6px; border-radius: 12px; font-size: 11.5px; font-weight: 620; color: var(--txt-2);
+  transition: background var(--fast), color var(--fast), transform var(--fast);
+}
+.pref-tabs button[aria-selected="true"] {
+  background: rgba(255, 255, 255, .16); color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24);
+}
+.pref-pane[hidden] { display: none; }
+.pref-snap-viz {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px; border-radius: 15px; overflow: hidden;
+  background: radial-gradient(80% 100% at 50% 0%, rgba(100, 210, 255, .12), rgba(8, 10, 16, .84));
+  border: 1px solid rgba(100, 210, 255, .24);
+}
+.pref-snap-track {
+  position: relative; flex: 1; height: 34px; border-radius: 10px;
+  background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.pref-snap-halo {
+  height: 100%; background: rgba(100, 210, 255, .22); border-left: 1px dashed rgba(100, 210, 255, .6);
+  border-right: 1px dashed rgba(100, 210, 255, .6); transition: width 180ms var(--ease);
+}
+.pref-snap-head {
+  position: absolute; top: 3px; bottom: 3px; width: 2px; border-radius: 2px;
+  background: #ff453a; box-shadow: 0 0 8px rgba(255, 69, 58, .85);
+}
+.pref-snap-viz.is-pulsing .pref-snap-head { background: #30d158; box-shadow: 0 0 14px #30d158; transform: scaleY(1.08); }
+.pref-pills { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.pref-pills.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pref-pills button {
+  padding: 7px 6px; border-radius: 11px; font-size: 11px; font-weight: 600; color: var(--txt-2);
+  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1);
+  transition: background var(--fast), border-color var(--fast), color var(--fast);
+}
+.pref-pills button[aria-pressed="true"] {
+  background: rgba(100, 210, 255, .18); border-color: rgba(100, 210, 255, .52); color: #e8f8ff;
+}
+.pref-codec-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.pref-codec-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 9px 10px;
+  border-radius: 13px; background: rgba(255, 255, 255, .045); border: 1px solid rgba(255, 255, 255, .1);
+  text-align: left; color: var(--txt); transition: border-color var(--fast), background var(--fast);
+}
+.pref-codec-card b { font-size: 12.5px; font-weight: 680; }
+.pref-codec-card span { font-size: 10px; color: var(--txt-3); }
+.pref-codec-card[aria-pressed="true"] {
+  background: rgba(100, 210, 255, .16); border-color: rgba(100, 210, 255, .52);
+}
+.pref-codec-card[aria-pressed="true"] span { color: #bdefff; }
+.pref-telemetry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.pref-stat {
+  padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, .28); border: 1px solid rgba(255, 255, 255, .08);
+}
+.pref-stat span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--txt-3); }
+.pref-stat b { display: block; font-size: 12px; font-family: ui-monospace, monospace; color: var(--acc); margin-top: 2px; }
 .macro-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .macro-pill {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px;
@@ -1626,7 +1878,7 @@ body.overlay-open { overflow: hidden; }
     <button class="btn icon sm desktop-only" id="btnRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
     <button class="btn sm ghost desktop-only" id="btnOpen" title="Open audio file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lbl">Open</span></button>
     <button class="btn icon sm ghost desktop-only" id="btnCmd" title="Command palette (Ctrl+K)" aria-label="Commands"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></button>
-    <button class="btn icon sm ghost" id="btnPrefs" title="Preferences &amp; haptics" aria-label="Preferences"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.79 1 1.45 1.07H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    <button class="btn icon prefs-btn" id="btnPrefs" title="Studio Settings &amp; Haptics" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="10" y2="7"/><line x1="14" y1="7" x2="20" y2="7"/><circle cx="12" cy="7" r="2.2"/><line x1="4" y1="12" x2="15" y2="12"/><line x1="19" y1="12" x2="20" y2="12"/><circle cx="17" cy="12" r="2.2"/><line x1="4" y1="17" x2="6" y2="17"/><line x1="10" y1="17" x2="20" y2="17"/><circle cx="8" cy="17" r="2.2"/></svg></button>
     <button class="btn icon sm ghost desktop-only" id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Shortcuts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><circle cx="12" cy="17" r=".9" fill="currentColor" stroke="none"/></svg></button>
     <button class="btn sm primary" id="btnExportTop" title="Export audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m8 10.5 4 4 4-4"/><path d="M4 20h16"/></svg><span class="lbl">Export</span></button>
   </header>
@@ -1634,40 +1886,55 @@ body.overlay-open { overflow: hidden; }
   <!-- ====================================================== dropzone ===== -->
   <main class="dropzone" id="dropzone">
     <div class="dz" id="dz">
-      <div class="dz-hero">
-        <div class="dz-ic" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><g fill="currentColor"><rect x="4" y="10" width="2.4" height="4" rx="1.2"/><rect x="8.2" y="6.5" width="2.4" height="11" rx="1.2"/><rect x="12.4" y="3.5" width="2.4" height="17" rx="1.2"/><rect x="16.6" y="8" width="2.4" height="8" rx="1.2"/></g></svg>
+      <div class="dz-stage" id="dzStage">
+        <div class="dz-stage-head">
+          <span>AUDIO WORKSTATION · LOCAL DSP</span>
+          <span class="dz-live-badge"><i></i>OFFLINE ENGINE</span>
+        </div>
+        <div class="dz-ic-ring" aria-hidden="true">
+          <div class="dz-ic">
+            <svg viewBox="0 0 24 24" fill="none"><g fill="currentColor"><rect x="4" y="10" width="2.4" height="4" rx="1.2"/><rect x="8.2" y="6.5" width="2.4" height="11" rx="1.2"/><rect x="12.4" y="3.5" width="2.4" height="17" rx="1.2"/><rect x="16.6" y="8" width="2.4" height="8" rx="1.2"/></g></svg>
+          </div>
         </div>
         <h1>Sonora</h1>
         <p class="dz-tagline">Where every layer resonates.</p>
-        <p>Studio multitrack cutting, live mastering, and mic recording on your device.</p>
+        <p>Non-destructive multitrack editing, stem isolation, live AudioWorklet FX, and LUFS mastering right on your device.</p>
         <div class="dz-pills">
-          <span>32-bit DSP</span>
+          <span>32-bit Float DSP</span>
           <span>LUFS Mastering</span>
-          <span>Offline</span>
+          <span>4-Stem HPSS</span>
+          <span>Varispeed FX</span>
         </div>
+        <div class="dz-bars" id="dzBars" aria-hidden="true"></div>
       </div>
 
       <div class="launcher-grid">
         <button type="button" class="launch-card primary" id="btnPick">
           <span class="launch-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
-          <span class="launch-txt"><b>Open Audio File</b><span>WAV, MP3, OGG, FLAC, M4A</span></span>
+          <span class="launch-txt"><b>Open Audio or Project</b><span>Drop or pick WAV, FLAC, MP3, M4A, OPUS, .sonora</span></span>
           <svg class="launch-arr" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
         </button>
 
         <button type="button" class="launch-card" id="btnDzRecord">
           <span class="launch-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
-          <span class="launch-txt"><b>Record Mic</b><span>Live meter &amp; takes</span></span>
+          <span class="launch-txt"><b>Record Mic</b><span>Live LUFS meter &amp; takes</span></span>
         </button>
 
         <button type="button" class="launch-card" id="btnMergeLaunch">
           <span class="launch-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
-          <span class="launch-txt"><b>Merge Clips</b><span>Crossfade tracks</span></span>
+          <span class="launch-txt"><b>Merge Clips</b><span>Crossfade &amp; sequence</span></span>
+        </button>
+
+        <button type="button" class="launch-card" id="btnDzPodcast">
+          <span class="launch-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="2.2"/><path d="M7.5 15.5a6.5 6.5 0 1 1 9 0"/><path d="M4.5 18.5a10.8 10.8 0 1 1 15 0"/><path d="M12 13.5v7"/></svg></span>
+          <span class="launch-txt"><b>Podcast Builder</b><span>Intro, voice &amp; -16 LUFS</span></span>
+        </button>
+
+        <button type="button" class="launch-card" id="btnDzDemo">
+          <span class="launch-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>
+          <span class="launch-txt"><b>Load Demo Track</b><span>12s stereo synth sandbox</span></span>
         </button>
       </div>
-
-      <div class="dz-formats">Lossless WAV &amp; MP3 export · Zero uploads</div>
-      <div class="dz-bars" id="dzBars" hidden aria-hidden="true"></div>
     </div>
   </main>
 
@@ -1722,22 +1989,7 @@ body.overlay-open { overflow: hidden; }
 
         <div class="wave-wrap" id="waveWrap">
           <canvas id="wave" aria-label="Audio waveform"></canvas>
-          <div class="marker-pop" id="markerPop" hidden role="dialog" aria-label="Edit marker cue">
-            <div class="marker-pop-h">
-              <b id="mPopTime">0:00.000</b>
-              <span style="font-size:11px;color:var(--txt-3)">Marker &amp; Cue Note</span>
-              <button type="button" class="btn icon sm ghost" id="mPopClose" aria-label="Close marker popover" style="width:26px;height:26px;min-height:26px">×</button>
-            </div>
-            <input type="text" id="mPopName" placeholder="Marker title" maxlength="60">
-            <div class="cue-tags" id="mPopTags"></div>
-            <textarea id="mPopNote" class="marker-note-in" rows="2" placeholder="Text-to-marker note, script cue, or topic summary…"></textarea>
-            <div class="btn-row">
-              <button type="button" class="btn sm" id="mPopJump">Jump</button>
-              <button type="button" class="btn sm" id="mPopSetSel">Sel from here</button>
-              <button type="button" class="btn sm warn" id="mPopDel">Delete</button>
-            </div>
-          </div>
-          <div class="busy" id="busy"><div class="box"><div class="spinner"></div><p id="busyTxt">Processing…</p></div></div>
+          <div class="busy" id="busy"><div class="box"><div class="sl-bars"><i></i><i></i><i></i><i></i><i></i></div><p id="busyTxt">Processing…</p></div></div>
         </div>
 
         <div class="wave-meta-bar">
@@ -1766,6 +2018,43 @@ body.overlay-open { overflow: hidden; }
           <canvas id="overview" aria-label="Track overview minimap"></canvas>
         </div>
         <div class="marker-pill-strip" id="markerPillStrip" hidden aria-label="Color-coded marker cues"></div>
+
+        <div class="marker-pop" id="markerPop" hidden role="region" aria-label="Marker Cue Studio">
+          <div class="marker-pop-h">
+            <span class="mdeck-dot" aria-hidden="true"></span>
+            <b id="mPopTime">0:00.000</b>
+            <div class="mdeck-nav" role="group" aria-label="Step markers">
+              <button type="button" id="mPopPrev" title="Previous marker" aria-label="Previous marker">‹</button>
+              <span id="mPopCount">1 / 1</span>
+              <button type="button" id="mPopNext" title="Next marker" aria-label="Next marker">›</button>
+            </div>
+            <button type="button" class="btn sm" id="mPopPlay" title="Audition 2s from this cue">▶ 2s</button>
+            <div class="spacer"></div>
+            <button type="button" class="btn icon sm ghost" id="mPopClose" aria-label="Close marker cue studio" style="width:28px;height:28px;min-height:28px">×</button>
+          </div>
+          <div class="mdeck-jog" role="group" aria-label="Micro-align marker position">
+            <span class="mdeck-jog-lbl">Nudge</span>
+            <button type="button" data-mnudge="-0.1">−100ms</button>
+            <button type="button" data-mnudge="-0.02">−20ms</button>
+            <button type="button" data-mnudge="0.02">+20ms</button>
+            <button type="button" data-mnudge="0.1">+100ms</button>
+            <button type="button" class="is-snap" id="mPopSnapPlay" title="Move marker to current playhead">@ Playhead</button>
+          </div>
+          <div class="mdeck-grid">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <input type="text" id="mPopName" placeholder="Marker title" maxlength="60">
+              <div class="cue-tags" id="mPopTags"></div>
+            </div>
+            <textarea id="mPopNote" class="marker-note-in" rows="2" placeholder="Text-to-marker note, script cue, or topic summary…"></textarea>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn sm" id="mPopJump">Jump</button>
+            <button type="button" class="btn sm" id="mPopSetSel">Sel to Next</button>
+            <button type="button" class="btn sm" id="mPopSplit" title="Split active clip at this marker">Split @ Cue</button>
+            <div class="spacer"></div>
+            <button type="button" class="btn sm warn" id="mPopDel">Delete</button>
+          </div>
+        </div>
       </div>
 
       <div class="transport">
@@ -2126,13 +2415,15 @@ body.overlay-open { overflow: hidden; }
 </div>
 
 <div class="mini-transport" id="miniTransport" role="region" aria-label="Floating transport">
-  <button type="button" class="tbtn sm" id="miniBack" title="Back 10s" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></button>
+  <button type="button" class="tbtn sm" id="miniBack" title="Back 5s" aria-label="Back 5 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg></button>
   <button type="button" class="tbtn main" id="miniPlay" title="Play or pause" aria-label="Play or pause"><svg id="icMiniPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.2v13.6a1 1 0 0 0 1.53.85l10.2-6.8a1 1 0 0 0 0-1.7L9.53 4.35A1 1 0 0 0 8 5.2z"/></svg><svg id="icMiniPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="7" y="5" width="3.6" height="14" rx="1.3"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.3"/></svg></button>
-  <button type="button" class="tbtn sm" id="miniFwd" title="Forward 10s" aria-label="Forward 10 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></button>
+  <button type="button" class="tbtn sm" id="miniFwd" title="Forward 5s" aria-label="Forward 5 seconds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg></button>
   <div class="mini-meta">
     <b id="miniTitle">Track</b>
     <span class="mono" id="miniTime">0:00.000</span>
   </div>
+  <button type="button" class="tbtn sm" id="miniMarker" title="Drop marker at playhead" aria-label="Drop marker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16l-7-4-7 4z"/></svg></button>
+  <button type="button" class="tbtn sm" id="miniUndo" title="Undo" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
 </div>
 <input type="file" id="matchRefInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
 <input type="file" id="refTrackInput" accept="audio/*,video/mp4,video/webm,.wav,.mp3,.ogg,.m4a,.aac,.flac,.opus,.webm" hidden>
@@ -2306,6 +2597,21 @@ body.overlay-open { overflow: hidden; }
   <div class="panel-b" id="modalBody"></div>
 </div>
 
+<div class="studio-loader" id="studioLoader" role="status" aria-live="polite" hidden>
+  <div class="sl-card">
+    <div class="sl-orb" aria-hidden="true">
+      <div class="sl-bars"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <p class="sl-title" id="slTitle">Decoding Audio…</p>
+    <div class="sl-file" id="slFile" hidden></div>
+    <div class="sl-steps" id="slSteps">
+      <span class="sl-step" data-slstep="0">1. Read</span>
+      <span class="sl-step" data-slstep="1">2. Decode</span>
+      <span class="sl-step" data-slstep="2">3. Waveform</span>
+    </div>
+    <div class="sl-rail is-indet" id="slRail"><i id="slRailBar"></i></div>
+  </div>
+</div>
 <div id="globalStatus" class="global-status" role="status" hidden></div><div id="recordStatus" class="record-status" role="status" hidden></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <input type="file" id="fileInput" multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.webm,.aiff,.sonora,.overtone,.sonicforge,.zip" hidden>
@@ -20952,13 +21258,258 @@ lamejs();
     return { mode: '4stem', vocals: finalize(vocOut), drums: finalize(drumOut), bass: finalize(bassOut), other: finalize(otherOut) };
   }
 
+  /* ------------------------------ Varispeed / Tape-Stop Envelope */
+  function applyVarispeedEnvelope(data, sampleRate, points) {
+    if (!data || !data.length || !data[0].length) return data;
+    if (!points || points.length < 2) return data.map((ch) => ch.slice());
+    const fs = sampleRate || 44100;
+    const len = data[0].length;
+    const pts = points.slice().sort((a, b) => a.t - b.t);
+    const evalRate = (tSec) => {
+      if (tSec <= pts[0].t) return clamp(pts[0].r ?? 1, 0.1, 2.5);
+      if (tSec >= pts[pts.length - 1].t) return clamp(pts[pts.length - 1].r ?? 1, 0.1, 2.5);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i], p1 = pts[i + 1];
+        if (tSec <= p1.t) {
+          const span = p1.t - p0.t;
+          const u = span > 1e-6 ? (tSec - p0.t) / span : 0;
+          return clamp(lerp(p0.r ?? 1, p1.r ?? 1, u), 0.1, 2.5);
+        }
+      }
+      return 1;
+    };
+    const maxOut = Math.min(len * 4, len + fs * 120);
+    const posBuf = [];
+    let pos = 0;
+    while (pos < len - 1 && posBuf.length < maxOut) {
+      posBuf.push(pos);
+      const r = evalRate(pos / fs);
+      pos += r;
+    }
+    const outLen = Math.max(1, posBuf.length);
+    const out = data.map((src) => {
+      const dst = new Float32Array(outLen);
+      const maxIdx = src.length - 1;
+      for (let i = 0; i < outLen; i++) {
+        const p = posBuf[i];
+        const i1 = p | 0;
+        const t = p - i1;
+        const i0 = i1 > 0 ? i1 - 1 : 0;
+        const i2 = i1 < maxIdx ? i1 + 1 : maxIdx;
+        const i3 = i1 + 2 <= maxIdx ? i1 + 2 : maxIdx;
+        const y0 = src[i0], y1 = src[i1], y2 = src[i2], y3 = src[i3];
+        const c0 = y1;
+        const c1 = 0.5 * (y2 - y0);
+        const c2 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3;
+        const c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
+        dst[i] = clamp(((c3 * t + c2) * t + c1) * t + c0, -1, 1);
+      }
+      return dst;
+    });
+    return out;
+  }
+
+  /* ------------------------------ Dialogue Auto-Leveler (Vocal Rider) */
+  function vocalRider(data, sampleRate, opts) {
+    const fs = sampleRate || 44100;
+    const o = opts || {};
+    const targetDb = clamp(o.targetDb ?? -18, -32, -8);
+    const floorDb = clamp(o.floorDb ?? -44, -70, -24);
+    const maxBoostDb = clamp(o.maxBoostDb ?? 9, 0, 18);
+    const maxCutDb = clamp(o.maxCutDb ?? 9, 0, 18);
+    const speedMs = clamp(o.speedMs ?? 180, 40, 600);
+    const curveOnly = !!(o.curveOnly || o.dry);
+
+    const len = data[0].length;
+    const hop = Math.max(64, Math.round(fs * 0.015)); // 15 ms frames
+    const stepSec = hop / fs;
+    const numF = Math.max(1, Math.ceil(len / hop));
+    const hp = biquadCoeffs('highpass', 160, 0, 0.707, fs);
+    const lp = biquadCoeffs('lowpass', 4400, 0, 0.707, fs);
+    const frameDb = new Float32Array(numF);
+
+    let hx1 = 0, hx2 = 0, hy1 = 0, hy2 = 0;
+    let lx1 = 0, lx2 = 0, ly1 = 0, ly2 = 0;
+    const nch = data.length;
+    for (let f = 0; f < numF; f++) {
+      const s0 = f * hop;
+      const s1 = Math.min(len, s0 + hop);
+      let sumSq = 0;
+      for (let i = s0; i < s1; i++) {
+        let m = data[0][i];
+        if (nch > 1) m = 0.5 * (m + data[1][i]);
+        const hy = hp.b0 * m + hp.b1 * hx1 + hp.b2 * hx2 - hp.a1 * hy1 - hp.a2 * hy2;
+        hx2 = hx1; hx1 = m; hy2 = hy1; hy1 = hy;
+        const ly = lp.b0 * hy + lp.b1 * lx1 + lp.b2 * lx2 - lp.a1 * ly1 - lp.a2 * ly2;
+        lx2 = lx1; lx1 = hy; ly2 = ly1; ly1 = ly;
+        sumSq += ly * ly;
+      }
+      const rms = Math.sqrt(sumSq / Math.max(1, s1 - s0));
+      frameDb[f] = linToDb(rms);
+    }
+
+    // Smooth lookahead gain riding in dB
+    const rawTargetDb = new Float32Array(numF);
+    for (let f = 0; f < numF; f++) {
+      // 2-frame lookahead peak/RMS check so initial syllables aren't clipped or boosted late
+      let envDb = frameDb[f];
+      if (f + 1 < numF && frameDb[f + 1] > envDb) envDb = lerp(envDb, frameDb[f + 1], 0.55);
+      if (f + 2 < numF && frameDb[f + 2] > envDb) envDb = lerp(envDb, frameDb[f + 2], 0.3);
+      if (envDb <= floorDb) {
+        rawTargetDb[f] = 0;
+      } else {
+        const speechFrac = clamp((envDb - floorDb) / 6, 0, 1);
+        const ride = clamp(targetDb - envDb, -maxCutDb, maxBoostDb);
+        rawTargetDb[f] = ride * speechFrac;
+      }
+    }
+
+    const attCoef = Math.exp(-stepSec / Math.max(0.02, (speedMs * 0.45) / 1000));
+    const relCoef = Math.exp(-stepSec / Math.max(0.03, speedMs / 1000));
+    const curve = new Float32Array(numF);
+    let curDb = 0;
+    for (let f = 0; f < numF; f++) {
+      const tgt = rawTargetDb[f];
+      const coef = tgt < curDb ? attCoef : relCoef;
+      curDb = coef * curDb + (1 - coef) * tgt;
+      curve[f] = curDb;
+    }
+
+    // Simplify dense frame curve into clean editable automation keyframes
+    const points = [];
+    const totalSec = len / fs;
+    if (numF > 0) {
+      const stride = Math.max(1, Math.floor(numF / 42));
+      points.push({ t: 0, db: Number(curve[0].toFixed(2)) });
+      for (let f = stride; f < numF - 1; f += stride) {
+        const t = Number((f * stepSec).toFixed(3));
+        const db = Number(curve[f].toFixed(2));
+        if (Math.abs(db - points[points.length - 1].db) >= 0.45 || (t - points[points.length - 1].t) >= Math.max(0.35, totalSec / 18)) {
+          points.push({ t, db });
+        }
+      }
+      points.push({ t: Number(totalSec.toFixed(3)), db: Number(curve[numF - 1].toFixed(2)) });
+    }
+    if (curveOnly) return { curve, stepSec, points, data: null };
+
+    const ceil = dbToLin(-0.8);
+    const out = data.map((ch) => {
+      const dst = new Float32Array(len);
+      for (let i = 0; i < len; i++) {
+        const fPos = i / hop;
+        const f0 = Math.min(numF - 1, fPos | 0);
+        const f1 = Math.min(numF - 1, f0 + 1);
+        const gDb = lerp(curve[f0], curve[f1], fPos - f0);
+        const g = dbToLin(gDb);
+        dst[i] = softLimitSample(ch[i] * g, ceil);
+      }
+      return dst;
+    });
+    return { curve, stepSec, points, data: out };
+  }
+
+  /* ------------------------------ Multi-Mic Crosstalk Bleed Gate */
+  function crosstalkGate(dataA, dataB, sampleRate, opts) {
+    const fs = sampleRate || 44100;
+    const o = opts || {};
+    const marginDb = clamp(o.marginDb ?? o.ratioMarginDb ?? 5.5, 1, 18);
+    const depthDb = clamp(o.depthDb ?? o.attenDb ?? -20, -48, -3);
+    const floorDb = clamp(o.floorDb ?? o.threshDb ?? -46, -72, -16);
+    const releaseMs = clamp(o.releaseMs ?? o.holdMs ?? 160, 40, 600);
+    const mode = o.mode === 't2only' ? 't2only' : 'both';
+    const offsetB = Math.round((o.offsetSecB ?? o.offsetSec ?? 0) * fs);
+    const trimInB = Math.max(0, Math.round((o.trimInSecB || 0) * fs));
+    const bLen = dataB[0].length;
+    const playLenB = Math.max(0, Math.min(bLen - trimInB, o.playLenB != null ? Math.round(o.playLenB) : (bLen - trimInB)));
+
+    const lenA = dataA[0].length;
+    const outA = mode === 'both' ? dataA.map((c) => c.slice()) : dataA;
+    const outB = dataB.map((c) => c.slice());
+
+    const hop = Math.max(48, Math.round(fs * 0.012)); // 12 ms frames
+    const stepSec = hop / fs;
+    const startSample = Math.max(0, offsetB);
+    const endSample = Math.min(lenA, offsetB + playLenB);
+    if (endSample <= startSample + hop) return { a: outA, b: outB, dataA: outA, dataB: outB };
+
+    const numF = Math.ceil((endSample - startSample) / hop);
+    const hpA = biquadCoeffs('highpass', 150, 0, 0.707, fs);
+    const hpB = biquadCoeffs('highpass', 150, 0, 0.707, fs);
+    let ax1 = 0, ax2 = 0, ay1 = 0, ay2 = 0;
+    let bx1 = 0, bx2 = 0, by1 = 0, by2 = 0;
+
+    const dbA = new Float32Array(numF);
+    const dbB = new Float32Array(numF);
+    for (let f = 0; f < numF; f++) {
+      const s0 = startSample + f * hop;
+      const s1 = Math.min(endSample, s0 + hop);
+      let sqA = 0, sqB = 0;
+      for (let i = s0; i < s1; i++) {
+        const bi = trimInB + (i - offsetB);
+        const ma = dataA.length > 1 ? 0.5 * (dataA[0][i] + dataA[1][i]) : dataA[0][i];
+        const mb = (bi >= 0 && bi < bLen) ? (dataB.length > 1 ? 0.5 * (dataB[0][bi] + dataB[1][bi]) : dataB[0][bi]) : 0;
+        const ya = hpA.b0 * ma + hpA.b1 * ax1 + hpA.b2 * ax2 - hpA.a1 * ay1 - hpA.a2 * ay2;
+        ax2 = ax1; ax1 = ma; ay2 = ay1; ay1 = ya;
+        const yb = hpB.b0 * mb + hpB.b1 * bx1 + hpB.b2 * bx2 - hpB.a1 * by1 - hpB.a2 * by2;
+        bx2 = bx1; bx1 = mb; by2 = by1; by1 = yb;
+        sqA += ya * ya;
+        sqB += yb * yb;
+      }
+      const cnt = Math.max(1, s1 - s0);
+      dbA[f] = linToDb(Math.sqrt(sqA / cnt));
+      dbB[f] = linToDb(Math.sqrt(sqB / cnt));
+    }
+
+    const attCoef = Math.exp(-stepSec / 0.015);
+    const relCoef = Math.exp(-stepSec / Math.max(0.03, releaseMs / 1000));
+    const gainA = new Float32Array(numF);
+    const gainB = new Float32Array(numF);
+    const depthLin = dbToLin(depthDb);
+    let gA = 1, gB = 1;
+
+    for (let f = 0; f < numF; f++) {
+      // 1-frame lookahead
+      const aLev = f + 1 < numF ? Math.max(dbA[f], dbA[f + 1]) : dbA[f];
+      const bLev = f + 1 < numF ? Math.max(dbB[f], dbB[f + 1]) : dbB[f];
+      let tA = 1, tB = 1;
+      if (aLev > floorDb && aLev > bLev + marginDb) {
+        const excess = clamp((aLev - (bLev + marginDb)) / 6, 0, 1);
+        tB = lerp(1, depthLin, excess);
+      } else if (mode === 'both' && bLev > floorDb && bLev > aLev + marginDb) {
+        const excess = clamp((bLev - (aLev + marginDb)) / 6, 0, 1);
+        tA = lerp(1, depthLin, excess);
+      }
+      gA = (tA < gA ? attCoef : relCoef) * gA + (1 - (tA < gA ? attCoef : relCoef)) * tA;
+      gB = (tB < gB ? attCoef : relCoef) * gB + (1 - (tB < gB ? attCoef : relCoef)) * tB;
+      gainA[f] = gA;
+      gainB[f] = gB;
+    }
+
+    for (let i = startSample; i < endSample; i++) {
+      const fPos = (i - startSample) / hop;
+      const f0 = Math.min(numF - 1, fPos | 0);
+      const f1 = Math.min(numF - 1, f0 + 1);
+      const frac = fPos - f0;
+      if (mode === 'both') {
+        const ga = lerp(gainA[f0], gainA[f1], frac);
+        for (let c = 0; c < outA.length; c++) outA[c][i] *= ga;
+      }
+      const bi = trimInB + (i - offsetB);
+      if (bi >= 0 && bi < bLen) {
+        const gb = lerp(gainB[f0], gainB[f1], frac);
+        for (let c = 0; c < outB.length; c++) outB[c][bi] *= gb;
+      }
+    }
+    return { a: outA, b: outB, dataA: outA, dataB: outB };
+  }
+
   /* ------------------------------------------------------------ public API */
   const SonicDSP = {
     FFT, getFFT, hann, nextPow2, clamp, dbToLin, linToDb, lerp, smoothstep, smootherstep,
     resample, resampleChannel, fade, applyFade, gain, removeDC, peakOf, rmsOf, stats, normalize,
     overlapAdd, silence, reverseRegion, deleteRegion, insertSilence, trim, mixChannels, toStereo, extractChannel, swapChannels, stereoShape, stereoDelay, masterImagerAndLimit, scanClipping, declip, scanClicks, declick, synthJingle, vocalTools, separateStems, chorus, echoDelay, lofi, autopan, dereverb, synthesizeRoomTone, patchSilentGaps, spectralBandOp,
     concat, crossfade, biquadCoeffs, applyBiquad, eqCurve, applyEq, eq, makeIR, fftConvolve, reverb,
-    measureLufs, compress, deess, applyEnvelope,
+    measureLufs, compress, deess, applyEnvelope, applyVarispeedEnvelope, vocalRider, crosstalkGate,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, formantShiftChannel, formantShift,
     MATCH_EQ_BANDS, analyzeSpectrumBands, matchEq, makeNoiseProfile, denoise,
     process, spectrogram, spectroColor, spectralRepair, encodeWav, encodeFlac, encodeMp3, makeDemo,
@@ -21012,7 +21563,7 @@ lamejs();
   function fmtHz(hz) { return hz >= 1000 ? (hz / 1000).toFixed(hz >= 10000 ? 0 : 1) + ' kHz' : Math.round(hz) + ' Hz'; }
   const PREFS_KEY = 'sonicforge_prefs_v1';
   const Prefs = (() => {
-    const def = { haptic: true, snapPx: 6, defExport: 'wav', autosave: true, zoomSens: 1.0 };
+    const def = { haptic: true, hapticScrub: true, hapticPower: 'medium', hapticAudio: false, snapPx: 6, defExport: 'wav', autosave: true, zoomSens: 1.0 };
     try {
       const raw = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
       return Object.assign({}, def, raw);
@@ -21021,15 +21572,82 @@ lamejs();
   function savePrefs() {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(Prefs)); } catch (e) {}
   }
+  const HapticDiag = {
+    supported: typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function',
+    inIframe: (() => { try { return window.self !== window.top; } catch (e) { return true; } })(),
+    lastOk: null,
+    lastMs: 0,
+    lastReason: ''
+  };
+  function playTactileClick(strong) {
+    if (!Prefs.hapticAudio || P.playing) return;
+    try {
+      const c = AC();
+      if (c.state !== 'running') return;
+      const now = c.currentTime;
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(strong ? 165 : 135, now);
+      osc.frequency.exponentialRampToValueAtTime(52, now + 0.018);
+      g.gain.setValueAtTime(strong ? 0.08 : 0.045, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+      osc.connect(g); g.connect(master || c.destination);
+      osc.start(now); osc.stop(now + 0.022);
+    } catch (e) {}
+  }
   let _lastHapticAt = 0;
-  function haptic(ms) {
-    if (!Prefs.haptic || !navigator.vibrate) return;
-    if (typeof ms === 'number' && ms <= 4) {
-      const now = performance.now();
-      if (now - _lastHapticAt < 24) return;
-      _lastHapticAt = now;
+  let _hapticBusyUntil = 0;
+  function haptic(ms, force) {
+    if (!Prefs.haptic) return false;
+    const now = performance.now();
+    if (!force && now < _hapticBusyUntil) return false;
+    if (!force && typeof ms === 'number' && ms <= 6 && (now - _lastHapticAt) < 42) return false;
+    _lastHapticAt = now;
+    const pwr = Prefs.hapticPower || 'medium';
+    const minFloor = pwr === 'strong' ? 32 : (pwr === 'light' ? 14 : 22);
+    const mult = pwr === 'strong' ? 2.4 : (pwr === 'light' ? 1.1 : 1.7);
+    let payload;
+    let totalMs = 0;
+    if (Array.isArray(ms)) {
+      payload = ms.map((v, idx) => {
+        const scaled = Math.round(v * mult);
+        return idx % 2 === 0 ? Math.max(minFloor, scaled) : Math.max(24, scaled);
+      });
+      totalMs = payload.reduce((a, b) => a + b, 0);
+    } else {
+      const base = ms || 10;
+      payload = Math.max(minFloor, Math.min(85, Math.round(base * mult)));
+      totalMs = payload;
     }
-    try { navigator.vibrate(ms || 8); } catch (e) {}
+    _hapticBusyUntil = now + totalMs + 16;
+    HapticDiag.lastMs = totalMs;
+    if (!HapticDiag.supported) {
+      HapticDiag.lastOk = false;
+      HapticDiag.lastReason = 'Web Vibration API unavailable in this browser (iOS / restricted WebView).';
+      playTactileClick(totalMs >= 30);
+      return false;
+    }
+    try {
+      const ok = navigator.vibrate(payload);
+      HapticDiag.lastOk = !!ok;
+      if (ok) {
+        HapticDiag.lastReason = `Hardware pulse sent (${Array.isArray(payload) ? payload.join('+') : payload} ms).`;
+      } else {
+        HapticDiag.lastReason = HapticDiag.inIframe
+          ? 'Blocked inside embedded preview frame — download & open in Chrome.'
+          : ((typeof navigator.userActivation !== 'undefined' && !navigator.userActivation.hasBeenActive)
+              ? 'Tap once on screen first to unlock browser vibration.'
+              : 'Blocked by browser/OS battery saver or vibration setting.');
+      }
+      if (!ok || Prefs.hapticAudio) playTactileClick(totalMs >= 30);
+      return !!ok;
+    } catch (e) {
+      HapticDiag.lastOk = false;
+      HapticDiag.lastReason = 'Vibration call failed: ' + e.message;
+      playTactileClick(totalMs >= 30);
+      return false;
+    }
   }
   const yieldUI = () => new Promise((r) => setTimeout(r, 0));
   function sanitizeName(n) {
@@ -21064,6 +21682,7 @@ lamejs();
     meta: { title: '', artist: '', album: '' },
     spec: null,        // cached spectrogram
     specCanvas: null,  // cached offscreen spectrogram image
+    transients: null,  // Float32Array of detected onset times (sec)
     noiseProfile: null,
     clipboard: null,
   };
@@ -21078,9 +21697,9 @@ lamejs();
   let baseDirty = true, fxDirty = true, rafId = 0;
   const pointers = new Map();
   let drag = null, pinch = null;
-  const Coincide = { edge: null, until: 0, timer: 0 };
+  const Coincide = { edge: null, until: 0, timer: 0, transientAt: 0, transientT: 0 };
   function triggerCoincideFeedback(edge) {
-    haptic(22);
+    haptic(22, true);
     Coincide.edge = edge;
     Coincide.until = performance.now() + 340;
     clearTimeout(Coincide.timer);
@@ -21095,6 +21714,64 @@ lamejs();
     const crossedB = (prevT < tb && nextT >= tb) || (prevT > tb && nextT <= tb);
     if (crossedA) triggerCoincideFeedback('a');
     else if (crossedB) triggerCoincideFeedback('b');
+    triggerTransientScrubHaptic(prevT, nextT);
+  }
+  function computeTransients() {
+    if (!S.data || !S.data[0] || !S.rate) { S.transients = null; return; }
+    const ch = S.data[0];
+    const len = ch.length;
+    const hop = Math.max(64, Math.round(S.rate * 0.01)); // 10 ms frames
+    const numF = Math.floor(len / hop);
+    if (numF < 3) { S.transients = new Float32Array(0); return; }
+    const out = [];
+    let prevRms = 0, lastPeakT = -1;
+    for (let f = 0; f < numF; f++) {
+      const s0 = f * hop;
+      let sq = 0;
+      for (let i = s0; i < s0 + hop; i += 2) { const v = ch[i]; sq += v * v; }
+      const rms = Math.sqrt(sq / Math.max(1, hop >> 1));
+      const t = (s0 + hop * 0.25) / S.rate;
+      if (f > 0 && rms > 0.035 && rms > prevRms * 1.85 && (t - lastPeakT) >= 0.075) {
+        out.push(t);
+        lastPeakT = t;
+      }
+      prevRms = prevRms * 0.65 + rms * 0.35;
+    }
+    S.transients = Float32Array.from(out);
+  }
+  let _lastTransientHapticAt = 0;
+  function triggerTransientScrubHaptic(prevT, nextT) {
+    if (!Prefs.hapticScrub || !hasAudio || Math.abs(nextT - prevT) < 0.0005) return;
+    const now = performance.now();
+    if (now - _lastTransientHapticAt < 55) return;
+    const lo = Math.min(prevT, nextT), hi = Math.max(prevT, nextT);
+    // Avoid vibrating across wide jumps
+    if (hi - lo > 0.45) return;
+    let hitT = -1;
+    for (let i = 0; i < Markers.list.length; i++) {
+      const mt = Markers.list[i].t;
+      if (mt > lo && mt <= hi) { hitT = mt; break; }
+    }
+    if (hitT < 0) {
+      if (!S.transients) computeTransients();
+      const tr = S.transients;
+      if (tr && tr.length) {
+        // Binary search start
+        let l = 0, r = tr.length - 1;
+        while (l <= r) {
+          const mid = (l + r) >> 1;
+          if (tr[mid] <= lo) l = mid + 1;
+          else r = mid - 1;
+        }
+        if (l < tr.length && tr[l] <= hi) hitT = tr[l];
+      }
+    }
+    if (hitT >= 0) {
+      _lastTransientHapticAt = now;
+      Coincide.transientAt = now;
+      Coincide.transientT = hitT;
+      haptic(14, true);
+    }
   }
 
   const dur = () => (S.data && S.data[0] ? S.data[0].length / S.rate : 0);
@@ -21166,6 +21843,9 @@ self.onmessage = function (e) {
       case 'stemSplit': r = D.separateStems(m.data, m.rate, m.opts || {}, function (p) {
         self.postMessage({ id: m.id, prog: p });
       }); break;
+      case 'varispeed': r = D.applyVarispeedEnvelope(m.data, m.rate, m.points || []); break;
+      case 'vocalRider': r = D.vocalRider(m.data, m.rate, m.opts || {}); break;
+      case 'crosstalkGate': r = D.crosstalkGate(m.dataA, m.dataB, m.rate, m.opts || {}); break;
       case 'resample': r = D.resample(m.data, m.rate, m.to, 4); break;
       case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null, m.id3 || null); break;
       case 'flac': r = D.encodeFlac(m.data, m.rate, m.bits || 16, m.meta || null, function (p) {
@@ -21247,6 +21927,9 @@ self.onmessage = function (e) {
       case 'spectrogram': return D.spectrogram(m.data[0], m.rate, m.opts || {});
       case 'spectralRepair': return m.data.map((ch) => D.spectralRepair(ch, m.rate, m.opts || {}));
       case 'stemSplit': return D.separateStems(m.data, m.rate, m.opts || {}, p);
+      case 'varispeed': return D.applyVarispeedEnvelope(m.data, m.rate, m.points || []);
+      case 'vocalRider': return D.vocalRider(m.data, m.rate, m.opts || {});
+      case 'crosstalkGate': return D.crosstalkGate(m.dataA, m.dataB, m.rate, m.opts || {});
       case 'resample': return D.resample(m.data, m.rate, m.to, 4);
       case 'wav': return D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null);
       case 'flac': return D.encodeFlac(m.data, m.rate, m.bits || 16, m.meta || null, p);
@@ -21259,6 +21942,7 @@ self.onmessage = function (e) {
   /* ---------------------------------------------------------- audio engine */
   const Env = { enabled: false, points: [] };
   const PanEnv = { enabled: false, points: [] };
+  const SpeedEnv = { enabled: false, points: [] };
   const MainMix = { gainDb: 0, pan: 0, mute: false, solo: false, revSend: 0, delSend: 0, autoMode: 'off' };
   const Layer = {
     active: false, name: '', data: null, buffer: null, rate: 48000,
@@ -21901,7 +22585,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   }
   function fxModuleDirty(id) {
     if (id === 'hpEq') return Math.abs(val('#eqLow')) > 0.05 || Math.abs(val('#eqLowMid')) > 0.05 || Math.abs(val('#eqMid')) > 0.05 || Math.abs(val('#eqPres')) > 0.05 || Math.abs(val('#eqHigh')) > 0.05 || val('#eqHp') > 25;
-    if (id === 'gainEnv') return Math.abs(val('#fxGain')) > 0.05 || (Env.enabled && Env.points.length >= 2);
+    if (id === 'gainEnv') return Math.abs(val('#fxGain')) > 0.05 || (Env.enabled && Env.points.length >= 2) || (SpeedEnv.enabled && SpeedEnv.points.length >= 2);
     if (id === 'compLim') return compActive();
     if (id === 'deess') return val('#fxDeEssAmt') > 0.2;
     if (id === 'workletFx') {
@@ -21912,7 +22596,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     return false;
   }
   function liveFxDirty() {
-    return FXRack.order.some((id) => !FXRack.bypass[id] && fxModuleDirty(id));
+    return FXRack.order.some((id) => !FXRack.bypass[id] && fxModuleDirty(id)) || (SpeedEnv.enabled && SpeedEnv.points.length >= 2);
   }
   function effectiveTrackAudibility() {
     const anyStemSolo = Stems.clips.some((c) => !!c.solo);
@@ -22128,6 +22812,43 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       }
     }
     mainTrackPanNode.pan.linearRampToValueAtTime(clamp(evalAutomationPoints(pts, hiSec, 0, 'pan') / 100, -1, 1), t0 + Math.max(0.01, (hiSec - fromSec) / rate));
+  }
+  function evalSpeedAt(sec) {
+    if (!SpeedEnv.enabled || SpeedEnv.points.length < 2) return 1;
+    return clamp(evalAutomationPoints(SpeedEnv.points, sec, 1, 'r'), 0.08, 2.5);
+  }
+  function buildSpeedTrace(fromSec, hiSec, when, baseRate) {
+    const span = Math.max(0.01, hiSec - fromSec);
+    const steps = clamp(Math.ceil(span / 0.03), 12, 240);
+    const trace = [{ real: when, buf: fromSec, r: evalSpeedAt(fromSec) * baseRate }];
+    let accReal = when;
+    let prevB = fromSec;
+    let prevR = trace[0].r;
+    for (let i = 1; i <= steps; i++) {
+      const b = fromSec + (span * i) / steps;
+      const r = evalSpeedAt(b) * baseRate;
+      const avgR = Math.max(0.04, (prevR + r) * 0.5);
+      accReal += (b - prevB) / avgR;
+      trace.push({ real: accReal, buf: b, r });
+      prevB = b;
+      prevR = r;
+    }
+    return trace;
+  }
+  function scheduleLiveSpeedEnvelope(node, when, fromSec, hiSec, baseRate) {
+    if (!node || !node.playbackRate || !ctx) return null;
+    const rate = baseRate || 1;
+    node.playbackRate.cancelScheduledValues(when);
+    if (!SpeedEnv.enabled || SpeedEnv.points.length < 2 || comparing) {
+      node.playbackRate.setValueAtTime(rate, when);
+      return null;
+    }
+    const trace = buildSpeedTrace(fromSec, hiSec, when, rate);
+    node.playbackRate.setValueAtTime(trace[0].r, when);
+    for (let i = 1; i < trace.length; i++) {
+      node.playbackRate.linearRampToValueAtTime(trace[i].r, trace[i].real);
+    }
+    return trace;
   }
   const isLowEndDevice = (typeof navigator !== 'undefined') && ((navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4) || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
   if (typeof document !== 'undefined' && document.body) document.body.classList.toggle('low-perf', !!isLowEndDevice);
@@ -22528,6 +23249,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     src.loopStart = lo; src.loopEnd = hi;
     const when = c.currentTime + 0.008;
     src._t0 = when; src._from = from; src._end = hi;
+    src._speedTrace = !src.loop ? scheduleLiveSpeedEnvelope(src, when, from, hi, P.rate) : null;
     const currentSource = src;
     const finishAtEnd = () => {
       P.t = hi; previewOnly = false;
@@ -22544,6 +23266,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       dummy.connect(muteG); muteG.connect(master);
       src = dummy;
       src._t0 = when; src._from = from; src._end = hi;
+      src._speedTrace = scheduleLiveSpeedEnvelope(src, when, from, hi, P.rate);
       const curDummy = src;
       src.onended = extendPastMain ? null : () => { if (src === curDummy) finishAtEnd(); };
       src.start(when, from, Math.max(1 / S.rate, Math.min(hi, trackDur) - from));
@@ -22553,7 +23276,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       else if (from < trackDur) src.start(when, from, Math.max(1 / S.rate, Math.min(hi, trackDur) - from));
     }
     if (extendPastMain) {
-      endTimer = setTimeout(finishAtEnd, Math.max(25, ((hi - from) / (P.rate || 1)) * 1000 + 25));
+      const realSpanMs = src._speedTrace && src._speedTrace.length
+        ? Math.max(25, (src._speedTrace[src._speedTrace.length - 1].real - when) * 1000 + 25)
+        : Math.max(25, ((hi - from) / (P.rate || 1)) * 1000 + 25);
+      endTimer = setTimeout(finishAtEnd, realSpanMs);
     }
     if (Layer.active && (Layer.buffer || (Layer.clips && Layer.clips.length)) && !comparing) startLayerPlayback(when, from, hi);
     if (Stems.clips.length && !comparing) startStemPlayback(when, from, hi);
@@ -22581,6 +23307,21 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   function togglePlay() { P.playing ? pausePlay() : play(); haptic(6); }
   function curTime() {
     if (!P.playing || !src || !ctx) return P.t;
+    if (src._speedTrace && src._speedTrace.length > 1) {
+      const now = ctx.currentTime;
+      const tr = src._speedTrace;
+      if (now <= tr[0].real) return tr[0].buf;
+      if (now >= tr[tr.length - 1].real) return clamp(tr[tr.length - 1].buf, 0, src._end || dur());
+      let lo = 0, hi = tr.length - 1;
+      while (lo + 1 < hi) {
+        const mid = (lo + hi) >> 1;
+        if (tr[mid].real <= now) lo = mid;
+        else hi = mid;
+      }
+      const a = tr[lo], b = tr[hi];
+      const u = (now - a.real) / Math.max(1e-6, b.real - a.real);
+      return clamp(a.buf + (b.buf - a.buf) * u, 0, src._end || dur());
+    }
     const el = (ctx.currentTime - src._t0) * P.rate + src._from;
     if (src.loop) {
       const ls = src.loopStart, le = src.loopEnd;
@@ -22816,7 +23557,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const [a, b] = [Math.min(Sel.a, S.data[0].length), Math.min(Sel.b, S.data[0].length)];
     Sel.a = a; Sel.b = b;
     P.t = clamp(keepPos ? P.t : Sel.a / S.rate, 0, d);
-    S.spec = null; S.specCanvas = null; Sil.list = [];
+    S.spec = null; S.specCanvas = null; S.transients = null; Sil.list = [];
     if (P.waveMode === 'spec' || P.waveMode === 'mix') ensureSpectrogram();
     $('#silCount').textContent = 'Scan again after editing.';
     Markers.list = Markers.list.filter(m => m.t <= d); renderMarkers();
@@ -22835,13 +23576,44 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     estimateSize(); syncTransport();
     scheduleSave();
   }
-  function busy(on, txt, prog) {
+  let _loaderMeta = null;
+  function busy(on, txt, prog, meta) {
+    if (meta) _loaderMeta = Object.assign({}, _loaderMeta || {}, meta);
+    if (!on) _loaderMeta = null;
     const el = $('#busy');
     el.classList.toggle('on', !!on);
     document.body.classList.toggle('is-busy', !!on);
-    $('#globalStatus').hidden = !on;
-    $('#globalStatus').textContent = on ? (txt || 'Working') + '…' : '';
     $('#editor').setAttribute('aria-busy', !!on);
+    const useModalLoader = !!on && (importing || !hasAudio || (_loaderMeta && _loaderMeta.modal));
+    const sl = $('#studioLoader');
+    if (sl) {
+      sl.hidden = !useModalLoader;
+      if (useModalLoader) {
+        const msg = txt || 'Loading';
+        if ($('#slTitle')) $('#slTitle').textContent = msg + (prog != null ? ' · ' + Math.round(prog * 100) + '%' : '…');
+        if ($('#slFile')) {
+          const fn = _loaderMeta && _loaderMeta.name ? (_loaderMeta.name + (_loaderMeta.size ? ' · ' + fmtBytes(_loaderMeta.size) : '')) : '';
+          $('#slFile').hidden = !fn;
+          $('#slFile').textContent = fn;
+        }
+        const activeStep = _loaderMeta && _loaderMeta.step != null ? _loaderMeta.step : (/read/i.test(msg) ? 0 : (/decod/i.test(msg) ? 1 : 2));
+        if ($('#slSteps')) {
+          $('#slSteps').hidden = !!(_loaderMeta && _loaderMeta.hideSteps);
+          $$('#slSteps [data-slstep]').forEach((s) => {
+            const idx = parseInt(s.dataset.slstep, 10);
+            s.classList.toggle('is-done', idx < activeStep);
+            s.classList.toggle('is-active', idx === activeStep);
+          });
+        }
+        if ($('#slRail') && $('#slRailBar')) {
+          const hasProg = prog != null;
+          $('#slRail').classList.toggle('is-indet', !hasProg);
+          $('#slRailBar').style.width = hasProg ? Math.round(clamp(prog, 0.05, 1) * 100) + '%' : '';
+        }
+      }
+    }
+    $('#globalStatus').hidden = !on || useModalLoader;
+    $('#globalStatus').textContent = on ? (txt || 'Working') + '…' : '';
     if (on) $('#busyTxt').textContent = txt + (prog != null ? ' ' + Math.round(prog * 100) + '%' : '…');
   }
 
@@ -23051,6 +23823,211 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if ($('#fxPanEnvClear')) $('#fxPanEnvClear').disabled = PanEnv.points.length === 0;
     if ($('#fxPanEnvCount')) $('#fxPanEnvCount').textContent = PanEnv.points.length + (PanEnv.points.length === 1 ? ' point' : ' points');
     fxDirty = true;
+  }
+  function syncSpeedEnvUI() {
+    if ($('#fxSpeedEnvToggle')) {
+      $('#fxSpeedEnvToggle').setAttribute('aria-pressed', SpeedEnv.enabled);
+      $('#fxSpeedEnvToggle').classList.toggle('on', SpeedEnv.enabled);
+      $('#fxSpeedEnvToggle').textContent = SpeedEnv.enabled ? 'Speed Curve: ON' : 'Edit Speed';
+    }
+    if ($('#fxSpeedEnvClear')) $('#fxSpeedEnvClear').disabled = SpeedEnv.points.length === 0;
+    if ($('#fxSpeedEnvApply')) $('#fxSpeedEnvApply').disabled = SpeedEnv.points.length < 2;
+    if ($('#fxSpeedEnvCount')) $('#fxSpeedEnvCount').textContent = SpeedEnv.points.length + (SpeedEnv.points.length === 1 ? ' point' : ' points');
+    fxDirty = true;
+  }
+  function addSpeedPoint(t, r) {
+    const total = Math.max(0.05, dur());
+    t = clamp(t, 0, total);
+    r = clamp(r, 0.1, 2.5);
+    if (!SpeedEnv.points.length) {
+      SpeedEnv.points.push({ t: 0, r: 1 }, { t: total, r: 1 });
+    }
+    const existing = SpeedEnv.points.find((pt) => Math.abs(pt.t - t) < Math.max(0.05, total * 0.01));
+    if (existing) existing.r = r;
+    else SpeedEnv.points.push({ t, r });
+    SpeedEnv.points.sort((a, b) => a.t - b.t);
+    SpeedEnv.enabled = true;
+    MainMix.autoMode = 'speed';
+    syncSpeedEnvUI();
+    if (typeof renderRackList === 'function') renderRackList();
+  }
+  function applySpeedPreset(kind) {
+    if (!hasAudio) return toast('Load audio first', 'info');
+    const total = Math.max(0.1, dur());
+    const [a, b] = selRange();
+    const hasSel = (b - a) < S.data[0].length - 2 && (b - a) >= Math.round(S.rate * 0.12);
+    const t0 = hasSel ? (a / S.rate) : Math.max(0, total - Math.min(1.6, total * 0.35));
+    const t1 = hasSel ? (b / S.rate) : total;
+    const span = Math.max(0.12, t1 - t0);
+    if (kind === 'tapestop') {
+      SpeedEnv.points = [
+        { t: 0, r: 1 },
+        { t: Math.max(0.02, t0), r: 1 },
+        { t: clamp(t0 + span * 0.55, 0.03, total), r: 0.52 },
+        { t: clamp(t1, 0.04, total), r: 0.14 },
+      ];
+      if (t1 < total - 0.05) {
+        SpeedEnv.points.push({ t: clamp(t1 + 0.04, 0.05, total), r: 1 });
+        SpeedEnv.points.push({ t: total, r: 1 });
+      }
+      toast('Tape-Stop curve added (' + fmtTime(t0) + ' → ' + fmtTime(t1) + ')', 'ok');
+    } else if (kind === 'riser') {
+      const r0 = hasSel ? t0 : 0;
+      const r1 = hasSel ? t1 : Math.min(total, 1.8);
+      const rSpan = Math.max(0.12, r1 - r0);
+      SpeedEnv.points = [
+        { t: 0, r: r0 > 0.02 ? 1 : 0.32 },
+      ];
+      if (r0 > 0.02) SpeedEnv.points.push({ t: r0, r: 0.32 });
+      SpeedEnv.points.push({ t: clamp(r0 + rSpan * 0.55, 0.03, total), r: 0.72 });
+      SpeedEnv.points.push({ t: clamp(r1, 0.04, total), r: 1.0 });
+      if (r1 < total - 0.02) SpeedEnv.points.push({ t: total, r: 1.0 });
+      toast('Tape Riser curve added (' + fmtTime(r0) + ' → ' + fmtTime(r1) + ')', 'ok');
+    }
+    // Deduplicate ascending t
+    SpeedEnv.points.sort((x, y) => x.t - y.t);
+    const dedup = [];
+    for (const pt of SpeedEnv.points) {
+      if (dedup.length && Math.abs(pt.t - dedup[dedup.length - 1].t) < 0.015) dedup[dedup.length - 1] = pt;
+      else dedup.push(pt);
+    }
+    SpeedEnv.points = dedup;
+    SpeedEnv.enabled = true;
+    MainMix.autoMode = 'speed';
+    syncSpeedEnvUI();
+    if (typeof renderRackList === 'function') renderRackList();
+    haptic(8);
+  }
+  function doApplySpeedEnvelope() {
+    if (!hasAudio) return;
+    if (SpeedEnv.points.length < 2) return toast('Add at least 2 speed curve points first', 'info');
+    const pts = SpeedEnv.points.map((pt) => ({ ...pt }));
+    edit('Bake Pitch & Speed Envelope', async () => {
+      S.data = await runTask({ act: 'varispeed', data: cloneData(S.data), rate: S.rate, points: pts });
+      SpeedEnv.points = []; SpeedEnv.enabled = false;
+      if (MainMix.autoMode === 'speed') MainMix.autoMode = 'off';
+      syncSpeedEnvUI();
+      Sel.a = 0; Sel.b = S.data[0].length; P.t = 0;
+    }).then(() => { syncLiveFxNodes(); if (typeof renderRackList === 'function') renderRackList(); });
+  }
+  async function doVocalRider(mode) {
+    if (!hasAudio || processing || importing) return;
+    const [a, b] = selRange();
+    if (b - a < Math.round(S.rate * 0.25)) return toast('Select at least 0.25s of dialogue', 'info');
+    const targetDb = $('#vrTarget') ? val('#vrTarget') : -16;
+    const maxBoostDb = $('#vrBoost') ? val('#vrBoost') : 9;
+    const maxCutDb = $('#vrCut') ? val('#vrCut') : 9;
+    const speedMs = $('#vrSpeed') ? val('#vrSpeed') : 160;
+    const dry = mode === 'env';
+    if (dry) {
+      processing = true;
+      busy(true, 'Analyzing Vocal Ride');
+      try {
+        const sub = S.data.map((ch) => ch.slice(a, b));
+        const res = await runTask({
+          act: 'vocalRider',
+          data: cloneData(sub),
+          rate: S.rate,
+          opts: { targetDb, maxBoostDb, maxCutDb, speedMs, dry: true }
+        });
+        const tOff = a / S.rate;
+        const total = dur();
+        const ridePts = (res.points || []).map((pt) => ({ t: clamp(tOff + pt.t, 0, total), db: clamp(pt.db, -24, 18) }));
+        if (ridePts.length < 2) {
+          toast('Signal too quiet for Vocal Rider', 'info');
+          return;
+        }
+        // Keep 0 dB anchors outside selection if only riding a region
+        const fullPts = [];
+        if (tOff > 0.05) {
+          fullPts.push({ t: 0, db: 0 }, { t: Math.max(0.01, tOff - 0.04), db: 0 });
+        }
+        fullPts.push(...ridePts);
+        if ((b / S.rate) < total - 0.05) {
+          fullPts.push({ t: Math.min(total - 0.01, (b / S.rate) + 0.04), db: 0 }, { t: total, db: 0 });
+        }
+        Env.points = fullPts;
+        Env.enabled = true;
+        MainMix.autoMode = 'vol';
+        syncEnvUI(); syncLiveFxNodes();
+        if (typeof renderRackList === 'function') renderRackList();
+        toast(`Vocal Rider wrote ${ridePts.length} automation points`, 'ok', 3200);
+        haptic(10);
+      } catch (e) {
+        toast('Vocal Rider failed: ' + e.message, 'err', 3600);
+      } finally {
+        processing = false; busy(false);
+      }
+      return;
+    }
+    edit('Dialogue Auto-Leveler', async () => {
+      const sub = S.data.map((ch) => ch.slice(a, b));
+      const res = await runTask({
+        act: 'vocalRider',
+        data: cloneData(sub),
+        rate: S.rate,
+        opts: { targetDb, maxBoostDb, maxCutDb, speedMs, dry: false }
+      });
+      if (res && res.data) replaceRange(a, b, res.data);
+    });
+  }
+  function doCrosstalkGate() {
+    if (!hasAudio || processing || importing) return;
+    const threshDb = $('#xgThresh') ? val('#xgThresh') : -36;
+    const attenDb = $('#xgAtten') ? val('#xgAtten') : -18;
+    const holdMs = $('#xgHold') ? val('#xgHold') : 160;
+    const ratioMarginDb = $('#xgMargin') ? val('#xgMargin') : 4;
+    if (Layer.active && Layer.data && Layer.data[0] && Layer.data[0].length > 256) {
+      edit('Multi-Mic Crosstalk Gate (T1 ↔ T2)', async () => {
+        let dataBIn = cloneData(Layer.data);
+        if ((Layer.rate || S.rate) !== S.rate) {
+          dataBIn = await runTask({ act: 'resample', data: dataBIn, rate: Layer.rate || S.rate, to: S.rate });
+          Layer.rate = S.rate;
+        }
+        const res = await runTask({
+          act: 'crosstalkGate',
+          dataA: cloneData(S.data),
+          dataB: dataBIn,
+          rate: S.rate,
+          opts: {
+            offsetSecB: Layer.offset || 0,
+            trimInSecB: Layer.trimInSec || 0,
+            floorDb: threshDb, depthDb: attenDb, releaseMs: holdMs, marginDb: ratioMarginDb
+          }
+        });
+        if (res && res.dataA && res.dataB) {
+          S.data = res.dataA;
+          Layer.data = res.dataB;
+          if (typeof buildLayerBuffer === 'function') buildLayerBuffer();
+          else if (ctx) {
+            const b = ctx.createBuffer(Layer.data.length, Layer.data[0].length, Layer.rate || S.rate);
+            for (let c = 0; c < Layer.data.length; c++) b.copyToChannel(Layer.data[c], c);
+            Layer.buffer = b;
+          }
+          if (typeof renderLayersUI === 'function') renderLayersUI();
+        }
+      });
+      return;
+    }
+    if (S.data.length >= 2) {
+      edit('Dual-Mic Crosstalk Gate (L ↔ R)', async () => {
+        const chA = [S.data[0].slice()];
+        const chB = [S.data[1].slice()];
+        const res = await runTask({
+          act: 'crosstalkGate',
+          dataA: chA,
+          dataB: chB,
+          rate: S.rate,
+          opts: { rateB: S.rate, offsetSec: 0, threshDb, attenDb, holdMs, ratioMarginDb }
+        });
+        if (res && res.dataA && res.dataB) {
+          S.data[0] = res.dataA[0];
+          S.data[1] = res.dataB[0];
+        }
+      });
+      return;
+    }
+    toast('Load Mic 2 on Track 2 (or use a stereo dual-mic file)', 'info', 3400);
   }
   function doBakeMasterLimit() {
     if (!hasAudio) return;
@@ -23940,7 +24917,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   }
   async function loadAudio(data, rate, name, meta) {
     pausePlay(); killSource(); closeOverlays(); previewOnly = false;
-    busy(true, 'Loading');
+    busy(true, 'Building Waveform', 0.85, { name: name || (_loaderMeta && _loaderMeta.name) || 'Audio', step: 2 });
     await yieldUI();
     Markers.list = []; closeMarkerPop(); renderMarkers(); Sil.list = []; ClipScan.regions = []; Regions.list = []; Regions.selectedId = null; Regions.clipEdit = false;
     SpecBrush.masks = []; SpecBrush.draft = null; SpecBrush.active = false;
@@ -23955,8 +24932,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     S.rate = rate;
     S.name = name || 'audio';
     S.meta = Object.assign({ title: '', artist: '', album: '' }, meta || {});
-    S.spec = null; S.specCanvas = null; S.noiseProfile = null; Env.points = []; Env.enabled = false; syncEnvUI();
-    PanEnv.points = []; PanEnv.enabled = false; MainMix.autoMode = 'off';
+    S.spec = null; S.specCanvas = null; S.transients = null; S.noiseProfile = null; Env.points = []; Env.enabled = false; syncEnvUI();
+    PanEnv.points = []; PanEnv.enabled = false; SpeedEnv.points = []; SpeedEnv.enabled = false; MainMix.autoMode = 'off';
+    if (typeof syncSpeedEnvUI === 'function') syncSpeedEnvUI();
     if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
     if (typeof clearReferenceTrack === 'function') clearReferenceTrack();
     if (typeof computeDuckCurve === 'function') computeDuckCurve();
@@ -24007,14 +24985,19 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if (!file || importing || processing) return;
     if (file.size > 200 * 1024 * 1024) return toast('Please use a file smaller than 200 MB for browser editing.', 'info', 5000);
     importing = true; pausePlay();
-    busy(true, 'Decoding');
+    busy(true, 'Reading Audio File', 0.18, { name: file.name, size: file.size, step: 0, modal: true });
+    await yieldUI();
     try {
       const ab = await file.arrayBuffer();
       const head = new Uint8Array(ab, 0, Math.min(4, ab.byteLength));
       const isZip = head.length >= 4 && head[0] === 0x50 && head[1] === 0x4B && head[2] === 0x03 && head[3] === 0x04;
       if (isZip || /\.(sonora|overtone|sonicforge)$/i.test(file.name)) {
+        busy(true, 'Unpacking Project Bundle', 0.55, { step: 1 });
+        await yieldUI();
         await openProjectBundle(ab, file.name);
       } else {
+        busy(true, 'Decoding Audio Stream', 0.52, { step: 1 });
+        await yieldUI();
         const extracted = extractAudioArtAndMeta(ab);
         const r = await decodeToData(ab, file.name);
         resetCoverArtUI();
@@ -24800,6 +25783,44 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.restore();
     }
 
+    // Track 1 Pitch & Speed (Varispeed / Tape-Stop) Curve overlay (inside Track 1 lane)
+    if ((SpeedEnv.enabled || SpeedEnv.points.length >= 2) && SpeedEnv.points.length >= 2) {
+      c.save();
+      c.beginPath(); c.rect(0, top, canvasW, lanesFx.mainH); c.clip();
+      const sPts = SpeedEnv.points;
+      const sPad = 8;
+      const spdToY = (r) => top + sPad + (1 - (clamp(r, 0.1, 2.0) - 0.1) / 1.9) * Math.max(12, lanesFx.mainH - sPad * 2);
+      c.strokeStyle = 'rgba(255,159,10,.28)';
+      c.lineWidth = 1;
+      c.setLineDash([4, 4]);
+      c.beginPath(); c.moveTo(0, spdToY(1)); c.lineTo(canvasW, spdToY(1)); c.stroke();
+      c.setLineDash([]);
+      c.strokeStyle = '#ff9f0a';
+      c.lineWidth = 2.1;
+      c.beginPath();
+      for (let i = 0; i < sPts.length; i++) {
+        const ex = tToX(sPts[i].t), ey = spdToY(sPts[i].r);
+        i === 0 ? c.moveTo(ex, ey) : c.lineTo(ex, ey);
+      }
+      c.stroke();
+      for (let i = 0; i < sPts.length; i++) {
+        const ex = tToX(sPts[i].t), ey = spdToY(sPts[i].r);
+        if (ex < -16 || ex > canvasW + 16) continue;
+        const active = drag && drag.mode === 'speedEnv' && drag.envIdx === i;
+        c.fillStyle = active ? '#ffffff' : '#ff9f0a';
+        c.strokeStyle = '#08090d'; c.lineWidth = 2;
+        c.beginPath(); c.arc(ex, ey, active ? 7.5 : 5.8, 0, TAU); c.fill(); c.stroke();
+        if (active) {
+          c.fillStyle = '#ffedd5';
+          c.font = '600 10.5px ui-monospace, monospace';
+          c.textAlign = 'center';
+          c.fillText('Speed ' + sPts[i].r.toFixed(2) + '×', ex, Math.max(top + 12, ey - 13));
+          c.textAlign = 'left';
+        }
+      }
+      c.restore();
+    }
+
     // Track 2 Non-destructive Clips / Bed Fades, Trim Edge Handles & Vol/Pan Automation Curve
     if (lanesFx.hasT2 && (Layer.data || (Layer.clips && Layer.clips.length))) {
       c.save();
@@ -25303,18 +26324,30 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const mx = tToX(m.t);
       if (mx < -14 || mx > canvasW + 14) continue;
       const col = markerColor(m.tag);
+      const isEditing = Markers.activeIdx === i;
       c.save();
+      if (isEditing) {
+        c.strokeStyle = col;
+        c.globalAlpha = 0.28;
+        c.lineWidth = 6;
+        c.beginPath(); c.moveTo(mx, top); c.lineTo(mx, top + h); c.stroke();
+        c.globalAlpha = 1;
+      }
       c.fillStyle = col;
       c.beginPath();
-      c.moveTo(mx, top); c.lineTo(mx - 6.5, top - 11); c.lineTo(mx + 6.5, top - 11);
+      if (isEditing) {
+        c.moveTo(mx, top); c.lineTo(mx - 8, top - 12); c.lineTo(mx + 8, top - 12);
+      } else {
+        c.moveTo(mx, top); c.lineTo(mx - 6.5, top - 11); c.lineTo(mx + 6.5, top - 11);
+      }
       c.closePath(); c.fill();
       if (m.note) {
         c.fillStyle = '#fff';
         c.beginPath(); c.arc(mx, top - 7, 1.6, 0, TAU); c.fill();
       }
       c.strokeStyle = col;
-      c.globalAlpha = 0.52;
-      c.lineWidth = 1.15;
+      c.globalAlpha = isEditing ? 0.92 : 0.52;
+      c.lineWidth = isEditing ? 1.85 : 1.15;
       c.beginPath(); c.moveTo(mx, top); c.lineTo(mx, top + h); c.stroke();
       c.restore();
     }
@@ -25322,19 +26355,24 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     // playhead (Voice Memos Crimson needle)
     const px = tToX(P.t);
     const anyCoincide = edgeAligned.a || edgeAligned.b;
+    const transientPulse = Coincide.transientAt && (performance.now() - Coincide.transientAt) < 160;
     if (px >= -2 && px <= canvasW + 2) {
       c.save();
       if (anyCoincide) {
         c.strokeStyle = 'rgba(48, 209, 88, .32)';
         c.lineWidth = 5.5;
         c.beginPath(); c.moveTo(px, top - 2); c.lineTo(px, top + h); c.stroke();
+      } else if (transientPulse) {
+        c.strokeStyle = 'rgba(255, 159, 10, .38)';
+        c.lineWidth = 4.5;
+        c.beginPath(); c.moveTo(px, top - 2); c.lineTo(px, top + h); c.stroke();
       }
       c.strokeStyle = anyCoincide ? '#30d158' : '#ff453a';
       c.lineWidth = anyCoincide ? 2.1 : 1.6;
       c.beginPath(); c.moveTo(px, top - 2); c.lineTo(px, top + h); c.stroke();
       c.restore();
-      c.fillStyle = '#ff453a';
-      c.beginPath(); c.arc(px, top, anyCoincide ? 5.2 : 4.2, 0, TAU); c.fill();
+      c.fillStyle = transientPulse && !anyCoincide ? '#ff9f0a' : '#ff453a';
+      c.beginPath(); c.arc(px, top, anyCoincide ? 5.2 : (transientPulse ? 5.0 : 4.2), 0, TAU); c.fill();
       if (anyCoincide) {
         c.strokeStyle = '#30d158'; c.lineWidth = 2;
         c.beginPath(); c.arc(px, top, 8.2, 0, TAU); c.stroke();
@@ -25690,7 +26728,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const envToY = (db) => top + h * (1 - (clamp(db, -24, 12) + 24) / 36);
     const yToEnvDb = (y) => clamp((1 - (y - top) / Math.max(1, h)) * 36 - 24, -24, 12);
     // Track 1 Volume Automation (only when editing T1 Vol in main lane)
-    if (Env.enabled && Env.points.length >= 2 && MainMix.autoMode !== 'pan' && p.y <= top + lanesDown.mainH) {
+    if (Env.enabled && Env.points.length >= 2 && MainMix.autoMode !== 'pan' && MainMix.autoMode !== 'speed' && p.y <= top + lanesDown.mainH) {
       let hitIdx = -1, bestD = 22;
       for (let i = 0; i < Env.points.length; i++) {
         const ex = tToX(Env.points[i].t), ey = envToY(Env.points[i].db);
@@ -25734,6 +26772,35 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const idx = PanEnv.points.findIndex((pt) => Math.abs(pt.t - clickT) < 0.02);
       drag = { mode: 'panEnv', envIdx: Math.max(0, idx), id: e.pointerId, sx: p.x, sy: p.y, moved: true };
       haptic(6); fxDirty = true; return;
+    }
+    // Track 1 Pitch & Speed (Varispeed) Automation
+    if ((MainMix.autoMode === 'speed' || (SpeedEnv.enabled && SpeedEnv.points.length >= 2 && MainMix.autoMode !== 'pan')) && p.y > top + 4 && p.y < top + lanesDown.mainH - 4) {
+      if (!SpeedEnv.points.length) {
+        SpeedEnv.points = [{ t: 0, r: 1 }, { t: dur() || 1, r: 1 }];
+      }
+      SpeedEnv.enabled = true;
+      const sPad = 8;
+      const spdToY = (r) => top + sPad + (1 - (clamp(r, 0.1, 2.0) - 0.1) / 1.9) * Math.max(12, lanesDown.mainH - sPad * 2);
+      const yToSpd = (y) => clamp(0.1 + (1 - (y - (top + sPad)) / Math.max(12, lanesDown.mainH - sPad * 2)) * 1.9, 0.1, 2.0);
+      let hitIdx = -1, bestD = 22;
+      for (let i = 0; i < SpeedEnv.points.length; i++) {
+        const ex = tToX(SpeedEnv.points[i].t), ey = spdToY(SpeedEnv.points[i].r);
+        const dist = Math.hypot(p.x - ex, p.y - ey);
+        if (dist < bestD) { bestD = dist; hitIdx = i; }
+      }
+      if (hitIdx >= 0) {
+        drag = { mode: 'speedEnv', envIdx: hitIdx, id: e.pointerId, sx: p.x, sy: p.y, moved: false };
+        haptic(6); fxDirty = true; return;
+      }
+      if (MainMix.autoMode === 'speed') {
+        const clickT = clamp(xToT(p.x), 0, dur());
+        const rv = Number(yToSpd(p.y).toFixed(2));
+        SpeedEnv.points.push({ t: clickT, r: rv });
+        SpeedEnv.points.sort((a, b) => a.t - b.t);
+        const idx = SpeedEnv.points.findIndex((pt) => Math.abs(pt.t - clickT) < 0.02);
+        drag = { mode: 'speedEnv', envIdx: Math.max(0, idx), id: e.pointerId, sx: p.x, sy: p.y, moved: true };
+        haptic(6); fxDirty = true; return;
+      }
     }
     // Track 2 Vol / Pan Automation (when Layer.autoMode !== 'off')
     if (lanesDown.hasT2 && Layer.data && Layer.autoMode !== 'off' && p.y >= lanesDown.t2Top + 14 && p.y <= lanesDown.t2Top + lanesDown.t2H - 4) {
@@ -26150,6 +27217,24 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       }
       fxDirty = true;
       return;
+    } else if (drag.mode === 'speedEnv') {
+      drag.moved = true;
+      const lanes = getTimelineLanes();
+      const top = 24, sPad = 8;
+      const pt = SpeedEnv.points[drag.envIdx];
+      if (pt) {
+        const total = dur() || 1;
+        if (drag.envIdx === 0) pt.t = 0;
+        else if (drag.envIdx === SpeedEnv.points.length - 1) pt.t = total;
+        else {
+          const minT = SpeedEnv.points[drag.envIdx - 1].t + 0.02;
+          const maxT = SpeedEnv.points[drag.envIdx + 1].t - 0.02;
+          pt.t = clamp(t, minT, Math.max(minT, maxT));
+        }
+        pt.r = Number(clamp(0.1 + (1 - (p.y - (top + sPad)) / Math.max(12, lanes.mainH - sPad * 2)) * 1.9, 0.1, 2.0).toFixed(2));
+      }
+      fxDirty = true;
+      return;
     } else if (drag.mode === 't2Auto') {
       drag.moved = true;
       const lanes = getTimelineLanes();
@@ -26296,8 +27381,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         baseDirty = fxDirty = true;
         scheduleSave();
         haptic(5);
-      } else if (drag.mode === 'env' || drag.mode === 'panEnv' || drag.mode === 't2Auto') {
+      } else if (drag.mode === 'env' || drag.mode === 'panEnv' || drag.mode === 'speedEnv' || drag.mode === 't2Auto') {
+        if (drag.mode === 'speedEnv') syncSpeedEnvUI();
         syncLiveFxNodes();
+        if (typeof renderRackList === 'function') renderRackList();
         scheduleSave();
       }
       else if (!drag.moved && e.type !== 'pointercancel') seek(clamp(xToT(drag.sx), 0, totalDur()), false);
@@ -26485,6 +27572,20 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           <button type="button" class="btn sm" id="fxPanEnvToggle" aria-pressed="false">Edit Pan</button>
           <button type="button" class="btn sm" id="fxPanEnvAdd">+ Pan Pt</button>
           <button type="button" class="btn sm ghost" id="fxPanEnvClear" disabled>Clear</button>
+        </div>
+        <div class="divider"></div>
+        <div class="row-top">
+          <b>Pitch &amp; Speed Envelope (Tape Stop / Varispeed)</b>
+          <span class="chip mono" id="fxSpeedEnvCount">0 points</span>
+        </div>
+        <p class="hint" style="margin:0">Automate playback speed &amp; pitch (0.1×–2.0×) non-destructively across Track 1 — audible live &amp; baked on export.</p>
+        <div class="btn-row">
+          <button type="button" class="btn sm" id="fxSpeedEnvToggle" aria-pressed="false">Edit Speed</button>
+          <button type="button" class="btn sm" id="fxSpeedEnvAdd">+ Speed Pt</button>
+          <button type="button" class="btn sm" id="fxTapeStopPreset">Tape Stop</button>
+          <button type="button" class="btn sm" id="fxTapeRiserPreset">Tape Riser</button>
+          <button type="button" class="btn sm primary" id="fxSpeedEnvApply" disabled>Bake</button>
+          <button type="button" class="btn sm ghost" id="fxSpeedEnvClear" disabled>Clear</button>
         </div>
       </div>
     </div></div></div>
@@ -26827,6 +27928,44 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     </div></div></div>
   </div>
 
+  <div class="acc" data-acc id="dialogueToolsAcc">
+    <button class="acc-h" type="button"><span class="dot"></span>Dialogue Auto-Leveler &amp; Crosstalk Gate<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <div class="acc-b"><div><div class="inner">
+      <div class="stem-sep-head">
+        <b>Vocal Rider (Dialogue Auto-Leveler)</b>
+        <span class="chip" style="font-size:10px">Natural Speech</span>
+      </div>
+      <p class="hint" style="margin:0">Rides phrase-level dialogue towards a steady target RMS without squashing transients or boosting silence.</p>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="vrTarget">Target RMS</label><output id="vrTargetOut">-16 dB</output></div><input type="range" id="vrTarget" min="-24" max="-10" step="1" value="-16"></div>
+        <div><div class="range-row"><label for="vrSpeed">Ride Speed</label><output id="vrSpeedOut">160 ms</output></div><input type="range" id="vrSpeed" min="50" max="400" step="10" value="160"></div>
+      </div>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="vrBoost">Max Boost</label><output id="vrBoostOut">+9 dB</output></div><input type="range" id="vrBoost" min="0" max="15" step="1" value="9"></div>
+        <div><div class="range-row"><label for="vrCut">Max Cut</label><output id="vrCutOut">-9 dB</output></div><input type="range" id="vrCut" min="0" max="15" step="1" value="9"></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn sm primary" id="btnVocalRiderEnv">Write Vol Curve</button>
+        <button type="button" class="btn sm" id="btnVocalRiderBake">Bake Leveler</button>
+      </div>
+      <div class="divider"></div>
+      <div class="stem-sep-head">
+        <b>Multi-Mic Crosstalk Gate</b>
+        <span class="chip" style="font-size:10px">T1 ↔ T2 / L ↔ R</span>
+      </div>
+      <p class="hint" style="margin:0">Suppresses off-mic bleed whenever the other speaker (Track 2 or stereo Ch 2) is dominant.</p>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="xgThresh">Active Threshold</label><output id="xgThreshOut">-36 dB</output></div><input type="range" id="xgThresh" min="-54" max="-18" step="1" value="-36"></div>
+        <div><div class="range-row"><label for="xgAtten">Bleed Attenuation</label><output id="xgAttenOut">-18 dB</output></div><input type="range" id="xgAtten" min="-36" max="-3" step="1" value="-18"></div>
+      </div>
+      <div class="grid-2">
+        <div><div class="range-row"><label for="xgHold">Hold Time</label><output id="xgHoldOut">160 ms</output></div><input type="range" id="xgHold" min="50" max="500" step="10" value="160"></div>
+        <div><div class="range-row"><label for="xgMargin">Dominance Margin</label><output id="xgMarginOut">4 dB</output></div><input type="range" id="xgMargin" min="1" max="12" step="1" value="4"></div>
+      </div>
+      <button type="button" class="btn sm primary wide" id="btnCrosstalkGate">Clean Multi-Mic Crosstalk</button>
+    </div></div></div>
+  </div>
+
   <div class="acc" data-acc id="stemSepAcc">
     <button class="acc-h" type="button"><span class="dot"></span>Smart Stem Separation<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
     <div class="acc-b"><div><div class="inner">
@@ -27092,7 +28231,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         const a = Math.round(pts[idx] * S.rate), b = Math.round(pts[idx + 1] * S.rate);
         if (b - a < 64) continue;
         let seg = ($('#exIncludeStudio') && $('#exIncludeStudio').checked && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map((ch) => ch.slice(a, b));
-        if ($('#exIncludeStudio') && $('#exIncludeStudio').checked && liveFxDirty()) seg = await renderLiveFxOffline(seg, S.rate);
+        if ($('#exIncludeStudio') && $('#exIncludeStudio').checked && liveFxDirty()) seg = await renderLiveFxOffline(seg, S.rate, a / S.rate);
         if (rate !== S.rate) seg = await runTask({ act: 'resample', data: cloneData(seg), rate: S.rate, to: rate });
         const mObj = Markers.list[idx - 1];
         const chTitle = (idx === 0 ? 'Intro' : (mObj && mObj.name) || ('Chapter ' + (idx + 1)));
@@ -27440,6 +28579,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       <button type="button" data-t1auto="off" aria-pressed="true">Auto: Off</button>
       <button type="button" data-t1auto="vol" aria-pressed="false">Edit Vol</button>
       <button type="button" data-t1auto="pan" aria-pressed="false">Edit Pan</button>
+      <button type="button" data-t1auto="speed" aria-pressed="false">Edit Speed</button>
     </div>
   </div>
 
@@ -27749,7 +28889,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
 
     const totalLayers = 1 + (Layer.active ? 1 : 0) + Stems.clips.length;
     const hasStudioEdits = Layer.active || Stems.clips.length > 0 || Regions.list.length > 0 || liveFxDirty()
-      || (PanEnv.enabled && PanEnv.points.length >= 2) || Math.abs(MainMix.pan || 0) > 1
+      || (PanEnv.enabled && PanEnv.points.length >= 2) || (SpeedEnv.enabled && SpeedEnv.points.length >= 2) || Math.abs(MainMix.pan || 0) > 1
       || (MainMix.revSend || 0) > 0 || (MainMix.delSend || 0) > 0;
     if ($('#layersCountTag')) $('#layersCountTag').textContent = totalLayers + (totalLayers === 1 ? ' track' : ' tracks');
     if ($('#btnLayers')) {
@@ -27783,7 +28923,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       if (Math.abs(val('#fxGain')) > 0.05) parts.push((val('#fxGain') > 0 ? '+' : '') + val('#fxGain').toFixed(1) + ' dB');
       if (Env.enabled && Env.points.length >= 2) parts.push(Env.points.length + ' env pts');
       if (PanEnv.enabled && PanEnv.points.length >= 2) parts.push(PanEnv.points.length + ' pan pts');
-      return { name: 'Gain, Vol & Pan Automation', sub: parts.length ? parts.join(' · ') : '0.0 dB', accIdx: 0 };
+      if (SpeedEnv.enabled && SpeedEnv.points.length >= 2) parts.push(SpeedEnv.points.length + ' speed pts');
+      return { name: 'Gain, Vol, Pan & Speed', sub: parts.length ? parts.join(' · ') : '0.0 dB', accIdx: 0 };
     }
     if (id === 'compLim') {
       return {
@@ -28162,9 +29303,14 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     return out;
   }
 
-  async function renderLiveFxOffline(data, rate) {
+  async function renderLiveFxOffline(data, rate, startOffsetSec = 0) {
     if (!liveFxDirty()) return data;
     let out = data;
+    if (!FXRack.bypass.gainEnv && SpeedEnv.enabled && SpeedEnv.points.length >= 2) {
+      const segDur = out[0].length / rate;
+      const pts = SpeedEnv.points.map((pt) => ({ t: clamp(pt.t - startOffsetSec, 0, segDur), r: pt.r }));
+      out = D.applyVarispeedEnvelope(out, rate, pts);
+    }
     const hasWebAudioFx = FXRack.order.some((id) => id !== 'masterMsLim' && !FXRack.bypass[id] && fxModuleDirty(id));
     if (hasWebAudioFx && typeof OfflineAudioContext !== 'undefined') {
       const len = out[0].length;
@@ -28267,6 +29413,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if ($('#fxDeEssAmt')) { $('#fxDeEssAmt').value = 0; $('#fxDeEssAmtOut').textContent = '0.0 dB'; }
     Env.points = []; Env.enabled = false; syncEnvUI();
     PanEnv.points = []; PanEnv.enabled = false; syncPanEnvUI();
+    SpeedEnv.points = []; SpeedEnv.enabled = false; syncSpeedEnvUI();
+    if (MainMix.autoMode !== 'off') MainMix.autoMode = 'off';
     MasterBus.widthPct = 100; MasterBus.monoBelowHz = 0; MasterBus.brickEnable = false; MasterBus.driveDb = 0; MasterBus.ceilingDb = -0.5;
     if ($('#fxMasterWidth')) { $('#fxMasterWidth').value = 100; $('#fxMasterWidthOut').textContent = '100%'; }
     if ($('#fxMasterMonoHz')) { $('#fxMasterMonoHz').value = 0; $('#fxMasterMonoHzOut').textContent = 'Off'; }
@@ -29340,6 +30488,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           PanEnv.enabled = true;
           if (!PanEnv.points.length && hasAudio) PanEnv.points = [{ t: 0, pan: MainMix.pan || 0 }, { t: dur() || 1, pan: MainMix.pan || 0 }];
           if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
+        } else if (m === 'speed') {
+          SpeedEnv.enabled = true;
+          if (!SpeedEnv.points.length && hasAudio) SpeedEnv.points = [{ t: 0, r: 1 }, { t: dur() || 1, r: 1 }];
+          if (typeof syncSpeedEnvUI === 'function') syncSpeedEnvUI();
         }
         renderLayersUI();
         syncLiveFxNodes();
@@ -30000,6 +31152,57 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         syncPanEnvUI(); if (typeof renderLayersUI === 'function') renderLayersUI(); syncLiveFxNodes();
       });
     }
+    if ($('#fxSpeedEnvToggle')) {
+      $('#fxSpeedEnvToggle').addEventListener('click', () => {
+        SpeedEnv.enabled = !SpeedEnv.enabled;
+        MainMix.autoMode = SpeedEnv.enabled ? 'speed' : 'off';
+        if (SpeedEnv.enabled && !SpeedEnv.points.length && hasAudio) {
+          SpeedEnv.points = [{ t: 0, r: 1 }, { t: dur() || 1, r: 1 }];
+        }
+        syncSpeedEnvUI();
+        if (typeof renderLayersUI === 'function') renderLayersUI();
+        syncLiveFxNodes();
+        haptic(6);
+        if (SpeedEnv.enabled && window.innerWidth < 760) {
+          closeOverlays();
+          toast('Drag amber nodes on the waveform to sculpt pitch & speed', 'info', 2600);
+        }
+      });
+    }
+    if ($('#fxSpeedEnvAdd')) {
+      $('#fxSpeedEnvAdd').addEventListener('click', () => { addSpeedPoint(P.t, 0.5); haptic(6); });
+    }
+    if ($('#fxTapeStopPreset')) {
+      $('#fxTapeStopPreset').addEventListener('click', () => { applySpeedPreset('tapestop'); syncLiveFxNodes(); });
+    }
+    if ($('#fxTapeRiserPreset')) {
+      $('#fxTapeRiserPreset').addEventListener('click', () => { applySpeedPreset('riser'); syncLiveFxNodes(); });
+    }
+    if ($('#fxSpeedEnvApply')) {
+      $('#fxSpeedEnvApply').addEventListener('click', doApplySpeedEnvelope);
+    }
+    if ($('#fxSpeedEnvClear')) {
+      $('#fxSpeedEnvClear').addEventListener('click', () => {
+        SpeedEnv.points = []; SpeedEnv.enabled = false;
+        if (MainMix.autoMode === 'speed') MainMix.autoMode = 'off';
+        syncSpeedEnvUI(); if (typeof renderLayersUI === 'function') renderLayersUI(); syncLiveFxNodes();
+      });
+    }
+    for (const [id, out, fmt] of [
+      ['#vrTarget', '#vrTargetOut', (v) => Math.round(v) + ' dB'],
+      ['#vrSpeed', '#vrSpeedOut', (v) => Math.round(v) + ' ms'],
+      ['#vrBoost', '#vrBoostOut', (v) => '+' + Math.round(v) + ' dB'],
+      ['#vrCut', '#vrCutOut', (v) => '-' + Math.round(v) + ' dB'],
+      ['#xgThresh', '#xgThreshOut', (v) => Math.round(v) + ' dB'],
+      ['#xgAtten', '#xgAttenOut', (v) => Math.round(v) + ' dB'],
+      ['#xgHold', '#xgHoldOut', (v) => Math.round(v) + ' ms'],
+      ['#xgMargin', '#xgMarginOut', (v) => Math.round(v) + ' dB'],
+    ]) {
+      if ($(id) && $(out)) $(id).addEventListener('input', (e) => { $(out).textContent = fmt(parseFloat(e.target.value)); });
+    }
+    if ($('#btnVocalRiderEnv')) $('#btnVocalRiderEnv').addEventListener('click', () => doVocalRider('env'));
+    if ($('#btnVocalRiderBake')) $('#btnVocalRiderBake').addEventListener('click', () => doVocalRider('bake'));
+    if ($('#btnCrosstalkGate')) $('#btnCrosstalkGate').addEventListener('click', doCrosstalkGate);
     if ($('#fxBrickEnable')) {
       $('#fxBrickEnable').addEventListener('change', (e) => {
         MasterBus.brickEnable = !!e.target.checked;
@@ -30587,7 +31790,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         entries.push({ name: '03_Track3_Stems.wav', data: await runTask({ act: 'wav', data: stOut, rate: S.rate, bits: 24 }) });
       }
       let masterMix = (Layer.active || Stems.clips.length || Regions.list.length) ? renderMixedRange(a, b) : cloneData(mainDry);
-      if (liveFxDirty()) masterMix = await renderLiveFxOffline(masterMix, S.rate);
+      if (liveFxDirty()) masterMix = await renderLiveFxOffline(masterMix, S.rate, a / S.rate);
       entries.push({ name: '04_Full_Master.wav', data: await runTask({ act: 'wav', data: cloneData(masterMix), rate: S.rate, bits: 24 }) });
       const zipBytes = buildZip(entries);
       downloadBlob(new Blob([zipBytes], { type: 'application/zip' }), base + '-stems.zip');
@@ -30634,7 +31837,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const useStudio = !$('#exIncludeStudio') || $('#exIncludeStudio').checked;
       let data = (useStudio && (Layer.active || Stems.clips.length || Regions.list.length)) ? renderMixedRange(a, b) : S.data.map(ch => ch.slice(a, b));
       if (useStudio && liveFxDirty()) {
-        data = await renderLiveFxOffline(data, S.rate);
+        data = await renderLiveFxOffline(data, S.rate, a / S.rate);
       }
       if (rate !== S.rate) {
         data = await runTask({ act: 'resample', data: cloneData(data), rate: S.rate, to: rate });
@@ -30688,9 +31891,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     $('#sheet').classList.toggle('is-tall', !!(opts && opts.tab === 'export'));
     $('#sheet').classList.add('on'); $('#sheet').inert = false;
     $('#scrim').classList.add('on'); $('#scrim').style.opacity = '';
-    document.body.classList.add('overlay-open');
+    document.body.classList.add('overlay-open', 'sheet-open');
     $('.app').inert = true;
     $$('[data-sheet]').forEach((b) => b.classList.toggle('is-active', opts && b.dataset.sheet === opts.tab));
+    if (typeof window._syncMiniVis === 'function') window._syncMiniVis();
     haptic(6);
     $('#sheetClose').focus({ preventScroll: true });
   }
@@ -30701,8 +31905,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     $('#sheet').classList.remove('is-tall');
     $('#sheet').style.transform = '';
     $('#scrim').classList.remove('on'); $('#scrim').style.opacity = '';
-    document.body.classList.remove('overlay-open');
+    document.body.classList.remove('overlay-open', 'sheet-open');
     $('.app').inert = false;
+    if (typeof window._syncMiniVis === 'function') window._syncMiniVis();
     $$('[data-sheet]').forEach((b) => b.classList.toggle('is-active', hasAudio && b.dataset.sheet === 'edit'));
     if (overlayOpener && overlayOpener.isConnected) overlayOpener.focus({preventScroll:true});
     overlayOpener = null;
@@ -30871,6 +32076,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       markers: Markers.list.map((m) => ({ ...m })),
       env: { enabled: !!Env.enabled, points: Env.points.map((pt) => ({ ...pt })) },
       panEnv: { enabled: !!PanEnv.enabled, points: PanEnv.points.map((pt) => ({ ...pt })) },
+      speedEnv: { enabled: !!SpeedEnv.enabled, points: SpeedEnv.points.map((pt) => ({ ...pt })) },
       mainMix: { ...MainMix },
       sendBus: { ...SendBus },
       masterBus: { ...MasterBus },
@@ -30976,6 +32182,11 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       PanEnv.points = proj.panEnv.points.map((pt) => ({ ...pt }));
       PanEnv.enabled = !!proj.panEnv.enabled;
       if (typeof syncPanEnvUI === 'function') syncPanEnvUI();
+    }
+    if (proj.speedEnv && Array.isArray(proj.speedEnv.points)) {
+      SpeedEnv.points = proj.speedEnv.points.map((pt) => ({ ...pt }));
+      SpeedEnv.enabled = !!proj.speedEnv.enabled;
+      if (typeof syncSpeedEnvUI === 'function') syncSpeedEnvUI();
     }
     if (proj.mainMix) Object.assign(MainMix, proj.mainMix);
     if (proj.sendBus) {
@@ -31656,18 +32867,27 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     toast(`Imported ${added} marker${added === 1 ? '' : 's'}`, 'ok', 2200);
   }
 
+  let markerAudTimer = 0;
   function closeMarkerPop() {
+    clearTimeout(markerAudTimer);
     Markers.activeIdx = -1;
     const pop = $('#markerPop');
     if (pop) pop.hidden = true;
+    renderMarkers();
+    fxDirty = true;
   }
 
-  function openMarkerPop(idx, anchorX) {
+  function openMarkerPop(idx) {
     const pop = $('#markerPop');
     const m = Markers.list[idx];
     if (!pop || !m) return;
     Markers.activeIdx = idx;
+    const col = markerColor(m.tag);
+    pop.style.setProperty('--cue-col', col);
     if ($('#mPopTime')) $('#mPopTime').textContent = fmtTime(m.t, true);
+    if ($('#mPopCount')) $('#mPopCount').textContent = (idx + 1) + ' / ' + Markers.list.length;
+    if ($('#mPopPrev')) $('#mPopPrev').disabled = idx <= 0;
+    if ($('#mPopNext')) $('#mPopNext').disabled = idx >= Markers.list.length - 1;
     if ($('#mPopName')) $('#mPopName').value = m.name || '';
     if ($('#mPopNote')) $('#mPopNote').value = m.note || '';
     const tagsHost = $('#mPopTags');
@@ -31684,18 +32904,27 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         b.append(dot, document.createTextNode(info.label));
         b.onclick = () => {
           m.tag = key;
-          openMarkerPop(idx, anchorX);
-          renderMarkers(); fxDirty = true; scheduleSave();
+          openMarkerPop(idx);
+          fxDirty = true; scheduleSave();
         };
         tagsHost.append(b);
       }
     }
-    const wrapW = $('#waveWrap') ? $('#waveWrap').clientWidth : 340;
-    const popW = Math.min(304, Math.max(220, wrapW - 16));
-    const px = typeof anchorX === 'number' ? anchorX : tToX(m.t);
-    const left = clamp(px - popW / 2, 8, Math.max(8, wrapW - popW - 8));
-    pop.style.left = left + 'px';
     pop.hidden = false;
+    ensureVisible(Math.max(0, m.t - 1), Math.min(totalDur(), m.t + 2));
+    renderMarkers();
+    fxDirty = true;
+  }
+
+  function nudgeActiveMarker(nextTimeSec) {
+    const m = Markers.list[Markers.activeIdx];
+    if (!m || !hasAudio) return;
+    m.t = clamp(nextTimeSec, 0, dur());
+    Markers.list.sort((a, b) => a.t - b.t);
+    const nextIdx = Markers.list.indexOf(m);
+    openMarkerPop(nextIdx >= 0 ? nextIdx : 0);
+    haptic(4);
+    scheduleSave();
   }
 
   function renderMarkers() {
@@ -31749,7 +32978,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       strip.replaceChildren();
       strip.hidden = Markers.list.length === 0;
       Markers.list.forEach((m, i) => {
-        const pill = document.createElement('div'); pill.className = 'mpill';
+        const pill = document.createElement('div'); pill.className = 'mpill' + (Markers.activeIdx === i ? ' is-editing' : '');
+        pill.style.setProperty('--cue-col', markerColor(m.tag));
         const jumpBtn = document.createElement('button'); jumpBtn.type = 'button'; jumpBtn.className = 'mpill-jump';
         const dot = document.createElement('span'); dot.className = 'mpill-dot';
         dot.style.background = markerColor(m.tag);
@@ -31767,9 +32997,14 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
 
         const ed = document.createElement('button'); ed.type = 'button'; ed.className = 'mpill-edit';
         ed.textContent = m.note ? '📝' : '⋯';
-        ed.title = 'Edit marker cue & note';
+        ed.title = Markers.activeIdx === i ? 'Close cue editor' : 'Edit marker cue & note';
         ed.setAttribute('aria-label', 'Edit ' + (m.name || ('Marker ' + (i + 1))));
-        ed.onclick = (ev) => { ev.stopPropagation(); openMarkerPop(i); };
+        ed.setAttribute('aria-expanded', Markers.activeIdx === i ? 'true' : 'false');
+        ed.onclick = (ev) => {
+          ev.stopPropagation();
+          if (Markers.activeIdx === i) closeMarkerPop();
+          else openMarkerPop(i);
+        };
 
         const del = document.createElement('button'); del.type = 'button'; del.className = 'mpill-del';
         del.textContent = '×';
@@ -32636,6 +33871,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     { t: 'Jump-cut: keep as non-destructive clips', cat: 'Smart', sub: 'Turn active speech segments into Track 1 clips', run: jumpCutToClips },
     { t: 'Split Track 1 clip at playhead', cat: 'Multitrack', sub: 'Non-destructive Track 1 clip split', run: splitAtPlayheadRegion },
     { t: 'Spectral Heal Brush (Spectrogram repair)', cat: 'Repair', sub: 'Paint or box-select clicks, whistles & mic bumps', run: () => setSpecBrushActive(true) },
+    { t: 'Tape Stop (Varispeed ramp down)', cat: 'Effects', sub: 'Add non-destructive pitch & speed slowdown curve', run: () => { applySpeedPreset('tapestop'); syncLiveFxNodes(); } },
+    { t: 'Tape Riser (Varispeed ramp up)', cat: 'Effects', sub: 'Add non-destructive pitch & speed spin-up curve', run: () => { applySpeedPreset('riser'); syncLiveFxNodes(); } },
+    { t: 'Bake Pitch & Speed Envelope', cat: 'Effects', sub: 'Render varispeed curve destructively onto Track 1', run: doApplySpeedEnvelope },
+    { t: 'Dialogue Auto-Leveler (Vocal Rider · Vol Curve)', cat: 'Smart', sub: 'Write phrase-level volume automation for speech', run: () => doVocalRider('env') },
+    { t: 'Dialogue Auto-Leveler (Vocal Rider · Bake)', cat: 'Smart', sub: 'Level quiet & loud dialogue phrases smoothly', run: () => doVocalRider('bake') },
+    { t: 'Multi-Mic Crosstalk Gate (T1 ↔ T2 / L ↔ R)', cat: 'Repair', sub: 'Suppress off-mic speaker bleed between mics', run: doCrosstalkGate },
+    { t: 'Toggle Haptic Transient Scrubbing', cat: 'Playback', sub: 'Vibrate gently across drum hits, speech onsets & markers', run: () => { Prefs.hapticScrub = !Prefs.hapticScrub; savePrefs(); toast('Haptic transient scrubbing: ' + (Prefs.hapticScrub ? 'ON' : 'OFF'), 'info'); } },
     { t: 'Detect beats & BPM', cat: 'Smart', sub: 'Transient beat analysis + markers', run: detectBeatsAndBpm },
     { t: 'Ringtone 30s maker', cat: 'Smart', sub: '30 s loop window + 0.5 s fades', run: () => setupRingtone(30) },
     { t: 'Podcast Intro / Outro Builder', cat: 'Smart', sub: 'Assemble intro, episode & outro at -16 LUFS', run: openPodcastBuilder },
@@ -32972,54 +34214,202 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   function showPrefsModal() {
     const opener = document.activeElement; closeOverlays(); overlayOpener = opener;
     $('#modal').inert = false; $('.app').inert = true; document.body.classList.add('overlay-open');
-    $('#modalTitle').textContent = 'Preferences & Haptics';
+    $('#modalTitle').textContent = 'Studio Control Surface';
+    const curRate = ctx ? ctx.sampleRate + ' Hz' : '48 kHz ready';
+    const dspMode = worker ? 'Web Worker' : 'Main Thread';
+    const workletTxt = LiveWorkletFX && LiveWorkletFX.ready ? 'Active (0-bake)' : (typeof AudioWorkletNode !== 'undefined' ? 'Standby' : 'Fallback');
+    const cpuTxt = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency + ' cores' : 'Auto';
+    const haloW = (px) => px <= 0 ? '2px' : (Math.round(px * 4.5) + 'px');
     $('#modalBody').innerHTML = `
-      <div class="pref-grid">
-        <div class="pref-card">
-          <label class="checkrow"><input type="checkbox" id="prefHaptic" ${Prefs.haptic ? 'checked' : ''}><span><b>Haptic feedback</b> — vibrate on playhead snap, markers, and tools</span></label>
-          <div class="field"><label for="prefSnapPx">Magnetic snap strength (playhead ↔ IN/OUT)</label>
-            <select id="prefSnapPx">
-              <option value="0" ${Prefs.snapPx === 0 ? 'selected' : ''}>Off (free movement)</option>
-              <option value="4" ${Prefs.snapPx === 4 ? 'selected' : ''}>Subtle (4 px)</option>
-              <option value="6" ${Prefs.snapPx === 6 ? 'selected' : ''}>Standard (6 px)</option>
-              <option value="11" ${Prefs.snapPx === 11 ? 'selected' : ''}>Strong (11 px)</option>
-            </select>
+      <div class="pref-tabs" role="tablist" aria-label="Settings sections">
+        <button type="button" role="tab" data-ptab="touch" aria-selected="true">Touch &amp; Haptics</button>
+        <button type="button" role="tab" data-ptab="audio" aria-selected="false">Audio &amp; Export</button>
+        <button type="button" role="tab" data-ptab="vault" aria-selected="false">Engine &amp; Vault</button>
+      </div>
+
+      <div class="pref-pane" data-ppane="touch">
+        <div class="pref-grid">
+          <div class="pref-snap-viz" id="prefSnapViz">
+            <div class="pref-snap-track" title="Visual preview of playhead magnetic snap zone">
+              <div class="pref-snap-halo" id="prefSnapHalo" style="width:${haloW(Prefs.snapPx)}"></div>
+              <div class="pref-snap-head"></div>
+            </div>
+            <button type="button" class="btn sm primary" id="btnTestHaptic">Pulse Haptic</button>
           </div>
-          <div class="field"><label for="prefZoomSens">Pinch &amp; wheel zoom sensitivity</label>
-            <select id="prefZoomSens">
-              <option value="0.7" ${Prefs.zoomSens === 0.7 ? 'selected' : ''}>Smooth (0.7×)</option>
-              <option value="1" ${Prefs.zoomSens === 1 ? 'selected' : ''}>Normal (1.0×)</option>
-              <option value="1.4" ${Prefs.zoomSens === 1.4 ? 'selected' : ''}>Fast (1.4×)</option>
+
+          <div class="pref-card">
+            <label class="checkrow"><input type="checkbox" id="prefHaptic" ${Prefs.haptic ? 'checked' : ''}><span><b>Haptic feedback</b> — vibrate on playhead snap, markers &amp; tools</span></label>
+            <label class="checkrow"><input type="checkbox" id="prefHapticScrub" ${Prefs.hapticScrub !== false ? 'checked' : ''}><span><b>Haptic transient scrubbing</b> — pulse across drum hits, speech onsets &amp; markers</span></label>
+            <label class="checkrow"><input type="checkbox" id="prefHapticAudio" ${Prefs.hapticAudio ? 'checked' : ''}><span><b>Acoustic tactile click fallback</b> — subtle low thump when idle if phone/iframe blocks vibration</span></label>
+            <div class="range-row" style="margin-top:4px"><label>Motor pulse strength</label><output id="prefPowerOut">${(Prefs.hapticPower || 'medium').toUpperCase()}</output></div>
+            <div class="pref-pills cols-3" id="prefPowerPills">
+              <button type="button" data-pwr="light" aria-pressed="${Prefs.hapticPower === 'light'}">Light (14ms+)</button>
+              <button type="button" data-pwr="medium" aria-pressed="${!Prefs.hapticPower || Prefs.hapticPower === 'medium'}">Medium (22ms+)</button>
+              <button type="button" data-pwr="strong" aria-pressed="${Prefs.hapticPower === 'strong'}">Strong (32ms+)</button>
+            </div>
+            <div class="hint" id="prefHapticDiag" style="font-family:ui-monospace,monospace;font-size:10.5px;color:var(--acc)">${HapticDiag.lastReason || (HapticDiag.supported ? (HapticDiag.inIframe ? 'Embedded frame detected — tap Pulse Haptic to test' : 'Web Vibration API ready — tap Pulse Haptic to test') : 'Web Vibration API unavailable on this browser')}</div>
+          </div>
+
+          <div class="pref-card">
+            <div class="range-row"><label>Magnetic snap strength (playhead ↔ IN/OUT)</label><output id="prefSnapOut">${Prefs.snapPx === 0 ? 'Off' : Prefs.snapPx + ' px'}</output></div>
+            <div class="pref-pills" id="prefSnapPills">
+              <button type="button" data-snap="0" aria-pressed="${Prefs.snapPx === 0}">Off</button>
+              <button type="button" data-snap="4" aria-pressed="${Prefs.snapPx === 4}">4 px</button>
+              <button type="button" data-snap="6" aria-pressed="${Prefs.snapPx === 6}">6 px</button>
+              <button type="button" data-snap="11" aria-pressed="${Prefs.snapPx === 11}">11 px</button>
+            </div>
+            <select id="prefSnapPx" hidden aria-hidden="true">
+              <option value="0" ${Prefs.snapPx === 0 ? 'selected' : ''}>0</option>
+              <option value="4" ${Prefs.snapPx === 4 ? 'selected' : ''}>4</option>
+              <option value="6" ${Prefs.snapPx === 6 ? 'selected' : ''}>6</option>
+              <option value="11" ${Prefs.snapPx === 11 ? 'selected' : ''}>11</option>
+            </select>
+            <div class="range-row" style="margin-top:4px"><label>Pinch &amp; wheel zoom sensitivity</label><output id="prefZoomOut">${(Prefs.zoomSens || 1).toFixed(1)}×</output></div>
+            <div class="pref-pills cols-3" id="prefZoomPills">
+              <button type="button" data-zoom="0.7" aria-pressed="${Prefs.zoomSens === 0.7}">Smooth 0.7×</button>
+              <button type="button" data-zoom="1" aria-pressed="${Prefs.zoomSens === 1}">Normal 1.0×</button>
+              <button type="button" data-zoom="1.4" aria-pressed="${Prefs.zoomSens === 1.4}">Fast 1.4×</button>
+            </div>
+            <select id="prefZoomSens" hidden aria-hidden="true">
+              <option value="0.7" ${Prefs.zoomSens === 0.7 ? 'selected' : ''}>0.7</option>
+              <option value="1" ${Prefs.zoomSens === 1 ? 'selected' : ''}>1</option>
+              <option value="1.4" ${Prefs.zoomSens === 1.4 ? 'selected' : ''}>1.4</option>
             </select>
           </div>
         </div>
-        <div class="pref-card">
-          <div class="field"><label for="prefDefExport">Default export format</label>
-            <select id="prefDefExport">
-              <option value="wav" ${Prefs.defExport === 'wav' ? 'selected' : ''}>WAV — lossless PCM / Float</option>
-              <option value="flac" ${Prefs.defExport === 'flac' ? 'selected' : ''}>FLAC — lossless compressed</option>
-              <option value="mp3" ${Prefs.defExport === 'mp3' ? 'selected' : ''}>MP3 — compressed</option>
-              <option value="opus" ${Prefs.defExport === 'opus' ? 'selected' : ''}>Opus — voice (.ogg / .webm)</option>
-              <option value="m4a" ${Prefs.defExport === 'm4a' ? 'selected' : ''}>AAC — Apple (.m4a)</option>
+      </div>
+
+      <div class="pref-pane" data-ppane="audio" hidden>
+        <div class="pref-grid">
+          <div class="pref-card">
+            <div class="eyebrow">Default Export Codec</div>
+            <div class="pref-codec-grid" id="prefCodecGrid">
+              <button type="button" class="pref-codec-card" data-codec="wav" aria-pressed="${Prefs.defExport === 'wav'}"><b>WAV</b><span>16/24/32f PCM</span></button>
+              <button type="button" class="pref-codec-card" data-codec="flac" aria-pressed="${Prefs.defExport === 'flac'}"><b>FLAC</b><span>Lossless ~50%</span></button>
+              <button type="button" class="pref-codec-card" data-codec="mp3" aria-pressed="${Prefs.defExport === 'mp3'}"><b>MP3</b><span>Universal CBR</span></button>
+              <button type="button" class="pref-codec-card" data-codec="opus" aria-pressed="${Prefs.defExport === 'opus'}"><b>Opus</b><span>Speech WebM/Ogg</span></button>
+              <button type="button" class="pref-codec-card" data-codec="m4a" aria-pressed="${Prefs.defExport === 'm4a'}"><b>AAC</b><span>Apple .m4a</span></button>
+            </div>
+            <select id="prefDefExport" hidden aria-hidden="true">
+              <option value="wav" ${Prefs.defExport === 'wav' ? 'selected' : ''}>wav</option>
+              <option value="flac" ${Prefs.defExport === 'flac' ? 'selected' : ''}>flac</option>
+              <option value="mp3" ${Prefs.defExport === 'mp3' ? 'selected' : ''}>mp3</option>
+              <option value="opus" ${Prefs.defExport === 'opus' ? 'selected' : ''}>opus</option>
+              <option value="m4a" ${Prefs.defExport === 'm4a' ? 'selected' : ''}>m4a</option>
             </select>
           </div>
-          <label class="checkrow"><input type="checkbox" id="prefAutosave" ${Prefs.autosave ? 'checked' : ''}><span><b>IndexedDB Auto-save</b> — continuous crash recovery</span></label>
-          <div class="field" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <span id="prefOpfsInfo" style="font-size:12px;color:var(--dim)">OPFS Audio Swap: ${OPFSSwap.supported ? (OPFSSwap.totalBytes > 0 ? fmtBytes(OPFSSwap.totalBytes) + ' swapped to disk' : 'Ready (auto-swaps ≥ 8 MB)') : 'Unavailable in this context'}</span>
-            <button type="button" class="btn sm" id="btnClearOpfs" ${OPFSSwap.supported ? '' : 'disabled'}>Clear Swap Cache</button>
+
+          <div class="pref-card">
+            <div class="eyebrow">Live Engine Telemetry</div>
+            <div class="pref-telemetry">
+              <div class="pref-stat"><span>Sample Rate</span><b>${curRate}</b></div>
+              <div class="pref-stat"><span>DSP Pipeline</span><b>${dspMode}</b></div>
+              <div class="pref-stat"><span>Worklet FX</span><b>${workletTxt}</b></div>
+              <div class="pref-stat"><span>Threads</span><b>${cpuTxt}</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pref-pane" data-ppane="vault" hidden>
+        <div class="pref-grid">
+          <div class="pref-card">
+            <label class="checkrow"><input type="checkbox" id="prefAutosave" ${Prefs.autosave ? 'checked' : ''}><span><b>IndexedDB Auto-save</b> — continuous local crash recovery</span></label>
+            <div class="divider"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+              <div>
+                <b style="font-size:12.5px;display:block">OPFS Disk Swap Cache</b>
+                <span id="prefOpfsInfo" style="font-size:11.5px;color:var(--txt-3)">${OPFSSwap.supported ? (OPFSSwap.totalBytes > 0 ? fmtBytes(OPFSSwap.totalBytes) + ' swapped to disk' : 'Ready (auto-swaps ≥ 8 MB)') : 'Unavailable in this context'}</span>
+              </div>
+              <button type="button" class="btn sm" id="btnClearOpfs" ${OPFSSwap.supported ? '' : 'disabled'}>Clear Swap</button>
+            </div>
+          </div>
+          <div class="pref-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+              <div>
+                <b style="font-size:12.5px;display:block">Factory Studio Defaults</b>
+                <span class="hint">Restore haptics, 6 px snap, 1.0× zoom &amp; WAV default.</span>
+              </div>
+              <button type="button" class="btn sm danger" id="btnResetPrefs">Reset Prefs</button>
+            </div>
           </div>
         </div>
       </div>`;
-    $('#prefHaptic').addEventListener('change', (e) => { Prefs.haptic = e.target.checked; savePrefs(); if (Prefs.haptic) haptic(14); });
-    $('#prefSnapPx').addEventListener('change', (e) => { Prefs.snapPx = parseFloat(e.target.value); savePrefs(); });
-    $('#prefZoomSens').addEventListener('change', (e) => { Prefs.zoomSens = parseFloat(e.target.value) || 1; savePrefs(); });
-    $('#prefDefExport').addEventListener('change', (e) => {
-      Prefs.defExport = e.target.value; savePrefs();
+
+    $$('#modalBody [data-ptab]').forEach((tab) => tab.addEventListener('click', () => {
+      const k = tab.dataset.ptab;
+      $$('#modalBody [data-ptab]').forEach((t) => t.setAttribute('aria-selected', t === tab));
+      $$('#modalBody [data-ppane]').forEach((p) => { p.hidden = p.dataset.ppane !== k; });
+      haptic(5);
+    }));
+
+    const refreshHapticDiag = () => {
+      if ($('#prefHapticDiag')) {
+        $('#prefHapticDiag').textContent = HapticDiag.lastReason || (HapticDiag.supported ? 'Web Vibration API ready' : 'Web Vibration API unavailable on this browser');
+        $('#prefHapticDiag').style.color = HapticDiag.lastOk === false ? '#ff9f0a' : 'var(--acc)';
+      }
+    };
+    if ($('#btnTestHaptic')) {
+      $('#btnTestHaptic').addEventListener('click', () => {
+        const viz = $('#prefSnapViz');
+        if (viz) { viz.classList.add('is-pulsing'); setTimeout(() => viz.classList.remove('is-pulsing'), 340); }
+        if (!Prefs.haptic) {
+          toast('Enable Haptic feedback first', 'info', 1800);
+          return;
+        }
+        const ok = haptic([24, 34, 28], true);
+        refreshHapticDiag();
+        if (!ok) toast(HapticDiag.lastReason || 'Vibration blocked by browser/device', 'info', 3000);
+      });
+    }
+
+    $('#prefHaptic').addEventListener('change', (e) => { Prefs.haptic = e.target.checked; savePrefs(); if (Prefs.haptic) { haptic(24, true); refreshHapticDiag(); } });
+    $('#prefHapticScrub').addEventListener('change', (e) => { Prefs.hapticScrub = e.target.checked; savePrefs(); if (Prefs.hapticScrub) { haptic(18, true); refreshHapticDiag(); } });
+    if ($('#prefHapticAudio')) {
+      $('#prefHapticAudio').addEventListener('change', (e) => { Prefs.hapticAudio = e.target.checked; savePrefs(); if (Prefs.hapticAudio) playTactileClick(true); });
+    }
+    $$('#prefPowerPills button').forEach((b) => b.addEventListener('click', () => {
+      Prefs.hapticPower = b.dataset.pwr || 'medium'; savePrefs();
+      if ($('#prefPowerOut')) $('#prefPowerOut').textContent = Prefs.hapticPower.toUpperCase();
+      $$('#prefPowerPills button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      haptic(22, true);
+      refreshHapticDiag();
+    }));
+
+    const applySnap = (v) => {
+      Prefs.snapPx = parseFloat(v); savePrefs();
+      $('#prefSnapPx').value = String(Prefs.snapPx);
+      if ($('#prefSnapOut')) $('#prefSnapOut').textContent = Prefs.snapPx === 0 ? 'Off' : Prefs.snapPx + ' px';
+      if ($('#prefSnapHalo')) $('#prefSnapHalo').style.width = haloW(Prefs.snapPx);
+      $$('#prefSnapPills button').forEach((b) => b.setAttribute('aria-pressed', parseFloat(b.dataset.snap) === Prefs.snapPx));
+      haptic(6);
+    };
+    $$('#prefSnapPills button').forEach((b) => b.addEventListener('click', () => applySnap(b.dataset.snap)));
+    $('#prefSnapPx').addEventListener('change', (e) => applySnap(e.target.value));
+
+    const applyZoom = (v) => {
+      Prefs.zoomSens = parseFloat(v) || 1; savePrefs();
+      $('#prefZoomSens').value = String(Prefs.zoomSens);
+      if ($('#prefZoomOut')) $('#prefZoomOut').textContent = Prefs.zoomSens.toFixed(1) + '×';
+      $$('#prefZoomPills button').forEach((b) => b.setAttribute('aria-pressed', parseFloat(b.dataset.zoom) === Prefs.zoomSens));
+      haptic(5);
+    };
+    $$('#prefZoomPills button').forEach((b) => b.addEventListener('click', () => applyZoom(b.dataset.zoom)));
+    $('#prefZoomSens').addEventListener('change', (e) => applyZoom(e.target.value));
+
+    const applyCodec = (v) => {
+      Prefs.defExport = v; savePrefs();
+      $('#prefDefExport').value = v;
+      $$('#prefCodecGrid button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.codec === v));
       if ($('#exFormat') && $('#exFormat').querySelector(`option[value="${Prefs.defExport}"]`)) {
         $('#exFormat').value = Prefs.defExport;
         $('#exFormat').dispatchEvent(new Event('change'));
       }
-    });
+      haptic(6);
+    };
+    $$('#prefCodecGrid button').forEach((b) => b.addEventListener('click', () => applyCodec(b.dataset.codec)));
+    $('#prefDefExport').addEventListener('change', (e) => applyCodec(e.target.value));
+
     $('#prefAutosave').addEventListener('change', (e) => {
       Prefs.autosave = e.target.checked; savePrefs();
       if (Prefs.autosave && hasAudio) scheduleSave();
@@ -33031,8 +34421,16 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         while (H.redo.length) disposeSnap(H.redo.pop());
         syncHistory();
         await OPFSSwap.clearAll();
-        if ($('#prefOpfsInfo')) $('#prefOpfsInfo').textContent = 'OPFS Audio Swap: 0 B · Cache cleared';
+        if ($('#prefOpfsInfo')) $('#prefOpfsInfo').textContent = '0 B · Cache cleared';
         toast('OPFS swap cache cleared', 'ok', 1800);
+      });
+    }
+    if ($('#btnResetPrefs')) {
+      $('#btnResetPrefs').addEventListener('click', () => {
+        Object.assign(Prefs, { haptic: true, hapticScrub: true, hapticPower: 'medium', hapticAudio: false, snapPx: 6, defExport: 'wav', autosave: true, zoomSens: 1.0 });
+        savePrefs();
+        toast('Preferences reset to studio defaults', 'ok', 2000);
+        showPrefsModal();
       });
     }
     $('#modal').classList.add('on'); $('#modalClose').focus();
@@ -33420,9 +34818,11 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if (!mini) return;
     let trOutOfView = false;
     const syncMiniVis = () => {
-      const modalOpen = document.body.classList.contains('overlay-open');
-      mini.classList.toggle('on', hasAudio && !modalOpen && trOutOfView);
+      const sheetOpen = document.body.classList.contains('sheet-open');
+      const modalOpen = document.body.classList.contains('overlay-open') && !sheetOpen;
+      mini.classList.toggle('on', hasAudio && !modalOpen && (trOutOfView || sheetOpen));
     };
+    window._syncMiniVis = syncMiniVis;
     if (tr && typeof IntersectionObserver === 'function') {
       const io = new IntersectionObserver((entries) => {
         trOutOfView = entries[0] ? !entries[0].isIntersecting : false;
@@ -33431,8 +34831,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       io.observe(tr);
     }
     if ($('#miniPlay')) $('#miniPlay').addEventListener('click', () => { P.playing ? pausePlay() : play(); haptic(6); });
-    if ($('#miniBack')) $('#miniBack').addEventListener('click', () => { seek(clamp(P.t - 10, 0, dur())); haptic(5); });
-    if ($('#miniFwd')) $('#miniFwd').addEventListener('click', () => { seek(clamp(P.t + 10, 0, dur())); haptic(5); });
+    if ($('#miniBack')) $('#miniBack').addEventListener('click', () => { seek(clamp(P.t - 5, 0, dur())); haptic(5); });
+    if ($('#miniFwd')) $('#miniFwd').addEventListener('click', () => { seek(clamp(P.t + 5, 0, dur())); haptic(5); });
+    if ($('#miniMarker')) $('#miniMarker').addEventListener('click', () => { addMarker(); haptic(8); });
+    if ($('#miniUndo')) $('#miniUndo').addEventListener('click', () => { undo(); haptic(6); });
     if ($('#exTitle')) $('#exTitle').addEventListener('input', () => { syncTransport(); updateMediaSession(); });
     if ($('#exArtist')) $('#exArtist').addEventListener('input', () => updateMediaSession());
   }
@@ -33480,6 +34882,36 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     });
     $('#btnDzRecord').addEventListener('click', openRecordStudio);
     $('#btnMergeLaunch').addEventListener('click', openMergeStudio);
+    if ($('#btnDzPodcast')) $('#btnDzPodcast').addEventListener('click', openPodcastBuilder);
+    if ($('#btnDzDemo')) {
+      $('#btnDzDemo').addEventListener('click', async () => {
+        if (importing || processing) return;
+        try {
+          const demoData = D.makeDemo(44100, 12);
+          await loadAudio(demoData, 44100, 'Sonora Studio Demo.wav', { title: 'Sonora Studio Demo', artist: 'Sonora Sound Engine' });
+        } catch (e) { toast('Could not load demo: ' + e.message, 'err'); }
+      });
+    }
+    if ($('#dzStage') && $('#dzBars')) {
+      const stage = $('#dzStage');
+      const reactBars = (clientX) => {
+        const rect = $('#dzBars').getBoundingClientRect();
+        if (!rect.width) return;
+        const u = clamp((clientX - rect.left) / rect.width, 0, 1);
+        const kids = $('#dzBars').children;
+        for (let i = 0; i < kids.length; i++) {
+          const d = Math.abs((i + 0.5) / kids.length - u);
+          const boost = Math.max(0, 1 - d * 4.5);
+          kids[i].style.height = Math.round(28 + boost * 68) + '%';
+          kids[i].style.opacity = (0.48 + boost * 0.5).toFixed(2);
+        }
+      };
+      stage.addEventListener('pointermove', (e) => reactBars(e.clientX));
+      stage.addEventListener('pointerleave', () => {
+        const kids = $('#dzBars').children;
+        for (let i = 0; i < kids.length; i++) { kids[i].style.height = '32%'; kids[i].style.opacity = '.56'; }
+      });
+    }
     $('#btnLayers').addEventListener('click', openLayersPanel);
     if ($('#cutXfadeMs')) {
       $('#cutXfadeMs').addEventListener('input', (e) => {
@@ -33940,6 +35372,39 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if ($('#btnExportSrt')) $('#btnExportSrt').addEventListener('click', () => exportSubtitles('srt'));
     if ($('#btnExportVtt')) $('#btnExportVtt').addEventListener('click', () => exportSubtitles('vtt'));
     $('#mPopClose').addEventListener('click', closeMarkerPop);
+    if ($('#mPopPrev')) $('#mPopPrev').addEventListener('click', () => {
+      if (Markers.activeIdx > 0) openMarkerPop(Markers.activeIdx - 1);
+    });
+    if ($('#mPopNext')) $('#mPopNext').addEventListener('click', () => {
+      if (Markers.activeIdx >= 0 && Markers.activeIdx < Markers.list.length - 1) openMarkerPop(Markers.activeIdx + 1);
+    });
+    if ($('#mPopPlay')) $('#mPopPlay').addEventListener('click', () => {
+      const m = Markers.list[Markers.activeIdx]; if (!m || !hasAudio) return;
+      clearTimeout(markerAudTimer);
+      if (P.playing) { pausePlay(); return; }
+      seek(m.t, false);
+      play();
+      markerAudTimer = setTimeout(() => { if (P.playing) pausePlay(); }, 2000);
+    });
+    $$('#markerPop [data-mnudge]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const m = Markers.list[Markers.activeIdx]; if (!m) return;
+        const delta = parseFloat(b.dataset.mnudge) || 0;
+        nudgeActiveMarker(m.t + delta);
+      });
+    });
+    if ($('#mPopSnapPlay')) $('#mPopSnapPlay').addEventListener('click', () => {
+      nudgeActiveMarker(curTime());
+    });
+    if ($('#mPopSplit')) $('#mPopSplit').addEventListener('click', () => {
+      const m = Markers.list[Markers.activeIdx]; if (!m || !hasAudio) return;
+      seek(m.t, false);
+      const trk = activeClipTrack();
+      if (trk === 't2' && Layer.clips.length) splitT2AtPlayhead();
+      else if (trk === 't3' && Stems.clips.length) splitT3AtPlayhead();
+      else splitAtPlayheadRegion();
+      haptic(6);
+    });
     $('#mPopName').addEventListener('input', (e) => {
       const m = Markers.list[Markers.activeIdx]; if (!m) return;
       m.name = e.target.value; renderMarkers(); fxDirty = true; scheduleSave();
@@ -34401,7 +35866,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     $('#mobileOpen').onclick = () => { haptic(5); $('#fileInput').click(); };
     $('#mobileRedo').onclick = redo;
     $('#mobileCommands').onclick = openCmd;
-    for (const lid of ['btnPick', 'btnDzRecord', 'btnMergeLaunch']) {
+    for (const lid of ['btnPick', 'btnDzRecord', 'btnMergeLaunch', 'btnDzPodcast', 'btnDzDemo']) {
       if ($('#' + lid)) $('#' + lid).addEventListener('click', () => haptic(6));
     }
     $('#quickZoom').onclick = () => {
@@ -34571,5 +36036,5 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60fed9d3da679ec',t:'MTc5NTc2OTg3Ng=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60fed9d3da679ec',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a61223961e0b96a8',t:'MTc5NTc5MzA1OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a61223961e0b96a8',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
