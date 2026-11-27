@@ -698,16 +698,27 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .marker-pill-strip::-webkit-scrollbar { display: none; }
 .marker-pill-strip[hidden] { display: none; }
 .mpill {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px 3px 9px; border-radius: 999px;
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
   color: var(--txt); font-size: 11.5px; font-weight: 560; white-space: nowrap; flex: none;
-  cursor: pointer; transition: background var(--fast), border-color var(--fast), transform var(--fast);
+  transition: background var(--fast), border-color var(--fast), transform var(--fast);
 }
-.mpill:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.22); }
-.mpill:active { transform: scale(.97); }
+.mpill:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.22); }
+.mpill-jump {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 2px 2px 0;
+  background: none; border: 0; color: inherit; font: inherit; cursor: pointer;
+}
+.mpill-jump:active { transform: scale(.97); }
 .mpill-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .mpill-t { font: 500 10.5px/1 ui-monospace, monospace; color: var(--txt-3); }
-.mpill-edit { opacity: .65; font-size: 11px; padding-left: 2px; }
+.mpill-edit, .mpill-del {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  border: 0; background: transparent; color: var(--txt-2); font-size: 12px; line-height: 1; cursor: pointer;
+  transition: background var(--fast), color var(--fast), transform var(--fast);
+}
+.mpill-edit:hover { background: rgba(255,255,255,.12); color: var(--txt); }
+.mpill-del { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.58); }
+.mpill-del:hover, .mpill-del:active { background: rgba(255,69,58,.24); color: #ff8e86; }
 .marker-pop {
   position: absolute; top: 34px; left: 12px; z-index: 26; width: min(304px, calc(100% - 16px));
   border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 9px;
@@ -19647,10 +19658,11 @@ lamejs();
       }
     }
     const listSize = 4 + fields.reduce((n,[key,v]) => n + 8 + v.length + v.length % 2, 0);
+    const factSize = depth === 32 ? 12 : 0;
     const dataSize = frames * nch * bytes;
     const id3Len = (id3Bytes && id3Bytes.length) ? id3Bytes.length : 0;
     const id3ChunkSize = id3Len ? (8 + id3Len + (id3Len % 2)) : 0;
-    const total = 44 + (fields.length ? 8 + listSize : 0) + dataSize + dataSize % 2 + id3ChunkSize;
+    const total = 44 + factSize + (fields.length ? 8 + listSize : 0) + dataSize + dataSize % 2 + id3ChunkSize;
     const buffer = new ArrayBuffer(total), view = new DataView(buffer);
     writeAscii(view,0,'RIFF'); view.setUint32(4,total-8,true); writeAscii(view,8,'WAVE');
     writeAscii(view,12,'fmt '); view.setUint32(16,16,true);
@@ -19658,6 +19670,12 @@ lamejs();
     view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*nch*bytes,true);
     view.setUint16(32,nch*bytes,true); view.setUint16(34,depth,true);
     let offset = 36;
+    if (depth === 32) {
+      writeAscii(view, offset, 'fact');
+      view.setUint32(offset + 4, 4, true);
+      view.setUint32(offset + 8, frames, true);
+      offset += 12;
+    }
     if (fields.length) {
       writeAscii(view,offset,'LIST'); view.setUint32(offset+4,listSize,true); writeAscii(view,offset+8,'INFO'); offset += 12;
       for (const [key,value] of fields) {
@@ -19671,7 +19689,7 @@ lamejs();
       const v = Math.max(-1,Math.min(1,raw));
       if (depth === 32) view.setFloat32(offset,raw,true);
       else if (depth === 24) {
-        const n = Math.round(v * (v < 0 ? 8388608 : 8388607));
+        const n = Math.max(-8388608, Math.min(8388607, Math.round(v * (v < 0 ? 8388608 : 8388607))));
         view.setUint8(offset,n&255); view.setUint8(offset+1,(n>>8)&255); view.setUint8(offset+2,(n>>16)&255);
       } else view.setInt16(offset,Math.round(v*(v<0?32768:32767)),true);
       offset += bytes;
@@ -19683,6 +19701,470 @@ lamejs();
       new Uint8Array(buffer, offset + 8, id3Len).set(id3Bytes);
     }
     return new Uint8Array(buffer);
+  }
+
+  /* -------------------------------------------- Pure-JS Lossless FLAC */
+  function createFlacMd5() {
+    const s = [
+      7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+      5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+      4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+      6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21
+    ];
+    const K = new Uint32Array(64);
+    for (let i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) >>> 0;
+    let a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476;
+    const block = new Uint8Array(64);
+    const M = new Uint32Array(16);
+    let bLen = 0, totalLo = 0, totalHi = 0;
+    const step = () => {
+      for (let i = 0; i < 16; i++) {
+        const j = i * 4;
+        M[i] = (block[j] | (block[j+1] << 8) | (block[j+2] << 16) | (block[j+3] << 24)) >>> 0;
+      }
+      let A = a0, B = b0, C = c0, D = d0;
+      for (let i = 0; i < 64; i++) {
+        let F, g;
+        if (i < 16) { F = (B & C) | ((~B) & D); g = i; }
+        else if (i < 32) { F = (D & B) | ((~D) & C); g = (5 * i + 1) & 15; }
+        else if (i < 48) { F = B ^ C ^ D; g = (3 * i + 5) & 15; }
+        else { F = C ^ (B | (~D)); g = (7 * i) & 15; }
+        const tmp = (A + (F >>> 0) + K[i] + M[g]) >>> 0;
+        const sh = s[i];
+        A = D; D = C; C = B;
+        B = (B + ((tmp << sh) | (tmp >>> (32 - sh)))) >>> 0;
+      }
+      a0 = (a0 + A) >>> 0; b0 = (b0 + B) >>> 0; c0 = (c0 + C) >>> 0; d0 = (d0 + D) >>> 0;
+    };
+    return {
+      update(u8, len) {
+        const n = len == null ? u8.length : len;
+        totalLo += n;
+        if (totalLo >= 4294967296) { totalHi += Math.floor(totalLo / 4294967296); totalLo >>>= 0; }
+        let off = 0;
+        if (bLen > 0) {
+          const take = Math.min(64 - bLen, n);
+          block.set(u8.subarray(0, take), bLen);
+          bLen += take; off += take;
+          if (bLen === 64) { step(); bLen = 0; }
+        }
+        while (off + 64 <= n) {
+          block.set(u8.subarray(off, off + 64), 0);
+          step(); off += 64;
+        }
+        if (off < n) {
+          block.set(u8.subarray(off, n), 0);
+          bLen = n - off;
+        }
+      },
+      digest() {
+        const bitLo = (totalLo * 8) >>> 0;
+        const bitHi = ((totalHi * 8) + Math.floor((totalLo * 8) / 4294967296)) >>> 0;
+        block[bLen++] = 0x80;
+        if (bLen > 56) {
+          while (bLen < 64) block[bLen++] = 0;
+          step(); bLen = 0;
+        }
+        while (bLen < 56) block[bLen++] = 0;
+        for (let i = 0; i < 4; i++) block[56 + i] = (bitLo >>> (i * 8)) & 255;
+        for (let i = 0; i < 4; i++) block[60 + i] = (bitHi >>> (i * 8)) & 255;
+        step();
+        const out = new Uint8Array(16);
+        for (let i = 0; i < 4; i++) {
+          out[i] = (a0 >>> (i * 8)) & 255;
+          out[4 + i] = (b0 >>> (i * 8)) & 255;
+          out[8 + i] = (c0 >>> (i * 8)) & 255;
+          out[12 + i] = (d0 >>> (i * 8)) & 255;
+        }
+        return out;
+      }
+    };
+  }
+
+  function encodeFlac(data, sampleRate, bitDepth, meta, onProgress) {
+    const bps = bitDepth === 24 ? 24 : 16;
+    const nch = Math.max(1, Math.min(8, data.length));
+    const totalSamples = data[0].length;
+    const blockMax = 4096;
+
+    // Precompute CRC-8 (poly 0x07) & CRC-16 (poly 0x8005) tables
+    const crc8T = new Uint8Array(256);
+    const crc16T = new Uint16Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c8 = i, c16 = i << 8;
+      for (let b = 0; b < 8; b++) {
+        c8 = (c8 & 0x80) ? ((c8 << 1) ^ 0x07) & 0xff : (c8 << 1) & 0xff;
+        c16 = (c16 & 0x8000) ? ((c16 << 1) ^ 0x8005) & 0xffff : (c16 << 1) & 0xffff;
+      }
+      crc8T[i] = c8; crc16T[i] = c16;
+    }
+
+    // Build Vorbis Comment metadata block if metadata present
+    const comments = [];
+    if (meta) {
+      if (meta.title) comments.push('TITLE=' + String(meta.title).trim());
+      if (meta.artist) comments.push('ARTIST=' + String(meta.artist).trim());
+      if (meta.album) comments.push('ALBUM=' + String(meta.album).trim());
+      if (meta.year) comments.push('DATE=' + String(meta.year).trim());
+      if (meta.genre) comments.push('GENRE=' + String(meta.genre).trim());
+      if (meta.track) comments.push('TRACKNUMBER=' + String(meta.track).trim());
+    }
+    let vorbisBlock = null;
+    if (comments.length) {
+      const te = new TextEncoder();
+      const vendor = te.encode('Sonora Studio FLAC');
+      const cBytes = comments.map((s) => te.encode(s));
+      const vBodyLen = 4 + vendor.length + 4 + cBytes.reduce((n, b) => n + 4 + b.length, 0);
+      vorbisBlock = new Uint8Array(4 + vBodyLen);
+      vorbisBlock[0] = 0x84; // isLast=1, type=4 (VORBIS_COMMENT)
+      vorbisBlock[1] = (vBodyLen >> 16) & 255;
+      vorbisBlock[2] = (vBodyLen >> 8) & 255;
+      vorbisBlock[3] = vBodyLen & 255;
+      const dv = new DataView(vorbisBlock.buffer);
+      let vo = 4;
+      dv.setUint32(vo, vendor.length, true); vo += 4;
+      vorbisBlock.set(vendor, vo); vo += vendor.length;
+      dv.setUint32(vo, cBytes.length, true); vo += 4;
+      for (const cb of cBytes) {
+        dv.setUint32(vo, cb.length, true); vo += 4;
+        vorbisBlock.set(cb, vo); vo += cb.length;
+      }
+    }
+
+    // Growable BitWriter
+    let buf = new Uint8Array(Math.max(65536, Math.round(totalSamples * nch * (bps / 8) * 0.65) + 8192));
+    let bytePos = 0, bitAcc = 0, bitCnt = 0;
+    const ensureCap = (extra) => {
+      if (bytePos + extra <= buf.length) return;
+      const nb = new Uint8Array(Math.max(buf.length * 2, bytePos + extra + 65536));
+      nb.set(buf.subarray(0, bytePos), 0);
+      buf = nb;
+    };
+    const writeByte = (v) => { ensureCap(8); buf[bytePos++] = v & 255; };
+    const writeBits = (val, nBits) => {
+      if (nBits <= 0) return;
+      // Write in chunks up to 24 bits safely
+      if (nBits > 24) {
+        const hi = nBits - 24;
+        writeBits(Math.floor(val / 16777216), hi);
+        writeBits(val >>> 0, 24);
+        return;
+      }
+      const mask = (1 << nBits) - 1;
+      bitAcc = (bitAcc * (1 << nBits)) + (val & mask);
+      bitCnt += nBits;
+      ensureCap(8);
+      while (bitCnt >= 8) {
+        bitCnt -= 8;
+        buf[bytePos++] = Math.floor(bitAcc / (1 << bitCnt)) & 255;
+        bitAcc -= Math.floor(bitAcc / (1 << bitCnt)) * (1 << bitCnt);
+      }
+    };
+    const writeSignedBits = (val, nBits) => {
+      const mod = Math.pow(2, nBits);
+      const u = val < 0 ? (val + mod) : val;
+      writeBits(u, nBits);
+    };
+    const writeUnaryZero = (q) => {
+      // q zero bits followed by a 1 bit
+      let rem = q;
+      while (rem >= 24) { writeBits(0, 24); rem -= 24; }
+      writeBits(1, rem + 1);
+    };
+    const flushZero = () => {
+      if (bitCnt > 0) writeBits(0, 8 - bitCnt);
+    };
+
+    // Write "fLaC" + STREAMINFO placeholder (updated at end with MD5 + min/max frame sizes)
+    writeByte(0x66); writeByte(0x4c); writeByte(0x61); writeByte(0x43);
+    const siOffset = bytePos;
+    writeByte(vorbisBlock ? 0x00 : 0x80); // type=0 (STREAMINFO)
+    writeByte(0); writeByte(0); writeByte(34);
+    ensureCap(34);
+    bytePos += 34;
+    if (vorbisBlock) {
+      ensureCap(vorbisBlock.length);
+      buf.set(vorbisBlock, bytePos);
+      bytePos += vorbisBlock.length;
+    }
+
+    const md5 = createFlacMd5();
+    const pcmChunk = new Uint8Array(blockMax * nch * (bps / 8));
+    const maxPosInt = bps === 24 ? 8388607 : 32767;
+    const minNegInt = bps === 24 ? -8388608 : -32768;
+    const chInt = Array.from({ length: nch }, () => new Int32Array(blockMax));
+    const midInt = nch === 2 ? new Int32Array(blockMax) : null;
+    const sideInt = nch === 2 ? new Int32Array(blockMax) : null;
+    const resBuf = Array.from({ length: 5 }, () => new Float64Array(blockMax));
+
+    // Sample rate header code
+    const srMap = { 88200:1, 176400:2, 192000:3, 8000:4, 16000:5, 22050:6, 24000:7, 32000:8, 44100:9, 48000:10, 96000:11 };
+    let srCode = srMap[sampleRate] || 0;
+    let srExtraBytes = [];
+    if (!srCode) {
+      if (sampleRate % 1000 === 0 && sampleRate / 1000 <= 255) { srCode = 12; srExtraBytes = [sampleRate / 1000]; }
+      else if (sampleRate <= 65535) { srCode = 13; srExtraBytes = [(sampleRate >> 8) & 255, sampleRate & 255]; }
+      else if (sampleRate % 10 === 0 && sampleRate / 10 <= 65535) { srCode = 14; const v = sampleRate / 10; srExtraBytes = [(v >> 8) & 255, v & 255]; }
+      else srCode = 0; // use STREAMINFO
+    }
+    const bpsCode = bps === 24 ? 6 : 4;
+
+    const writeUtf8Num = (n) => {
+      if (n < 0x80) { writeByte(n); return; }
+      let bytesNeeded = 2;
+      if (n >= 0x800) bytesNeeded = 3;
+      if (n >= 0x10000) bytesNeeded = 4;
+      if (n >= 0x200000) bytesNeeded = 5;
+      if (n >= 0x4000000) bytesNeeded = 6;
+      const firstMask = (0xff << (8 - bytesNeeded)) & 0xff;
+      const tmp = [];
+      let v = n;
+      for (let i = 0; i < bytesNeeded - 1; i++) {
+        tmp.push(0x80 | (v & 0x3f));
+        v = Math.floor(v / 64);
+      }
+      writeByte(firstMask | v);
+      for (let i = tmp.length - 1; i >= 0; i--) writeByte(tmp[i]);
+    };
+
+    // Analyze subframe and return { type: 'const'|'fixed'|'verbatim', order, pOrder, rice2, ks, bits }
+    const analyzeSubframe = (arr, n, subBps) => {
+      const first = arr[0];
+      let allEq = true;
+      for (let i = 1; i < n; i++) if (arr[i] !== first) { allEq = false; break; }
+      if (allEq) return { type: 'const', bits: 8 + subBps };
+
+      const verbBits = 8 + n * subBps;
+      let best = { type: 'verbatim', bits: verbBits };
+
+      // Check valid Rice partition orders 0..4
+      const validOrders = [0];
+      for (let po = 1; po <= 4; po++) {
+        const parts = 1 << po;
+        if (n % parts === 0 && (n >> po) >= 16) validOrders.push(po);
+      }
+
+      for (let ord = 0; ord <= 4; ord++) {
+        if (ord > n) break;
+        const r = resBuf[ord];
+        if (ord === 0) {
+          for (let i = 0; i < n; i++) r[i] = arr[i];
+        } else if (ord === 1) {
+          for (let i = 1; i < n; i++) r[i] = arr[i] - arr[i - 1];
+        } else if (ord === 2) {
+          for (let i = 2; i < n; i++) r[i] = arr[i] - 2 * arr[i - 1] + arr[i - 2];
+        } else if (ord === 3) {
+          for (let i = 3; i < n; i++) r[i] = arr[i] - 3 * arr[i - 1] + 3 * arr[i - 2] - arr[i - 3];
+        } else {
+          for (let i = 4; i < n; i++) r[i] = arr[i] - 4 * arr[i - 1] + 6 * arr[i - 2] - 4 * arr[i - 3] + arr[i - 4];
+        }
+
+        // Test best partition order (0 and highest valid order or 3)
+        for (let oi = 0; oi < validOrders.length; oi++) {
+          const po = validOrders[oi];
+          const parts = 1 << po;
+          const pLen = n >> po;
+          const ks = new Uint8Array(parts);
+          let needRice2 = false;
+          let bitCost = 8 + ord * subBps + 2 + 4; // subframe header + warmups + rice method + pOrder
+          for (let p = 0; p < parts; p++) {
+            const i0 = p === 0 ? ord : p * pLen;
+            const i1 = (p + 1) * pLen;
+            const cnt = i1 - i0;
+            if (cnt <= 0) { ks[p] = 0; bitCost += 4; continue; }
+            let sumAbs = 0;
+            for (let i = i0; i < i1; i++) {
+              const v = r[i];
+              sumAbs += v < 0 ? -v : v;
+            }
+            const mean = sumAbs / cnt;
+            let k = mean > 0.7 ? Math.floor(Math.log2(mean * 1.442695)) : 0;
+            if (k < 0) k = 0;
+            if (k > 30) k = 30;
+            if (k >= 15) needRice2 = true;
+            ks[p] = k;
+            // Exact residual bits for this k
+            const div = Math.pow(2, k);
+            let qSum = 0;
+            for (let i = i0; i < i1; i++) {
+              const v = r[i];
+              const u = v >= 0 ? (v * 2) : (-v * 2 - 1);
+              qSum += Math.floor(u / div) + 1 + k;
+            }
+            bitCost += qSum;
+          }
+          bitCost += parts * (needRice2 ? 5 : 4);
+          if (bitCost < best.bits) {
+            best = { type: 'fixed', order: ord, pOrder: po, rice2: needRice2, ks, bits: bitCost };
+          }
+        }
+      }
+      return best;
+    };
+
+    const emitSubframe = (arr, n, subBps, plan) => {
+      if (plan.type === 'const') {
+        writeBits(0x00, 8); // zero padding bit + type 000000 + wasted 0
+        writeSignedBits(arr[0], subBps);
+        return;
+      }
+      if (plan.type === 'verbatim') {
+        writeBits(0x02, 8); // 0 + 000001 + 0
+        for (let i = 0; i < n; i++) writeSignedBits(arr[i], subBps);
+        return;
+      }
+      const ord = plan.order;
+      writeBits(((8 + ord) << 1), 8); // 0 + 001xxx + 0
+      for (let i = 0; i < ord; i++) writeSignedBits(arr[i], subBps);
+      const r = resBuf[ord];
+      if (ord === 0) for (let i = 0; i < n; i++) r[i] = arr[i];
+      else if (ord === 1) for (let i = 1; i < n; i++) r[i] = arr[i] - arr[i - 1];
+      else if (ord === 2) for (let i = 2; i < n; i++) r[i] = arr[i] - 2 * arr[i - 1] + arr[i - 2];
+      else if (ord === 3) for (let i = 3; i < n; i++) r[i] = arr[i] - 3 * arr[i - 1] + 3 * arr[i - 2] - arr[i - 3];
+      else for (let i = 4; i < n; i++) r[i] = arr[i] - 4 * arr[i - 1] + 6 * arr[i - 2] - 4 * arr[i - 3] + arr[i - 4];
+
+      writeBits(plan.rice2 ? 1 : 0, 2);
+      writeBits(plan.pOrder, 4);
+      const parts = 1 << plan.pOrder;
+      const pLen = n >> plan.pOrder;
+      const kBits = plan.rice2 ? 5 : 4;
+      for (let p = 0; p < parts; p++) {
+        const k = plan.ks[p];
+        writeBits(k, kBits);
+        const i0 = p === 0 ? ord : p * pLen;
+        const i1 = (p + 1) * pLen;
+        const mask = k > 0 ? ((1 << k) - 1) : 0;
+        const div = Math.pow(2, k);
+        for (let i = i0; i < i1; i++) {
+          const v = r[i];
+          const u = v >= 0 ? (v * 2) : (-v * 2 - 1);
+          const q = Math.floor(u / div);
+          const rem = u - q * div;
+          writeUnaryZero(q);
+          if (k > 0) writeBits(rem & mask, k);
+        }
+      }
+    };
+
+    let minFrameSize = 0xffffff, maxFrameSize = 0;
+    const totalFrames = Math.max(1, Math.ceil(totalSamples / blockMax));
+    const bpsBytes = bps / 8;
+
+    for (let fIdx = 0; fIdx < totalFrames; fIdx++) {
+      const s0 = fIdx * blockMax;
+      const n = Math.min(blockMax, totalSamples - s0);
+      if (n <= 0) break;
+
+      // Quantize samples and update raw PCM MD5
+      let pOff = 0;
+      for (let i = 0; i < n; i++) {
+        for (let c = 0; c < nch; c++) {
+          const raw = Number.isFinite(data[c][s0 + i]) ? data[c][s0 + i] : 0;
+          const v = raw < -1 ? -1 : raw > 1 ? 1 : raw;
+          const iv = bps === 24
+            ? Math.max(minNegInt, Math.min(maxPosInt, Math.round(v * (v < 0 ? 8388608 : 8388607))))
+            : Math.max(-32768, Math.min(32767, Math.round(v * (v < 0 ? 32768 : 32767))));
+          chInt[c][i] = iv;
+          pcmChunk[pOff++] = iv & 255;
+          pcmChunk[pOff++] = (iv >> 8) & 255;
+          if (bpsBytes === 3) pcmChunk[pOff++] = (iv >> 16) & 255;
+        }
+      }
+      md5.update(pcmChunk, pOff);
+
+      // Stereo channel decorrelation: Independent vs Mid-Side
+      let chAssign = nch - 1;
+      let plans = [];
+      let subArrays = chInt;
+      let subBpsList = new Array(nch).fill(bps);
+      if (nch === 2) {
+        const L = chInt[0], R = chInt[1];
+        for (let i = 0; i < n; i++) {
+          midInt[i] = (L[i] + R[i]) >> 1;
+          sideInt[i] = L[i] - R[i];
+        }
+        const pL = analyzeSubframe(L, n, bps);
+        const pR = analyzeSubframe(R, n, bps);
+        const pM = analyzeSubframe(midInt, n, bps);
+        const pS = analyzeSubframe(sideInt, n, bps + 1);
+        if (pM.bits + pS.bits < pL.bits + pR.bits) {
+          chAssign = 10; // Mid-Side
+          plans = [pM, pS];
+          subArrays = [midInt, sideInt];
+          subBpsList = [bps, bps + 1];
+        } else {
+          chAssign = 1; // Left-Right independent
+          plans = [pL, pR];
+        }
+      } else {
+        for (let c = 0; c < nch; c++) plans.push(analyzeSubframe(chInt[c], n, bps));
+      }
+
+      const frameStart = bytePos;
+      // Frame header
+      const bsCode = n === 4096 ? 12 : 7;
+      writeByte(0xff);
+      writeByte(0xf8); // fixed blocksize
+      writeByte((bsCode << 4) | srCode);
+      writeByte((chAssign << 4) | (bpsCode << 1));
+      writeUtf8Num(fIdx);
+      if (bsCode === 7) {
+        const bm1 = n - 1;
+        writeByte((bm1 >> 8) & 255);
+        writeByte(bm1 & 255);
+      }
+      for (let i = 0; i < srExtraBytes.length; i++) writeByte(srExtraBytes[i]);
+
+      let crc8 = 0;
+      for (let i = frameStart; i < bytePos; i++) crc8 = crc8T[crc8 ^ buf[i]];
+      writeByte(crc8);
+
+      // Subframes
+      for (let c = 0; c < nch; c++) emitSubframe(subArrays[c], n, subBpsList[c], plans[c]);
+      flushZero();
+
+      // Frame CRC-16
+      let crc16 = 0;
+      for (let i = frameStart; i < bytePos; i++) {
+        crc16 = ((crc16 << 8) ^ crc16T[((crc16 >> 8) ^ buf[i]) & 0xff]) & 0xffff;
+      }
+      writeByte((crc16 >> 8) & 255);
+      writeByte(crc16 & 255);
+
+      const fLen = bytePos - frameStart;
+      if (fLen < minFrameSize) minFrameSize = fLen;
+      if (fLen > maxFrameSize) maxFrameSize = fLen;
+      if (onProgress && (fIdx & 7) === 0) onProgress(fIdx / totalFrames);
+    }
+
+    if (totalSamples === 0) { minFrameSize = 0; maxFrameSize = 0; }
+
+    // Patch STREAMINFO (offset siOffset + 4)
+    const siBody = siOffset + 4;
+    const siDv = new DataView(buf.buffer);
+    siDv.setUint16(siBody, blockMax, false);
+    siDv.setUint16(siBody + 2, blockMax, false);
+    buf[siBody + 4] = (minFrameSize >> 16) & 255;
+    buf[siBody + 5] = (minFrameSize >> 8) & 255;
+    buf[siBody + 6] = minFrameSize & 255;
+    buf[siBody + 7] = (maxFrameSize >> 16) & 255;
+    buf[siBody + 8] = (maxFrameSize >> 8) & 255;
+    buf[siBody + 9] = maxFrameSize & 255;
+    // 20-bit sampleRate | 3-bit (nch-1) | 5-bit (bps-1) | 36-bit totalSamples
+    const sr20 = sampleRate & 0xfffff;
+    const ch3 = (nch - 1) & 0x7;
+    const bps5 = (bps - 1) & 0x1f;
+    const tsHi4 = Math.floor(totalSamples / 4294967296) & 0xf;
+    const tsLo32 = totalSamples >>> 0;
+    buf[siBody + 10] = (sr20 >> 12) & 255;
+    buf[siBody + 11] = (sr20 >> 4) & 255;
+    buf[siBody + 12] = ((sr20 & 0xf) << 4) | (ch3 << 1) | (bps5 >> 4);
+    buf[siBody + 13] = ((bps5 & 0xf) << 4) | tsHi4;
+    siDv.setUint32(siBody + 14, tsLo32, false);
+    buf.set(md5.digest(), siBody + 18);
+
+    if (onProgress) onProgress(1);
+    return buf.subarray(0, bytePos).slice();
   }
 
   function encodeMp3(data, sampleRate, bitrate, onProgress) {
@@ -20479,7 +20961,7 @@ lamejs();
     measureLufs, compress, deess, applyEnvelope,
     stretchChannel, stretch, wsolaChannel, wsola, pitchShiftChannel, pitchShift, formantShiftChannel, formantShift,
     MATCH_EQ_BANDS, analyzeSpectrumBands, matchEq, makeNoiseProfile, denoise,
-    process, spectrogram, spectroColor, spectralRepair, encodeWav, encodeMp3, makeDemo,
+    process, spectrogram, spectroColor, spectralRepair, encodeWav, encodeFlac, encodeMp3, makeDemo,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = SonicDSP;
@@ -20618,9 +21100,15 @@ lamejs();
   const dur = () => (S.data && S.data[0] ? S.data[0].length / S.rate : 0);
   function totalDur() {
     let d = dur();
-    if (typeof Layer !== 'undefined' && Layer.active && Layer.data && Layer.data[0] && !Layer.loopBed) {
-      const sp = typeof layerTrimmedSpan === 'function' ? layerTrimmedSpan().playDur : (Layer.data[0].length / (Layer.rate || S.rate));
-      d = Math.max(d, (Layer.offset || 0) + sp);
+    if (typeof Layer !== 'undefined' && Layer.active && !Layer.loopBed) {
+      if (Layer.clips && Layer.clips.length) {
+        for (const cl of Layer.clips) {
+          if (!cl.mute && cl.data && cl.data[0]) d = Math.max(d, (cl.offsetSec || 0) + layerClipTrimmedSpan(cl).playDur);
+        }
+      } else if (Layer.data && Layer.data[0]) {
+        const sp = typeof layerTrimmedSpan === 'function' ? layerTrimmedSpan().playDur : (Layer.data[0].length / (Layer.rate || S.rate));
+        d = Math.max(d, (Layer.offset || 0) + sp);
+      }
     }
     if (typeof Stems !== 'undefined' && Stems.clips.length) {
       for (const st of Stems.clips) {
@@ -20680,6 +21168,9 @@ self.onmessage = function (e) {
       }); break;
       case 'resample': r = D.resample(m.data, m.rate, m.to, 4); break;
       case 'wav': r = D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null, m.id3 || null); break;
+      case 'flac': r = D.encodeFlac(m.data, m.rate, m.bits || 16, m.meta || null, function (p) {
+        self.postMessage({ id: m.id, prog: p });
+      }); break;
       default: throw new Error('unknown task ' + m.act);
     }
     self.postMessage({ id: m.id, ok: true, result: r }, r && r.buffer ? [r.buffer] : undefined);
@@ -20758,6 +21249,7 @@ self.onmessage = function (e) {
       case 'stemSplit': return D.separateStems(m.data, m.rate, m.opts || {}, p);
       case 'resample': return D.resample(m.data, m.rate, m.to, 4);
       case 'wav': return D.encodeWav(m.data, m.rate, m.bits || 16, m.meta || null);
+      case 'flac': return D.encodeFlac(m.data, m.rate, m.bits || 16, m.meta || null, p);
       default: throw new Error('unknown task ' + m.act);
     }
   }
@@ -20775,6 +21267,7 @@ self.onmessage = function (e) {
     revSend: 0, delSend: 0, autoMode: 'off', volEnv: [], panEnv: [],
     duck: false, duckDepthDb: -12, duckSensDb: -32, duckReleaseMs: 340,
     loopBed: false, duckCurve: null, duckStepSec: 0.02,
+    clips: [], sources: [], selectedId: null, nextId: 1, clipEdit: false,
     src: null, gainNode: null, panNode: null
   };
   const SendBus = { revSize: 1.9, revDamp: 0.48, delTimeMs: 320, delFeedback: 35, delToneHz: 4200 };
@@ -21004,8 +21497,9 @@ class SonoraLiveFxProcessor extends AudioWorkletProcessor {
 registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
 `;
   const Comp = { takes: [], auditionSrc: null };
-  const Stems = { clips: [], sources: [], mute: false, nextId: 1 };
+  const Stems = { clips: [], sources: [], mute: false, nextId: 1, selectedId: null, clipEdit: false };
   const Regions = { list: [], sources: [], nextId: 1, selectedId: null, clipEdit: false };
+  const ClipSel = { track: 't1' };
   const SpecBrush = { active: false, shape: 'box', size: 'm', mode: 'heal', attDb: -24, masks: [], draft: null, audSrc: null };
   function regionTrimmedSpan(rg) {
     if (!rg || !rg.data || !rg.data[0]) return { rawDur: 0, inS: 0, outS: 0, playDur: 0 };
@@ -21014,6 +21508,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const outS = clamp(rg.trimOutSec || 0, 0, Math.max(0, rawDur - inS - 0.04));
     const playDur = Math.max(0.04, rawDur - inS - outS);
     return { rawDur, inS, outS, playDur };
+  }
+  function layerClipTrimmedSpan(cl) {
+    return regionTrimmedSpan(cl);
   }
 
   let ctx = null, master = null, mixBusNode = null, mixSafetyLim = null, mainTrackGainNode = null, mainTrackPanNode = null, src = null, analyser = null, analyserBuf = null, endTimer = 0;
@@ -21671,6 +22168,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       try { Layer.src.disconnect(); } catch (e) {}
       Layer.src = null;
     }
+    if (Layer.sources && Layer.sources.length) {
+      for (const node of Layer.sources) {
+        try { node.onended = null; node.stop(); } catch (e) {}
+        try { node.disconnect(); } catch (e) {}
+      }
+      Layer.sources = [];
+    }
     if (RefTrack.src) {
       try { RefTrack.src.onended = null; RefTrack.src.stop(); } catch (e) {}
       try { RefTrack.src.disconnect(); } catch (e) {}
@@ -21903,17 +22407,69 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       try { Layer.src.onended = null; Layer.src.stop(); Layer.src.disconnect(); } catch (e) {}
       Layer.src = null;
     }
-    if (!Layer.active || !Layer.buffer || !ctx) return;
+    if (Layer.sources && Layer.sources.length) {
+      for (const node of Layer.sources) {
+        try { node.onended = null; node.stop(); } catch (e) {}
+        try { node.disconnect(); } catch (e) {}
+      }
+      Layer.sources = [];
+    }
+    if (!Layer.active || !ctx) return;
     const c = ctx;
+    const rate = P.rate || 1;
+    const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
+    if (Layer.clips && Layer.clips.length) {
+      for (const cl of Layer.clips) {
+        if (!cl.buffer || cl.mute) continue;
+        const { inS, playDur: clDur } = layerClipTrimmedSpan(cl);
+        const off = cl.offsetSec || 0;
+        const rel = fromSec - off;
+        let startWhen = when, bufOff = inS, playDur = 0;
+        if (rel >= 0) {
+          if (rel >= clDur) continue;
+          bufOff = inS + rel;
+          playDur = Math.min((clDur - rel) / rate, maxWin);
+        } else {
+          const delay = (-rel) / rate;
+          if (delay >= maxWin) continue;
+          startWhen = when + delay;
+          bufOff = inS;
+          playDur = Math.min(clDur / rate, maxWin - delay);
+        }
+        if (playDur <= 0.005) continue;
+        const s = c.createBufferSource();
+        s.buffer = cl.buffer;
+        s.playbackRate.value = rate;
+        const g = c.createGain();
+        const baseG = Math.pow(10, (cl.gainDb || 0) / 20);
+        const fi = Math.min((cl.fadeInMs || 0) / 1000 / rate, playDur * 0.45);
+        const fo = Math.min((cl.fadeOutMs || 0) / 1000 / rate, playDur * 0.45);
+        if (fi > 0.004 && (bufOff - inS) < fi) {
+          g.gain.setValueAtTime(0.0001, startWhen);
+          g.gain.linearRampToValueAtTime(baseG, startWhen + fi);
+        } else {
+          g.gain.setValueAtTime(baseG, startWhen);
+        }
+        if (fo > 0.004) {
+          g.gain.setValueAtTime(baseG, Math.max(startWhen, startWhen + playDur - fo));
+          g.gain.linearRampToValueAtTime(0.0001, startWhen + playDur);
+        }
+        s.connect(g);
+        g.connect(Layer.gainNode);
+        s.start(startWhen, bufOff, playDur * rate);
+        Layer.sources.push(s);
+      }
+      scheduleLayerEnvelopes(fromSec, hiSec);
+      return;
+    }
+    if (!Layer.buffer) return;
     const lsrc = c.createBufferSource();
     lsrc.buffer = Layer.buffer;
     lsrc.playbackRate.value = P.rate;
     lsrc.loop = !!Layer.loopBed;
     lsrc.connect(Layer.gainNode);
-    const rate = P.rate || 1;
     const { inS, playDur: bedDur } = layerTrimmedSpan();
     const relStart = fromSec - Layer.offset;
-    const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
     if (Layer.loopBed) {
       const offsetInLoop = inS + (((relStart % bedDur) + bedDur) % bedDur);
       if (P.loop && !comparing) lsrc.start(when, offsetInLoop);
@@ -21999,7 +22555,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if (extendPastMain) {
       endTimer = setTimeout(finishAtEnd, Math.max(25, ((hi - from) / (P.rate || 1)) * 1000 + 25));
     }
-    if (Layer.active && Layer.buffer && !comparing) startLayerPlayback(when, from, hi);
+    if (Layer.active && (Layer.buffer || (Layer.clips && Layer.clips.length)) && !comparing) startLayerPlayback(when, from, hi);
     if (Stems.clips.length && !comparing) startStemPlayback(when, from, hi);
     if (RefTrack.active && RefTrack.buffer && !comparing) startRefPlayback(when, from, hi);
     P.playing = true;
@@ -23484,10 +24040,25 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   const tToX = (t) => (t - V.x0) * V.pps;
   function minPps() { return canvasW / Math.max(0.00001, totalDur()); }
   function maxPps() { return Math.max(minPps(), 60, (S.rate || 44100) / 3); }
+  function isTimelineFitted() {
+    const d = totalDur();
+    if (!hasAudio || !d) return true;
+    const vis = canvasW / Math.max(1e-6, V.pps);
+    return Math.abs(V.x0) < 0.02 && Math.abs(vis - d) <= Math.max(0.08, d * 0.015);
+  }
+  function syncFitTimelineBtn() {
+    const btn = $('#btnFitMulti');
+    if (!btn) return;
+    const fitted = hasAudio && isTimelineFitted();
+    btn.classList.toggle('is-active', fitted);
+    btn.setAttribute('aria-pressed', fitted ? 'true' : 'false');
+    btn.textContent = fitted ? '✓ Timeline fitted' : 'Fit timeline';
+  }
   function clampView() {
     V.pps = clamp(V.pps, minPps(), maxPps());
     const maxX = Math.max(0, totalDur() - canvasW / V.pps);
     V.x0 = clamp(V.x0, 0, maxX);
+    syncFitTimelineBtn();
   }
   function zoomToSelection() {
     const [a, b] = selRange();
@@ -23757,8 +24328,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   }
   function getTimelineLanes() {
     const rulerH = 22, top = rulerH + 2, h = Math.max(40, canvasH - top - 6);
-    const hasT2 = !!(Layer.active && Layer.data);
-    const hasT3 = !!(Stems.clips.length && !Stems.mute);
+    const hasT2 = !!(Layer.active && (Layer.data || (Layer.clips && Layer.clips.length)));
+    const hasT3 = !!(Stems.clips.length);
     const t3H = hasT3 ? clamp(Math.round(h * 0.20), 34, 48) : 0;
     const t3Gap = hasT3 ? 4 : 0;
     const t2H = hasT2 ? clamp(Math.round(h * (hasT3 ? 0.27 : 0.34)), 48, 86) : 0;
@@ -23832,11 +24403,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           c.strokeStyle = 'rgba(255,255,255,.14)';
           c.beginPath(); c.moveTo(0, y); c.lineTo(canvasW, y); c.stroke();
           const hzLbl = hz >= 1000 ? (hz / 1000) + 'k' : hz + '';
-          c.fillStyle = 'rgba(8,10,16,.72)';
-          roundRect(c, 5, y - 13, 26, 12, 4); c.fill();
-          c.fillStyle = 'rgba(244,246,252,.86)';
-          c.textBaseline = 'middle';
-          c.fillText(hzLbl, 9, y - 7);
+          c.save();
+          c.shadowColor = 'rgba(0,0,0,.85)';
+          c.shadowBlur = 3;
+          c.fillStyle = 'rgba(244,246,252,.78)';
+          c.textBaseline = 'bottom';
+          c.fillText(hzLbl, 6, y - 2);
+          c.restore();
         }
         if (P.waveMode === 'mix') {
           drawWaveLane(c, computePeaks(0), top, mainH, xa, xb, '', true);
@@ -23918,7 +24491,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       drawWaveLane(c, computePeaks(0), top, mainH, xa, xb, t1Lbl, false);
     }
 
-    // Track 2 Bed Lane (cleanly separated below T1 across ALL display modes)
+    // Track 2 Bed / Multi-Clip Lane (cleanly separated below T1 across ALL display modes)
     if (hasT2) {
       c.save();
       c.beginPath(); c.rect(0, t2Top, canvasW, t2H); c.clip();
@@ -23926,67 +24499,122 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.fillRect(0, t2Top, canvasW, t2H);
       c.strokeStyle = 'rgba(48,209,88,.32)';
       c.beginPath(); c.moveTo(0, t2Top + 0.5); c.lineTo(canvasW, t2Top + 0.5); c.stroke();
-      const ch2 = Layer.data[0];
-      if (!Layer.peaksCache) {
-        const nb2 = Math.ceil(ch2.length / PYR_BLK);
-        const mn2 = new Float32Array(nb2), mx2 = new Float32Array(nb2);
-        for (let b = 0; b < nb2; b++) {
-          const s0 = b * PYR_BLK, s1 = Math.min(ch2.length, s0 + PYR_BLK);
-          let lo = 0, hi = 0;
-          for (let k = s0; k < s1; k++) { const v = ch2[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
-          mn2[b] = lo; mx2[b] = hi;
-        }
-        Layer.peaksCache = { mn: mn2, mx: mx2, nb: nb2 };
-      }
-      const { inS, playDur: bedDur } = layerTrimmedSpan();
-      const clipX0 = Layer.loopBed ? 0 : tToX(Layer.offset);
-      const clipX1 = Layer.loopBed ? canvasW : tToX(Layer.offset + bedDur);
-      const clipW = Math.max(8, clipX1 - clipX0);
-      if (clipX1 >= 0 && clipX0 <= canvasW) {
-        c.save();
-        roundRect(c, clamp(clipX0, -4, canvasW), t2Top + 2, Math.min(canvasW + 8, clipW), t2H - 4, 8);
-        c.fillStyle = Layer.mute ? 'rgba(255,255,255,.04)' : 'rgba(48,209,88,.11)';
-        c.fill();
-        c.strokeStyle = Layer.mute ? 'rgba(255,255,255,.22)' : 'rgba(48,209,88,.62)';
-        c.lineWidth = 1.25;
-        c.stroke();
-        c.restore();
-      }
       const mid2 = t2Top + t2H / 2 + 5, amp2 = Math.max(8, t2H * 0.34);
-      c.fillStyle = Layer.mute ? 'rgba(255,255,255,.16)' : 'rgba(48,209,88,.54)';
-      c.beginPath();
       const nPx = Math.max(1, Math.ceil(canvasW));
-      const hiPts = new Float32Array(nPx), loPts = new Float32Array(nPx);
-      const lSpan = Math.max(1, Math.floor((1 / V.pps) * Layer.rate));
-      const lPyr = Layer.peaksCache;
-      for (let px = 0; px < nPx; px++) {
-        const wt = xToT(px);
-        let rel = wt - Layer.offset;
-        if (Layer.loopBed && bedDur > 0) rel = ((rel % bedDur) + bedDur) % bedDur;
-        if (rel >= 0 && rel < bedDur) {
-          const sIdx = Math.floor((inS + rel) * Layer.rate);
-          let mn = 0, mx = 0;
-          if (lSpan >= PYR_BLK && lPyr) {
-            const b0 = Math.max(0, (sIdx / PYR_BLK) | 0);
-            const b1 = Math.min(lPyr.nb - 1, ((sIdx + lSpan) / PYR_BLK) | 0);
-            const bs = Math.max(1, ((b1 - b0 + 1) / 8) | 0);
-            for (let b = b0; b <= b1; b += bs) {
-              if (lPyr.mn[b] < mn) mn = lPyr.mn[b];
-              if (lPyr.mx[b] > mx) mx = lPyr.mx[b];
+
+      if (Layer.clips && Layer.clips.length) {
+        for (let i = 0; i < Layer.clips.length; i++) {
+          const cl = Layer.clips[i];
+          if (!cl || !cl.data || !cl.data[0]) continue;
+          const { inS, playDur: cDur } = layerClipTrimmedSpan(cl);
+          const cx0 = tToX(cl.offsetSec), cx1 = tToX(cl.offsetSec + cDur);
+          if (cx1 < 0 || cx0 > canvasW) continue;
+          const chC = cl.data[0];
+          if (!cl.peaksCache) cl.peaksCache = buildClipPeaks(cl.data);
+          const cPyr = cl.peaksCache;
+          const cMuted = Layer.mute || cl.mute;
+          c.save();
+          roundRect(c, clamp(cx0, -4, canvasW), t2Top + 2, Math.max(8, Math.min(canvasW + 8, cx1 - cx0)), t2H - 4, 7);
+          c.fillStyle = cMuted ? 'rgba(255,255,255,.04)' : 'rgba(48,209,88,.12)';
+          c.fill();
+          c.restore();
+          const pxA = Math.max(0, Math.floor(cx0)), pxB = Math.min(canvasW, Math.ceil(cx1));
+          const clipG = Math.pow(10, clamp((cl.gainDb || 0) / 20, -1.2, 0.6));
+          c.fillStyle = cMuted ? 'rgba(255,255,255,.16)' : 'rgba(48,209,88,.58)';
+          for (let px = pxA; px < pxB; px++) {
+            const tAt = xToT(px);
+            const sIdx0 = clamp(Math.floor((inS + (tAt - cl.offsetSec)) * cl.rate), 0, chC.length - 1);
+            const sIdx1 = clamp(Math.floor((inS + (xToT(px + 1) - cl.offsetSec)) * cl.rate), sIdx0 + 1, chC.length);
+            let lo = 0, hi = 0;
+            if (sIdx1 - sIdx0 > PYR_BLK * 2 && cPyr) {
+              const b0 = Math.max(0, (sIdx0 / PYR_BLK) | 0), b1 = Math.min(cPyr.nb - 1, ((sIdx1 - 1) / PYR_BLK) | 0);
+              const st = Math.max(1, ((b1 - b0 + 1) / 10) | 0);
+              for (let b = b0; b <= b1; b += st) { if (cPyr.mn[b] < lo) lo = cPyr.mn[b]; if (cPyr.mx[b] > hi) hi = cPyr.mx[b]; }
+            } else {
+              const st = Math.max(1, ((sIdx1 - sIdx0) / 10) | 0);
+              for (let k = sIdx0; k < sIdx1; k += st) { const v = chC[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
             }
-          } else {
-            const step = Math.max(1, Math.floor(lSpan / 8));
-            for (let k = sIdx; k < Math.min(ch2.length, sIdx + lSpan); k += step) {
-              const v = ch2[k];
-              if (v < mn) mn = v; if (v > mx) mx = v;
-            }
+            const yTop = mid2 - clamp(hi * clipG, -1, 1) * amp2;
+            const yBot = mid2 - clamp(lo * clipG, -1, 1) * amp2;
+            c.fillRect(px, Math.min(yTop, yBot), 1, Math.max(1.5, Math.abs(yBot - yTop)));
           }
-          hiPts[px] = mx; loPts[px] = mn;
         }
+      } else if (Layer.data && Layer.data[0]) {
+        const ch2 = Layer.data[0];
+        if (!Layer.peaksCache) {
+          const nb2 = Math.ceil(ch2.length / PYR_BLK);
+          const mn2 = new Float32Array(nb2), mx2 = new Float32Array(nb2);
+          for (let b = 0; b < nb2; b++) {
+            const s0 = b * PYR_BLK, s1 = Math.min(ch2.length, s0 + PYR_BLK);
+            let lo = 0, hi = 0;
+            for (let k = s0; k < s1; k++) { const v = ch2[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+            mn2[b] = lo; mx2[b] = hi;
+          }
+          Layer.peaksCache = { mn: mn2, mx: mx2, nb: nb2 };
+        }
+        const { inS, playDur: bedDur } = layerTrimmedSpan();
+        const clipX0 = Layer.loopBed ? 0 : tToX(Layer.offset);
+        const clipX1 = Layer.loopBed ? canvasW : tToX(Layer.offset + bedDur);
+        const clipW = Math.max(8, clipX1 - clipX0);
+        if (clipX1 >= 0 && clipX0 <= canvasW) {
+          c.save();
+          roundRect(c, clamp(clipX0, -4, canvasW), t2Top + 2, Math.min(canvasW + 8, clipW), t2H - 4, 8);
+          c.fillStyle = Layer.mute ? 'rgba(255,255,255,.04)' : 'rgba(48,209,88,.11)';
+          c.fill();
+          c.strokeStyle = Layer.mute ? 'rgba(255,255,255,.22)' : 'rgba(48,209,88,.62)';
+          c.lineWidth = 1.25;
+          c.stroke();
+          c.restore();
+        }
+        c.fillStyle = Layer.mute ? 'rgba(255,255,255,.16)' : 'rgba(48,209,88,.54)';
+        c.beginPath();
+        const hiPts = new Float32Array(nPx), loPts = new Float32Array(nPx);
+        const lSpan = Math.max(1, Math.floor((1 / V.pps) * Layer.rate));
+        const lPyr = Layer.peaksCache;
+        for (let px = 0; px < nPx; px++) {
+          const wt = xToT(px);
+          let rel = wt - Layer.offset;
+          if (Layer.loopBed && bedDur > 0) rel = ((rel % bedDur) + bedDur) % bedDur;
+          if (rel >= 0 && rel < bedDur) {
+            const sIdx = Math.floor((inS + rel) * Layer.rate);
+            let mn = 0, mx = 0;
+            if (lSpan >= PYR_BLK && lPyr) {
+              const b0 = Math.max(0, (sIdx / PYR_BLK) | 0);
+              const b1 = Math.min(lPyr.nb - 1, ((sIdx + lSpan) / PYR_BLK) | 0);
+              const bs = Math.max(1, ((b1 - b0 + 1) / 8) | 0);
+              for (let b = b0; b <= b1; b += bs) {
+                if (lPyr.mn[b] < mn) mn = lPyr.mn[b];
+                if (lPyr.mx[b] > mx) mx = lPyr.mx[b];
+              }
+            } else {
+              const step = Math.max(1, Math.floor(lSpan / 8));
+              for (let k = sIdx; k < Math.min(ch2.length, sIdx + lSpan); k += step) {
+                const v = ch2[k];
+                if (v < mn) mn = v; if (v > mx) mx = v;
+              }
+            }
+            hiPts[px] = mx; loPts[px] = mn;
+          }
+        }
+        for (let i = 0; i < nPx; i++) { const y = mid2 - hiPts[i] * amp2; i ? c.lineTo(i, y) : c.moveTo(i, y); }
+        for (let i = nPx - 1; i >= 0; i--) c.lineTo(i, mid2 - loPts[i] * amp2);
+        c.closePath(); c.fill();
+        const rawName = (Layer.name || 'Bed');
+        const shortT2 = rawName.length > 20 ? rawName.slice(0, 18) + '…' : rawName;
+        const offSign = Layer.offset >= 0 ? '+' : '';
+        const t2Label = `T2 · ${shortT2} · ${offSign}${Layer.offset.toFixed(2)}s` + (Layer.duck ? ' · Duck' : '') + (Layer.mute ? ' · M' : '') + ' · ↔ Drag';
+        c.font = '700 9.5px ui-monospace, monospace';
+        const badgeX = clamp(Layer.loopBed ? 6 : clipX0 + 6, 6, Math.max(6, canvasW - 140));
+        const badgeW = Math.min(canvasW - badgeX - 6, c.measureText(t2Label).width + 12);
+        c.fillStyle = 'rgba(8, 14, 10, .86)';
+        c.strokeStyle = 'rgba(48, 209, 88, .44)';
+        c.lineWidth = 1;
+        roundRect(c, badgeX, t2Top + 4, badgeW, 15, 6); c.fill(); c.stroke();
+        c.fillStyle = 'rgba(136, 244, 172, .96)';
+        c.textBaseline = 'middle';
+        c.fillText(t2Label, badgeX + 6, t2Top + 11.5, Math.max(8, badgeW - 12));
       }
-      for (let i = 0; i < nPx; i++) { const y = mid2 - hiPts[i] * amp2; i ? c.lineTo(i, y) : c.moveTo(i, y); }
-      for (let i = nPx - 1; i >= 0; i--) c.lineTo(i, mid2 - loPts[i] * amp2);
-      c.closePath(); c.fill();
+
       if (Layer.duck && Layer.duckCurve) {
         c.strokeStyle = 'rgba(255,214,10,.82)';
         c.lineWidth = 1.35;
@@ -24000,20 +24628,6 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         }
         c.stroke();
       }
-      const rawName = (Layer.name || 'Bed');
-      const shortT2 = rawName.length > 20 ? rawName.slice(0, 18) + '…' : rawName;
-      const offSign = Layer.offset >= 0 ? '+' : '';
-      const t2Label = `T2 · ${shortT2} · ${offSign}${Layer.offset.toFixed(2)}s` + (Layer.duck ? ' · Duck' : '') + (Layer.mute ? ' · M' : '') + ' · ↔ Drag';
-      c.font = '700 9.5px ui-monospace, monospace';
-      const badgeX = clamp(Layer.loopBed ? 6 : clipX0 + 6, 6, Math.max(6, canvasW - 140));
-      const badgeW = Math.min(canvasW - badgeX - 6, c.measureText(t2Label).width + 12);
-      c.fillStyle = 'rgba(8, 14, 10, .86)';
-      c.strokeStyle = 'rgba(48, 209, 88, .44)';
-      c.lineWidth = 1;
-      roundRect(c, badgeX, t2Top + 4, badgeW, 15, 6); c.fill(); c.stroke();
-      c.fillStyle = 'rgba(136, 244, 172, .96)';
-      c.textBaseline = 'middle';
-      c.fillText(t2Label, badgeX + 6, t2Top + 11.5, Math.max(8, badgeW - 12));
       c.restore();
     }
 
@@ -24026,48 +24640,6 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.beginPath(); c.moveTo(0, t3Top + 0.5); c.lineTo(canvasW, t3Top + 0.5); c.stroke();
       c.restore();
     }
-  }
-  function getTrackVolPillRects() {
-    if (!hasAudio) return [];
-    const lanes = getTimelineLanes();
-    const items = [];
-    const compact = canvasW < 430;
-    const mW = 19, sW = 19, panW = compact ? 38 : 44, volW = compact ? 68 : 78, gap = 4;
-    const totalW = mW + sW + panW + volW + gap * 3;
-    const pushCluster = (trackKey, stemIdx, label, rightEdge, y, h, db, pan, mute, solo, color, bg) => {
-      const startX = clamp(rightEdge - totalW, 6, Math.max(6, canvasW - totalW - 8));
-      items.push({ kind: 'mute', mode: trackKey + 'Mute', trackKey, stemIdx, label, x: startX, y, w: mW, h, mute, color, bg });
-      items.push({ kind: 'solo', mode: trackKey + 'Solo', trackKey, stemIdx, label, x: startX + mW + gap, y, w: sW, h, solo, color, bg });
-      items.push({ kind: 'pan', mode: trackKey + 'Pan', trackKey, stemIdx, label, x: startX + mW + sW + gap * 2, y, w: panW, h, pan, mute, color, bg });
-      items.push({ kind: 'vol', mode: trackKey + 'Vol', trackKey, stemIdx, label, x: startX + mW + sW + panW + gap * 3, y, w: volW, h, db, mute, color, bg });
-    };
-
-    pushCluster('t1', -1, 'T1', canvasW - 22, lanes.top + 5, 22, MainMix.gainDb || 0, MainMix.pan || 0, !!MainMix.mute, !!MainMix.solo, '#64d2ff', 'rgba(8, 14, 24, .92)');
-    if (lanes.hasT2 && Layer.data) {
-      pushCluster('t2', -1, 'T2', canvasW - 22, lanes.t2Top + 4, 19, Layer.gainDb || 0, Layer.pan || 0, !!Layer.mute, !!Layer.solo, '#30d158', 'rgba(8, 18, 12, .92)');
-    }
-    if (lanes.hasT3 && Stems.clips.length) {
-      const placed = [];
-      for (let i = Stems.clips.length - 1; i >= 0; i--) {
-        const st = Stems.clips[i];
-        const { playDur } = stemTrimmedSpan(st);
-        const sx0 = tToX(st.offsetSec);
-        const sx1 = tToX(st.offsetSec + playDur);
-        if (sx1 < 0 || sx0 > canvasW) continue;
-        const rEdge = clamp(sx1 - 6, totalW + 8, canvasW - 14);
-        if (placed.some((ox) => Math.abs(ox - rEdge) < totalW + 6)) continue;
-        placed.push(rEdge);
-        pushCluster('stem', i, 'T3', rEdge, lanes.t3Top + 4, 18, st.gainDb || 0, st.pan || 0, !!st.mute, !!st.solo, '#bf5af2', 'rgba(18, 10, 26, .9)');
-      }
-      if (!placed.length) {
-        const idx = Math.max(0, Stems.clips.findIndex((st) => !st.mute));
-        const st = Stems.clips[idx];
-        if (st) {
-          pushCluster('stem', idx, 'T3', canvasW - 14, lanes.t3Top + 4, 18, st.gainDb || 0, st.pan || 0, !!st.mute, !!st.solo, '#bf5af2', 'rgba(18, 10, 26, .9)');
-        }
-      }
-    }
-    return items;
   }
   function specYToHz(y, lanes) {
     const ln = lanes || getTimelineLanes();
@@ -24228,44 +24800,102 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.restore();
     }
 
-    // Track 2 Non-destructive Fades, Trim Edge Handles & Vol/Pan Automation Curve
-    if (lanesFx.hasT2 && Layer.data) {
+    // Track 2 Non-destructive Clips / Bed Fades, Trim Edge Handles & Vol/Pan Automation Curve
+    if (lanesFx.hasT2 && (Layer.data || (Layer.clips && Layer.clips.length))) {
       c.save();
       c.beginPath(); c.rect(0, lanesFx.t2Top, canvasW, lanesFx.t2H); c.clip();
-      const { playDur } = layerTrimmedSpan();
-      const t2x0 = Layer.loopBed ? 0 : tToX(Layer.offset);
-      const t2x1 = Layer.loopBed ? canvasW : tToX(Layer.offset + playDur);
       const t2y0 = lanesFx.t2Top + 2, t2h = Math.max(18, lanesFx.t2H - 4);
-      if (!Layer.loopBed && t2x1 >= 0 && t2x0 <= canvasW) {
-        const fiPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeInMs || 0) / 1000) * V.pps);
-        const foPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeOutMs || 0) / 1000) * V.pps);
-        if (fiPx > 2) {
-          c.fillStyle = 'rgba(4, 10, 8, .55)';
-          c.beginPath(); c.moveTo(t2x0, t2y0); c.lineTo(t2x0 + fiPx, t2y0); c.lineTo(t2x0, t2y0 + t2h); c.closePath(); c.fill();
-          c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
-          c.beginPath(); c.moveTo(t2x0, t2y0 + t2h); c.lineTo(t2x0 + fiPx, t2y0); c.stroke();
+      if (Layer.clips && Layer.clips.length) {
+        for (let i = 0; i < Layer.clips.length; i++) {
+          const cl = Layer.clips[i];
+          const { playDur: cDur } = layerClipTrimmedSpan(cl);
+          const cx0 = tToX(cl.offsetSec), cx1 = tToX(cl.offsetSec + cDur);
+          if (cx1 < 0 || cx0 > canvasW) continue;
+          const cw = Math.max(8, cx1 - cx0);
+          const isSel2 = Layer.selectedId === cl.id && ClipSel.track === 't2';
+          const isDrag2 = drag && drag.clipIdx === i && /^t2Clip/.test(drag.mode);
+          c.save();
+          roundRect(c, cx0 + 0.5, t2y0 + 0.5, cw - 1, t2h - 1, 7);
+          c.strokeStyle = isDrag2 ? '#ffffff' : (isSel2 ? '#7ef2a3' : (cl.mute ? 'rgba(160,170,165,.32)' : 'rgba(48, 209, 88, .66)'));
+          c.lineWidth = (isSel2 || isDrag2) ? 1.7 : 1.1;
+          c.stroke();
+          c.clip();
+          const fiPx = Math.min(cw * 0.48, Math.max(0, (cl.fadeInMs || 0) / 1000) * V.pps);
+          const foPx = Math.min(cw * 0.48, Math.max(0, (cl.fadeOutMs || 0) / 1000) * V.pps);
+          if (fiPx > 2) {
+            c.fillStyle = 'rgba(4, 10, 8, .55)';
+            c.beginPath(); c.moveTo(cx0, t2y0); c.lineTo(cx0 + fiPx, t2y0); c.lineTo(cx0, t2y0 + t2h); c.closePath(); c.fill();
+            c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.3;
+            c.beginPath(); c.moveTo(cx0, t2y0 + t2h); c.lineTo(cx0 + fiPx, t2y0); c.stroke();
+          }
+          if (foPx > 2) {
+            c.fillStyle = 'rgba(4, 10, 8, .55)';
+            c.beginPath(); c.moveTo(cx1, t2y0); c.lineTo(cx1 - foPx, t2y0); c.lineTo(cx1, t2y0 + t2h); c.closePath(); c.fill();
+            c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.3;
+            c.beginPath(); c.moveTo(cx1 - foPx, t2y0); c.lineTo(cx1, t2y0 + t2h); c.stroke();
+          }
+          const pillW = Math.min(cw - 10, 148);
+          if (pillW >= 22) {
+            c.fillStyle = cl.mute ? 'rgba(130, 145, 138, .75)' : (isSel2 ? '#7ef2a3' : 'rgba(48, 209, 88, .88)');
+            roundRect(c, cx0 + 4, t2y0 + 3, pillW, 15, 4.5); c.fill();
+            c.fillStyle = '#040906';
+            c.font = '700 9px ui-monospace, monospace';
+            c.textBaseline = 'middle';
+            c.fillText(`T2 · ${cl.name}${cl.mute ? ' (M)' : ''}`, cx0 + 8, t2y0 + 10.5, pillW - 8);
+          }
+          c.restore();
+          if (cw >= 22) {
+            for (const [edgeX, edgeMode] of [[cx0, 't2ClipTrimL'], [cx1, 't2ClipTrimR']]) {
+              if (edgeX < -8 || edgeX > canvasW + 8) continue;
+              const hot = drag && drag.mode === edgeMode && drag.clipIdx === i;
+              c.fillStyle = hot ? '#ffffff' : '#7ef2a3';
+              roundRect(c, edgeX - 2, t2y0 + 7, 4, Math.max(10, t2h - 14), 2);
+              c.fill();
+            }
+            for (const [fx, fadeMode] of [[cx0 + fiPx, 't2ClipFadeIn'], [cx1 - foPx, 't2ClipFadeOut']]) {
+              if (fx < -8 || fx > canvasW + 8) continue;
+              const hot = drag && drag.mode === fadeMode && drag.clipIdx === i;
+              c.fillStyle = hot ? '#ffffff' : '#7ef2a3';
+              c.strokeStyle = '#08090d'; c.lineWidth = 1.4;
+              c.beginPath(); c.arc(fx, t2y0 + 4.5, hot ? 5.2 : 3.8, 0, TAU); c.fill(); c.stroke();
+            }
+          }
         }
-        if (foPx > 2) {
-          c.fillStyle = 'rgba(4, 10, 8, .55)';
-          c.beginPath(); c.moveTo(t2x1, t2y0); c.lineTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.closePath(); c.fill();
-          c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
-          c.beginPath(); c.moveTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.stroke();
-        }
-        // Left & right trim edge grips
-        for (const [edgeX, activeEdge] of [[t2x0, 't2TrimL'], [t2x1, 't2TrimR']]) {
-          if (edgeX < -10 || edgeX > canvasW + 10) continue;
-          const isHot = drag && drag.mode === activeEdge;
-          c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
-          roundRect(c, edgeX - 2.5, t2y0 + 8, 5, Math.max(12, t2h - 16), 2.5);
-          c.fill();
-        }
-        // Top-corner Fade-In / Fade-Out dots
-        for (const [fx, activeFade] of [[t2x0 + fiPx, 't2FadeIn'], [t2x1 - foPx, 't2FadeOut']]) {
-          if (fx < -10 || fx > canvasW + 10) continue;
-          const isHot = drag && drag.mode === activeFade;
-          c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
-          c.strokeStyle = '#08090d'; c.lineWidth = 1.6;
-          c.beginPath(); c.arc(fx, t2y0 + 5, isHot ? 6 : 4.5, 0, TAU); c.fill(); c.stroke();
+      } else {
+        const { playDur } = layerTrimmedSpan();
+        const t2x0 = Layer.loopBed ? 0 : tToX(Layer.offset);
+        const t2x1 = Layer.loopBed ? canvasW : tToX(Layer.offset + playDur);
+        if (!Layer.loopBed && t2x1 >= 0 && t2x0 <= canvasW) {
+          const fiPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeInMs || 0) / 1000) * V.pps);
+          const foPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeOutMs || 0) / 1000) * V.pps);
+          if (fiPx > 2) {
+            c.fillStyle = 'rgba(4, 10, 8, .55)';
+            c.beginPath(); c.moveTo(t2x0, t2y0); c.lineTo(t2x0 + fiPx, t2y0); c.lineTo(t2x0, t2y0 + t2h); c.closePath(); c.fill();
+            c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
+            c.beginPath(); c.moveTo(t2x0, t2y0 + t2h); c.lineTo(t2x0 + fiPx, t2y0); c.stroke();
+          }
+          if (foPx > 2) {
+            c.fillStyle = 'rgba(4, 10, 8, .55)';
+            c.beginPath(); c.moveTo(t2x1, t2y0); c.lineTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.closePath(); c.fill();
+            c.strokeStyle = '#7ef2a3'; c.lineWidth = 1.4;
+            c.beginPath(); c.moveTo(t2x1 - foPx, t2y0); c.lineTo(t2x1, t2y0 + t2h); c.stroke();
+          }
+          // Left & right trim edge grips
+          for (const [edgeX, activeEdge] of [[t2x0, 't2TrimL'], [t2x1, 't2TrimR']]) {
+            if (edgeX < -10 || edgeX > canvasW + 10) continue;
+            const isHot = drag && drag.mode === activeEdge;
+            c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
+            roundRect(c, edgeX - 2.5, t2y0 + 8, 5, Math.max(12, t2h - 16), 2.5);
+            c.fill();
+          }
+          // Top-corner Fade-In / Fade-Out dots
+          for (const [fx, activeFade] of [[t2x0 + fiPx, 't2FadeIn'], [t2x1 - foPx, 't2FadeOut']]) {
+            if (fx < -10 || fx > canvasW + 10) continue;
+            const isHot = drag && drag.mode === activeFade;
+            c.fillStyle = isHot ? '#ffffff' : '#7ef2a3';
+            c.strokeStyle = '#08090d'; c.lineWidth = 1.6;
+            c.beginPath(); c.arc(fx, t2y0 + 5, isHot ? 6 : 4.5, 0, TAU); c.fill(); c.stroke();
+          }
         }
       }
       // Track 2 Automation Curve (Volume or Pan)
@@ -24435,37 +25065,39 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.restore();
     }
 
-    // Track 3 Stems / Soundboard Clips overlay (dedicated T3 lane with mini-waveforms, trims & fades)
+    // Track 3 Stems / Soundboard Clips overlay (dedicated T3 lane with mini-waveforms, trims, fades & active selection)
     if (lanesFx.hasT3) {
       c.save();
       c.beginPath(); c.rect(0, lanesFx.t3Top, canvasW, lanesFx.t3H); c.clip();
       const sy = lanesFx.t3Top + 3, sh = Math.max(20, lanesFx.t3H - 6);
       for (let i = 0; i < Stems.clips.length; i++) {
         const st = Stems.clips[i];
-        if (st.mute) continue;
         const { inS, playDur: sDur } = stemTrimmedSpan(st);
         const sx0 = tToX(st.offsetSec);
         const sx1 = tToX(st.offsetSec + sDur);
         if (sx1 < 0 || sx0 > canvasW) continue;
         const sw = Math.max(12, sx1 - sx0);
+        const isMuted3 = !!(Stems.mute || st.mute);
+        const isSel3 = Stems.selectedId === st.id && ClipSel.track === 't3';
         const isDragStem = drag && (drag.mode === 'stem' || drag.mode === 'stemTrimL' || drag.mode === 'stemTrimR' || drag.mode === 'stemFadeIn' || drag.mode === 'stemFadeOut') && drag.stemIdx === i;
         c.save();
         roundRect(c, sx0, sy, sw, sh, 7);
-        c.fillStyle = isDragStem ? 'rgba(191, 90, 242, .42)' : 'rgba(191, 90, 242, .22)';
+        c.fillStyle = isMuted3 ? 'rgba(130, 120, 145, .10)' : (isDragStem ? 'rgba(191, 90, 242, .42)' : (isSel3 ? 'rgba(191, 90, 242, .30)' : 'rgba(191, 90, 242, .20)'));
         c.fill();
-        c.strokeStyle = isDragStem ? '#ffffff' : 'rgba(191, 90, 242, .88)';
-        c.lineWidth = isDragStem ? 1.6 : 1.1;
+        c.strokeStyle = isDragStem ? '#ffffff' : (isSel3 ? '#f0c4ff' : (isMuted3 ? 'rgba(160, 150, 175, .36)' : 'rgba(191, 90, 242, .88)'));
+        c.lineWidth = (isDragStem || isSel3) ? 1.7 : 1.1;
         c.stroke();
         c.clip();
         // Mini-waveform inside trimmed T3 clip
         const ch3 = st.data[0];
+        if (!st.peaksCache) st.peaksCache = buildClipPeaks(st.data);
         const mid3 = sy + sh * 0.56, amp3 = Math.max(4, sh * 0.34);
         const pxStart = Math.max(0, Math.floor(sx0)), pxEnd = Math.min(canvasW, Math.ceil(sx0 + sw));
-        c.fillStyle = 'rgba(235, 195, 255, .52)';
+        c.fillStyle = isMuted3 ? 'rgba(200, 190, 215, .24)' : 'rgba(235, 195, 255, .56)';
         for (let px = pxStart; px < pxEnd; px += 2) {
           const frac = (px - sx0) / Math.max(1, sx1 - sx0);
           const s0 = clamp(Math.floor((inS + frac * sDur) * st.rate), 0, ch3.length - 1);
-          const pk = Math.abs(ch3[s0]);
+          const pk = st.peaksCache ? Math.max(Math.abs(st.peaksCache.mx[(s0 / PYR_BLK) | 0] || 0), Math.abs(st.peaksCache.mn[(s0 / PYR_BLK) | 0] || 0)) : Math.abs(ch3[s0]);
           const bh = Math.max(1.5, pk * amp3 * 2);
           c.fillRect(px, mid3 - bh * 0.5, 1.4, bh);
         }
@@ -24485,10 +25117,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           c.beginPath(); c.moveTo(sx1 - foPx, sy); c.lineTo(sx1, sy + sh); c.stroke();
         }
         if (sw >= 26) {
-          c.fillStyle = '#f8ebff';
+          c.fillStyle = isMuted3 ? 'rgba(220, 210, 230, .65)' : '#f8ebff';
           c.font = '700 9.5px ui-monospace, monospace';
           c.textBaseline = 'top';
-          c.fillText(`T3 · ${st.name.slice(0, 12)} · +${st.offsetSec.toFixed(1)}s`, Math.max(4, sx0 + 6), sy + 3, Math.max(8, sw - 10));
+          c.fillText(`T3 · ${st.name.slice(0, 12)}${st.mute ? ' (M)' : ''} · +${st.offsetSec.toFixed(1)}s`, Math.max(4, sx0 + 6), sy + 3, Math.max(8, sw - 10));
         }
         c.restore();
         // Trim edge grips + Fade dots outside clip
@@ -24514,18 +25146,26 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
 
     // Live alignment / trim / fade guide + tooltip while dragging Track 1 Region, Track 2, or Track 3 layer
     if (drag && /^(t2|stem|reg)/.test(drag.mode)) {
+      const isT2Clip = drag.mode.startsWith('t2Clip');
       const isT2 = drag.mode.startsWith('t2');
       const isReg = drag.mode.startsWith('reg');
       const rg = isReg ? Regions.list[drag.regIdx] : null;
+      const cl2 = isT2Clip ? Layer.clips[drag.clipIdx] : null;
       const st = (!isT2 && !isReg) ? Stems.clips[drag.stemIdx] : null;
-      let guideT = isReg ? (rg ? rg.offsetSec : 0) : (isT2 ? Layer.offset : (st ? st.offsetSec : 0));
-      let lbl = (isReg ? `${rg ? rg.name : 'Clip'}: ` : (isT2 ? 'T2 Start: ' : 'Clip Start: ')) + (guideT >= 0 ? '+' : '') + guideT.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
+      let guideT = isReg ? (rg ? rg.offsetSec : 0) : (isT2Clip ? (cl2 ? cl2.offsetSec : 0) : (isT2 ? Layer.offset : (st ? st.offsetSec : 0)));
+      let lbl = (isReg ? `${rg ? rg.name : 'Clip'}: ` : (isT2Clip ? `T2 ${cl2 ? cl2.name : 'Clip'}: ` : (isT2 ? 'T2 Start: ' : 'Clip Start: '))) + (guideT >= 0 ? '+' : '') + guideT.toFixed(2) + ' s' + (drag.snapT != null ? ' (Snap)' : '');
       if (isReg && rg) {
         const spanR = regionTrimmedSpan(rg);
         if (drag.mode === 'regTrimL') { guideT = rg.offsetSec; lbl = `In: ${(rg.trimInSec || 0).toFixed(2)}s`; }
         else if (drag.mode === 'regTrimR') { guideT = rg.offsetSec + spanR.playDur; lbl = `Dur: ${spanR.playDur.toFixed(2)}s`; }
         else if (drag.mode === 'regFadeIn') { guideT = rg.offsetSec + (rg.fadeInMs || 0) / 1000; lbl = `Fade In: ${Math.round(rg.fadeInMs || 0)}ms`; }
         else if (drag.mode === 'regFadeOut') { guideT = rg.offsetSec + spanR.playDur - (rg.fadeOutMs || 0) / 1000; lbl = `Fade Out: ${Math.round(rg.fadeOutMs || 0)}ms`; }
+      } else if (isT2Clip && cl2) {
+        const span2 = layerClipTrimmedSpan(cl2);
+        if (drag.mode === 't2ClipTrimL') { guideT = cl2.offsetSec; lbl = `T2 In: ${(cl2.trimInSec || 0).toFixed(2)}s`; }
+        else if (drag.mode === 't2ClipTrimR') { guideT = cl2.offsetSec + span2.playDur; lbl = `T2 Dur: ${span2.playDur.toFixed(2)}s`; }
+        else if (drag.mode === 't2ClipFadeIn') { guideT = cl2.offsetSec + (cl2.fadeInMs || 0) / 1000; lbl = `T2 Fade In: ${Math.round(cl2.fadeInMs || 0)}ms`; }
+        else if (drag.mode === 't2ClipFadeOut') { guideT = cl2.offsetSec + span2.playDur - (cl2.fadeOutMs || 0) / 1000; lbl = `T2 Fade Out: ${Math.round(cl2.fadeOutMs || 0)}ms`; }
       } else if (drag.mode === 't2TrimL') {
         guideT = Layer.offset;
         lbl = `T2 In: ${(Layer.trimInSec || 0).toFixed(2)}s`;
@@ -24573,6 +25213,51 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.fillStyle = '#ffffff';
       c.textBaseline = 'middle';
       c.fillText(lbl, bx + 7, by + 9.5);
+      c.restore();
+    }
+
+    // Gesture-First Mobile Timeline HUDs: Long-Press Scrub Loupe + Two-Finger Pinch Zoom Badge
+    if (drag && drag.mode === 'longScrub') {
+      const px = clamp(tToX(P.t), 4, canvasW - 4);
+      const speedTxt = drag.rateMul === 1 ? '1.0×' : (drag.rateMul + '× FINE');
+      const hudTxt = `SCRUB ${fmtTime(P.t, false)} · ${speedTxt}`;
+      c.save();
+      c.strokeStyle = '#ffd60a';
+      c.lineWidth = 2;
+      c.beginPath(); c.moveTo(px, top); c.lineTo(px, top + h); c.stroke();
+      c.font = '700 11px ui-monospace, monospace';
+      const tw = c.measureText(hudTxt).width + 18;
+      const bx = clamp(px - tw / 2, 6, Math.max(6, canvasW - tw - 6));
+      const by = clamp((drag.py || (top + 36)) - 44, top + 4, Math.max(top + 4, canvasH - 30));
+      c.fillStyle = 'rgba(10, 12, 18, .95)';
+      c.strokeStyle = '#ffd60a';
+      c.lineWidth = 1.4;
+      roundRect(c, bx, by, tw, 24, 9); c.fill(); c.stroke();
+      c.fillStyle = '#fff9d6';
+      c.textBaseline = 'middle';
+      c.fillText(hudTxt, bx + 9, by + 12);
+      c.restore();
+    } else if (pinch && pointers.size === 2) {
+      const zoomX = Math.max(0.1, V.pps / Math.max(1e-3, minPps()));
+      const cx = clamp(pinch.liveCx ?? pinch.cx ?? (canvasW / 2), 20, canvasW - 20);
+      const cy = clamp((pinch.liveCy ?? (top + 40)) - 34, top + 4, Math.max(top + 4, canvasH - 30));
+      const zTxt = `ZOOM ${zoomX >= 10 ? zoomX.toFixed(0) : zoomX.toFixed(1)}× · ${fmtTime(clamp(xToT(cx), 0, totalDur()), true)}`;
+      c.save();
+      c.strokeStyle = 'rgba(100, 210, 255, .65)';
+      c.lineWidth = 1.25;
+      c.setLineDash([4, 3]);
+      c.beginPath(); c.moveTo(cx, top); c.lineTo(cx, top + h); c.stroke();
+      c.setLineDash([]);
+      c.font = '700 11px ui-monospace, monospace';
+      const tw = c.measureText(zTxt).width + 18;
+      const bx = clamp(cx - tw / 2, 6, Math.max(6, canvasW - tw - 6));
+      c.fillStyle = 'rgba(8, 12, 20, .94)';
+      c.strokeStyle = '#64d2ff';
+      c.lineWidth = 1.3;
+      roundRect(c, bx, cy, tw, 23, 8); c.fill(); c.stroke();
+      c.fillStyle = '#e0f4ff';
+      c.textBaseline = 'middle';
+      c.fillText(zTxt, bx + 9, cy + 11.5);
       c.restore();
     }
 
@@ -24631,102 +25316,6 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       c.globalAlpha = 0.52;
       c.lineWidth = 1.15;
       c.beginPath(); c.moveTo(mx, top); c.lineTo(mx, top + h); c.stroke();
-      c.restore();
-    }
-
-    // Interactive per-track Direct Controls: [M] Mute, [S] Solo, [Pan], [Vol]
-    const volPills = getTrackVolPillRects();
-    for (let i = 0; i < volPills.length; i++) {
-      const vp = volPills[i];
-      const active = drag && drag.mode === vp.mode && drag.stemIdx === vp.stemIdx;
-      c.save();
-      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.kind === 'mute' || vp.kind === 'solo' ? 6 : vp.h / 2);
-      if (vp.kind === 'mute') {
-        c.fillStyle = vp.mute ? 'rgba(255, 69, 58, .36)' : vp.bg; c.fill();
-        c.strokeStyle = vp.mute ? '#ff6b62' : 'rgba(255,255,255,.22)';
-        c.lineWidth = vp.mute ? 1.3 : 0.9; c.stroke();
-        c.fillStyle = vp.mute ? '#ffd6d4' : 'rgba(240,244,252,.78)';
-        c.font = '700 9.5px ui-monospace, monospace';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText('M', vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5);
-      } else if (vp.kind === 'solo') {
-        c.fillStyle = vp.solo ? 'rgba(255, 214, 10, .34)' : vp.bg; c.fill();
-        c.strokeStyle = vp.solo ? '#ffd60a' : 'rgba(255,255,255,.22)';
-        c.lineWidth = vp.solo ? 1.3 : 0.9; c.stroke();
-        c.fillStyle = vp.solo ? '#fff4b8' : 'rgba(240,244,252,.78)';
-        c.font = '700 9.5px ui-monospace, monospace';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText('S', vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5);
-      } else if (vp.kind === 'pan') {
-        c.fillStyle = vp.bg; c.fill();
-        const panFrac = clamp((vp.pan || 0) / 100, -1, 1);
-        c.save(); c.clip();
-        const cx = vp.x + vp.w / 2;
-        const barW = Math.abs(panFrac) * (vp.w * 0.5);
-        c.fillStyle = vp.color; c.globalAlpha = active ? 0.36 : 0.24;
-        if (barW > 0.5) c.fillRect(panFrac < 0 ? cx - barW : cx, vp.y, barW, vp.h);
-        c.restore();
-        c.strokeStyle = active ? '#ffffff' : vp.color;
-        c.globalAlpha = active ? 1 : 0.62;
-        c.lineWidth = active ? 1.5 : 0.95;
-        roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2); c.stroke();
-        c.globalAlpha = 1;
-        c.fillStyle = vp.mute ? 'rgba(255,255,255,.45)' : '#e8effa';
-        c.font = '700 9px ui-monospace, monospace';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        const pVal = Math.round(vp.pan || 0);
-        const pStr = Math.abs(pVal) < 2 ? 'C' : (pVal < 0 ? `${Math.abs(pVal)}L` : `${pVal}R`);
-        c.fillText(pStr, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 6);
-        if (active) {
-          const hudTxt = `${vp.label} Pan: ${Math.abs(pVal) < 2 ? 'Center' : (pVal < 0 ? Math.abs(pVal) + '% L' : pVal + '% R')}`;
-          c.font = '700 10.5px ui-monospace, monospace';
-          const hw2 = c.measureText(hudTxt).width + 14;
-          const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
-          c.fillStyle = 'rgba(10, 12, 18, .94)';
-          c.strokeStyle = vp.color; c.lineWidth = 1.2;
-          roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
-          c.fillStyle = '#ffffff';
-          c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
-        }
-      } else {
-        const frac = vp.mute ? 0 : clamp((vp.db + 24) / 36, 0, 1);
-        c.fillStyle = vp.bg; c.fill();
-        c.save(); c.clip();
-        c.fillStyle = vp.color;
-        c.globalAlpha = active ? 0.44 : 0.30;
-        c.fillRect(vp.x, vp.y, vp.w * frac, vp.h);
-        // Subtle bottom slider track + thumb indicator
-        c.globalAlpha = 0.88;
-        c.fillStyle = 'rgba(255,255,255,.18)';
-        c.fillRect(vp.x + 6, vp.y + vp.h - 3.5, vp.w - 12, 1.5);
-        c.fillStyle = vp.color;
-        c.fillRect(vp.x + 6, vp.y + vp.h - 3.5, Math.max(2, (vp.w - 12) * frac), 1.5);
-        const knobX = vp.x + 6 + (vp.w - 12) * frac;
-        c.fillStyle = active ? '#ffffff' : '#e6f6ff';
-        c.beginPath(); c.arc(knobX, vp.y + vp.h - 2.75, active ? 3.2 : 2.3, 0, TAU); c.fill();
-        c.restore();
-        c.strokeStyle = active ? '#ffffff' : vp.color;
-        c.globalAlpha = active ? 1 : 0.85;
-        c.lineWidth = active ? 1.6 : 1.1;
-        roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2); c.stroke();
-        c.globalAlpha = 1;
-        c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f8fbff';
-        c.font = '700 9.5px ui-monospace, monospace';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        const dbStr = vp.mute ? 'MUTE' : ((vp.db > 0 ? '+' : '') + vp.db.toFixed(1) + 'dB');
-        c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 - 1, vp.w - 8);
-        if (active) {
-          const hudTxt = `${vp.label} Vol: ${(vp.db > 0 ? '+' : '') + vp.db.toFixed(1)} dB`;
-          c.font = '700 10.5px ui-monospace, monospace';
-          const hw2 = c.measureText(hudTxt).width + 14;
-          const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
-          c.fillStyle = 'rgba(10, 12, 18, .94)';
-          c.strokeStyle = vp.color; c.lineWidth = 1.2;
-          roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
-          c.fillStyle = '#ffffff';
-          c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
-        }
-      }
       c.restore();
     }
 
@@ -24961,7 +25550,26 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   }
   function hitTestT2Target(x, y) {
     const lanes = getTimelineLanes();
-    if (!lanes.hasT2 || !Layer.data || y < lanes.t2Top || y > lanes.t2Top + lanes.t2H) return null;
+    if (!lanes.hasT2 || y < lanes.t2Top || y > lanes.t2Top + lanes.t2H) return null;
+    if (Layer.clips && Layer.clips.length) {
+      const t2y0 = lanes.t2Top + 2;
+      for (let i = Layer.clips.length - 1; i >= 0; i--) {
+        const cl = Layer.clips[i];
+        const { playDur } = layerClipTrimmedSpan(cl);
+        const cx0 = tToX(cl.offsetSec), cx1 = tToX(cl.offsetSec + playDur);
+        if (x < cx0 - 10 || x > Math.max(cx0 + 18, cx1 + 10)) continue;
+        const cw = cx1 - cx0;
+        const fiPx = Math.min(cw * 0.48, Math.max(0, (cl.fadeInMs || 0) / 1000) * V.pps);
+        const foPx = Math.min(cw * 0.48, Math.max(0, (cl.fadeOutMs || 0) / 1000) * V.pps);
+        if (y <= t2y0 + 16 && Math.abs(x - (cx0 + fiPx)) <= 11 && cw >= 22) return { mode: 't2ClipFadeIn', clipIdx: i };
+        if (y <= t2y0 + 16 && Math.abs(x - (cx1 - foPx)) <= 11 && cw >= 22) return { mode: 't2ClipFadeOut', clipIdx: i };
+        if (Math.abs(x - cx0) <= 10 && cw >= 22) return { mode: 't2ClipTrimL', clipIdx: i };
+        if (Math.abs(x - cx1) <= 10 && cw >= 22) return { mode: 't2ClipTrimR', clipIdx: i };
+        return { mode: 't2ClipMove', clipIdx: i };
+      }
+      return null;
+    }
+    if (!Layer.data) return null;
     if (!Layer.loopBed) {
       const { playDur } = layerTrimmedSpan();
       const t2x0 = tToX(Layer.offset);
@@ -24969,12 +25577,12 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const t2y0 = lanes.t2Top + 2;
       const fiPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeInMs || 0) / 1000) * V.pps);
       const foPx = Math.min((t2x1 - t2x0) * 0.48, Math.max(0, (Layer.fadeOutMs || 0) / 1000) * V.pps);
-      if (y <= t2y0 + 15 && Math.abs(x - (t2x0 + fiPx)) <= 11 && t2x1 - t2x0 >= 24) return 't2FadeIn';
-      if (y <= t2y0 + 15 && Math.abs(x - (t2x1 - foPx)) <= 11 && t2x1 - t2x0 >= 24) return 't2FadeOut';
-      if (Math.abs(x - t2x0) <= 10 && t2x1 - t2x0 >= 24) return 't2TrimL';
-      if (Math.abs(x - t2x1) <= 10 && t2x1 - t2x0 >= 24) return 't2TrimR';
+      if (y <= t2y0 + 15 && Math.abs(x - (t2x0 + fiPx)) <= 11 && t2x1 - t2x0 >= 24) return { mode: 't2FadeIn', clipIdx: -1 };
+      if (y <= t2y0 + 15 && Math.abs(x - (t2x1 - foPx)) <= 11 && t2x1 - t2x0 >= 24) return { mode: 't2FadeOut', clipIdx: -1 };
+      if (Math.abs(x - t2x0) <= 10 && t2x1 - t2x0 >= 24) return { mode: 't2TrimL', clipIdx: -1 };
+      if (Math.abs(x - t2x1) <= 10 && t2x1 - t2x0 >= 24) return { mode: 't2TrimR', clipIdx: -1 };
     }
-    return 't2';
+    return { mode: 't2', clipIdx: -1 };
   }
   function hitTestRegionTarget(x, y) {
     if (!Regions.list.length) return null;
@@ -24997,14 +25605,26 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     }
     return null;
   }
-  function snapLayerTime(rawT, excludeRegIdx) {
+  function snapLayerTime(rawT, excludeTrack, excludeIdx) {
     const tolSec = 8 / Math.max(1, V.pps);
     const targets = [0, P.t, Sel.a / S.rate, Sel.b / S.rate, dur()];
     for (let i = 0; i < Markers.list.length; i++) targets.push(Markers.list[i].t);
     for (let i = 0; i < Regions.list.length; i++) {
-      if (i === excludeRegIdx) continue;
+      if (excludeTrack === 't1' && i === excludeIdx) continue;
       const rg = Regions.list[i];
       targets.push(rg.offsetSec, rg.offsetSec + regionTrimmedSpan(rg).playDur);
+    }
+    if (Layer.clips && Layer.clips.length) {
+      for (let i = 0; i < Layer.clips.length; i++) {
+        if (excludeTrack === 't2' && i === excludeIdx) continue;
+        const cl = Layer.clips[i];
+        targets.push(cl.offsetSec, cl.offsetSec + layerClipTrimmedSpan(cl).playDur);
+      }
+    }
+    for (let i = 0; i < Stems.clips.length; i++) {
+      if (excludeTrack === 't3' && i === excludeIdx) continue;
+      const st = Stems.clips[i];
+      targets.push(st.offsetSec, st.offsetSec + stemTrimmedSpan(st).playDur);
     }
     let best = rawT, bestD = tolSec, snapped = null;
     for (let i = 0; i < targets.length; i++) {
@@ -25025,7 +25645,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         if (y >= lanes.top && y <= lanes.top + lanes.mainH) return 'specPaint';
       }
       const t2Hit = hitTestT2Target(x, y);
-      if (t2Hit) return t2Hit;
+      if (t2Hit) return t2Hit.mode;
       const stHit = hitTestStemTarget(x, y);
       if (stHit) return stHit.mode;
       const rgHit = hitTestRegionTarget(x, y);
@@ -25037,69 +25657,32 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if (x > xa && x < xb) return 'move';
     return 'scrub';
   }
-  let lastVolTapAt = 0, lastVolTapKey = '';
+  let gestureSnap = null, longPressTimer = 0;
+  function clearLongPressTimer() {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = 0; }
+  }
+  baseCv.addEventListener('contextmenu', (e) => { if (hasAudio) e.preventDefault(); });
   baseCv.addEventListener('pointerdown', (e) => {
     if (!hasAudio || processing) return;
     const p = canvasXY(e);
-    if (pointers.size === 0) {
-      const volPills = getTrackVolPillRects();
-      for (let i = 0; i < volPills.length; i++) {
-        const vp = volPills[i];
-        if (p.x >= vp.x - 4 && p.x <= vp.x + vp.w + 4 && p.y >= vp.y - 5 && p.y <= vp.y + vp.h + 5) {
-          if (vp.kind === 'mute') {
-            if (vp.trackKey === 't1') MainMix.mute = !MainMix.mute;
-            else if (vp.trackKey === 't2') Layer.mute = !Layer.mute;
-            else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].mute = !Stems.clips[vp.stemIdx].mute;
-            syncMixNodes(); renderLayersUI(); renderStemList();
-            baseDirty = fxDirty = true; haptic(8); scheduleSave();
-            return;
-          }
-          if (vp.kind === 'solo') {
-            if (vp.trackKey === 't1') MainMix.solo = !MainMix.solo;
-            else if (vp.trackKey === 't2') Layer.solo = !Layer.solo;
-            else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].solo = !Stems.clips[vp.stemIdx].solo;
-            syncMixNodes(); renderLayersUI(); renderStemList();
-            baseDirty = fxDirty = true; haptic(8); scheduleSave();
-            return;
-          }
-          baseCv.setPointerCapture(e.pointerId);
-          pointers.set(e.pointerId, p);
-          const tapKey = vp.mode + ':' + vp.stemIdx;
-          const nowMs = performance.now();
-          if (lastVolTapKey === tapKey && (nowMs - lastVolTapAt) < 320) {
-            if (vp.kind === 'pan') {
-              if (vp.trackKey === 't1') MainMix.pan = 0;
-              else if (vp.trackKey === 't2') Layer.pan = 0;
-              else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].pan = 0;
-              drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, pan0: 0, moved: true };
-            } else {
-              if (vp.mode === 't1Vol') MainMix.gainDb = 0;
-              else if (vp.mode === 't2Vol') Layer.gainDb = 0;
-              else if (vp.mode === 'stemVol' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].gainDb = 0;
-              drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: 0, moved: true };
-            }
-            syncMixNodes(); renderLayersUI(); renderStemList();
-            fxDirty = true; haptic(8);
-            lastVolTapAt = 0;
-            return;
-          }
-          lastVolTapAt = nowMs; lastVolTapKey = tapKey;
-          drag = vp.kind === 'pan'
-            ? { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, pan0: vp.pan || 0, moved: false }
-            : { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: vp.db || 0, moved: false };
-          haptic(6); fxDirty = true;
-          return;
-        }
-      }
-    }
     pausePlay();
     baseCv.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, p);
+    if (pointers.size === 1) {
+      gestureSnap = { a: Sel.a, b: Sel.b, t: P.t, sx: p.x, sy: p.y, at: performance.now() };
+    }
     if (pointers.size === 2) {
+      clearLongPressTimer();
+      // Restore selection/playhead if pointer 1 had only just touched before pointer 2 landed
+      if (gestureSnap && (performance.now() - gestureSnap.at) < 260 && (!drag || !drag.moved)) {
+        Sel.a = gestureSnap.a; Sel.b = gestureSnap.b; P.t = gestureSnap.t;
+        syncSelectionUI(); updateTimecode();
+      }
       const pts = Array.from(pointers.values());
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
-      pinch = { d: dist, cx: (pts[0].x + pts[1].x) / 2, x0: V.x0, pps0: V.pps };
+      pinch = { d: dist, cx: (pts[0].x + pts[1].x) / 2, x0: V.x0, pps0: V.pps, ratio: 1 };
       drag = null;
+      fxDirty = true;
       return;
     }
     const rulerH = 22, top = rulerH + 2, h = canvasH - top - 6;
@@ -25219,8 +25802,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const rg = Regions.list[regIdx];
       if (rg) {
         Regions.selectedId = rg.id;
+        ClipSel.track = 't1';
         drag = {
-          mode, regIdx, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+          mode, regIdx, id: e.pointerId, sx: p.x, sy: p.y, t0: xToT(p.x),
           off0: rg.offsetSec, trimIn0: rg.trimInSec || 0, trimOut0: rg.trimOutSec || 0,
           fadeIn0: (rg.fadeInMs || 0) / 1000, fadeOut0: (rg.fadeOutMs || 0) / 1000,
           moved: false, snapT: null,
@@ -25229,99 +25813,105 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         haptic(6); fxDirty = true; return;
       }
     }
+    if (mode === 't2ClipMove' || mode === 't2ClipTrimL' || mode === 't2ClipTrimR' || mode === 't2ClipFadeIn' || mode === 't2ClipFadeOut') {
+      const hit2 = hitTestT2Target(p.x, p.y);
+      const clipIdx = hit2 ? hit2.clipIdx : -1;
+      const cl = Layer.clips[clipIdx];
+      if (cl) {
+        Layer.selectedId = cl.id;
+        ClipSel.track = 't2';
+        drag = {
+          mode, clipIdx, id: e.pointerId, sx: p.x, sy: p.y, t0: xToT(p.x),
+          off0: cl.offsetSec, trimIn0: cl.trimInSec || 0, trimOut0: cl.trimOutSec || 0,
+          fadeIn0: (cl.fadeInMs || 0) / 1000, fadeOut0: (cl.fadeOutMs || 0) / 1000,
+          moved: false, snapT: null,
+        };
+        if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
+        haptic(6); fxDirty = true; return;
+      }
+    }
     if (mode === 't2' || mode === 't2TrimL' || mode === 't2TrimR' || mode === 't2FadeIn' || mode === 't2FadeOut') {
+      ClipSel.track = 't2';
       drag = {
-        mode, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+        mode, id: e.pointerId, sx: p.x, sy: p.y, t0: xToT(p.x),
         off0: Layer.offset, trimIn0: Layer.trimInSec || 0, trimOut0: Layer.trimOutSec || 0,
         fadeIn0: (Layer.fadeInMs || 0) / 1000, fadeOut0: (Layer.fadeOutMs || 0) / 1000,
         moved: false, snapT: null,
       };
+      if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
       haptic(6); fxDirty = true; return;
     }
     if (mode === 'stem' || mode === 'stemTrimL' || mode === 'stemTrimR' || mode === 'stemFadeIn' || mode === 'stemFadeOut') {
       const hitSt = hitTestStemTarget(p.x, p.y);
       const stemIdx = hitSt ? hitSt.stemIdx : hitTestStemAt(p.x, p.y);
       const st = Stems.clips[stemIdx];
+      if (st) Stems.selectedId = st.id;
+      ClipSel.track = 't3';
       drag = {
-        mode, stemIdx, id: e.pointerId, sx: p.x, t0: xToT(p.x),
+        mode, stemIdx, id: e.pointerId, sx: p.x, sy: p.y, t0: xToT(p.x),
         off0: st ? st.offsetSec : 0, trimIn0: st ? (st.trimInSec || 0) : 0, trimOut0: st ? (st.trimOutSec || 0) : 0,
         fadeIn0: st ? ((st.fadeInMs || 0) / 1000) : 0, fadeOut0: st ? ((st.fadeOutMs || 0) / 1000) : 0,
         moved: false, snapT: null,
       };
+      if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
       haptic(6); fxDirty = true; return;
     }
-    drag = { mode, id: e.pointerId, sx: p.x, a, b, t0: xToT(p.x), moved: false, lastCoincide: null };
+    drag = { mode, id: e.pointerId, sx: p.x, sy: p.y, a, b, t0: xToT(p.x), moved: false, lastCoincide: null };
     if (mode === 'scrub') { P.t = clamp(xToT(p.x), 0, totalDur()); fxDirty = true; updateTimecode(); }
     if (mode !== 'scrub') haptic(6);
+    clearLongPressTimer();
+    const pidSnap = e.pointerId;
+    longPressTimer = setTimeout(() => {
+      longPressTimer = 0;
+      if (!drag || drag.id !== pidSnap || drag.moved || pointers.size !== 1) return;
+      if (gestureSnap && (drag.mode === 'a' || drag.mode === 'b' || drag.mode === 'move')) {
+        Sel.a = gestureSnap.a; Sel.b = gestureSnap.b; syncSelectionUI();
+      }
+      const curP = pointers.get(pidSnap) || p;
+      const startT = clamp(xToT(curP.x), 0, totalDur());
+      P.t = startT;
+      drag = { mode: 'longScrub', id: pidSnap, sx: curP.x, sy: curP.y, px: curP.x, py: curP.y, lastX: curP.x, rateMul: 1, moved: true, lastCoincide: null };
+      updateTimecode();
+      if ($('#jogTimeOut')) $('#jogTimeOut').textContent = fmtTime(P.t);
+      playScrubGrain(P.t);
+      haptic(16);
+      baseDirty = fxDirty = true;
+    }, 260);
     fxDirty = true;
   });
   baseCv.addEventListener('pointermove', (e) => {
     if (!pointers.has(e.pointerId)) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
-        const vpHit = getTrackVolPillRects().find((vp) => p.x >= vp.x - 4 && p.x <= vp.x + vp.w + 4 && p.y >= vp.y - 5 && p.y <= vp.y + vp.h + 5);
-        if (vpHit) {
-          baseCv.style.cursor = (vpHit.kind === 'mute' || vpHit.kind === 'solo') ? 'pointer' : 'ew-resize';
-          return;
-        }
         const h = hitTest(p.x, p.y);
-        baseCv.style.cursor = (h === 't2' || h === 'stem' || h === 'regMove') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut' || h === 'regTrimL' || h === 'regTrimR' || h === 'regFadeIn' || h === 'regFadeOut') ? 'ew-resize' : ((h === 'scrub' || h === 'specPaint') ? 'crosshair' : 'ew-resize'));
+        baseCv.style.cursor = (h === 't2' || h === 't2ClipMove' || h === 'stem' || h === 'regMove') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 't2ClipTrimL' || h === 't2ClipTrimR' || h === 't2ClipFadeIn' || h === 't2ClipFadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut' || h === 'regTrimL' || h === 'regTrimR' || h === 'regFadeIn' || h === 'regFadeOut') ? 'ew-resize' : ((h === 'scrub' || h === 'specPaint') ? 'crosshair' : 'ew-resize'));
       }
       return;
     }
     pointers.set(e.pointerId, canvasXY(e));
     if (pointers.size === 2 && pinch) {
+      clearLongPressTimer();
       const pts = Array.from(pointers.values());
       const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
       const cx = (pts[0].x + pts[1].x) / 2;
+      const cy = (pts[0].y + pts[1].y) / 2;
       const anchorT = pinch.x0 + pinch.cx / pinch.pps0;
       const ratio = Math.pow(d / pinch.d, Prefs.zoomSens || 1.0);
       V.pps = clamp(pinch.pps0 * ratio, minPps(), maxPps());
       V.x0 = anchorT - cx / V.pps;
       clampView();
+      pinch.liveCx = cx;
+      pinch.liveCy = cy;
+      pinch.ratio = ratio;
       baseDirty = fxDirty = true;
       return;
     }
     if (!drag || drag.id !== e.pointerId) return;
     const p = canvasXY(e);
-    if (Math.abs(p.x - drag.sx) > 2 || Math.abs(p.y - drag.sy) > 2) drag.moved = true;
+    if (Math.abs(p.x - drag.sx) > 8 || Math.abs(p.y - (drag.sy || p.y)) > 8) clearLongPressTimer();
+    if (Math.abs(p.x - drag.sx) > 2 || Math.abs(p.y - (drag.sy || p.y)) > 2) drag.moved = true;
     const t = xToT(p.x);
-    if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol') {
-      const dx = p.x - drag.sx, dy = drag.sy - p.y;
-      const nextDb = Number(clamp(drag.db0 + dx * 0.16 + dy * 0.22, -24, 12).toFixed(1));
-      if (drag.mode === 't1Vol') {
-        MainMix.gainDb = nextDb;
-        if ($('#t1Gain')) $('#t1Gain').value = nextDb;
-        if ($('#t1GainOut')) $('#t1GainOut').textContent = (nextDb > 0 ? '+' : '') + nextDb.toFixed(1) + ' dB';
-      } else if (drag.mode === 't2Vol') {
-        Layer.gainDb = nextDb;
-        if ($('#t2Gain')) $('#t2Gain').value = nextDb;
-        if ($('#t2GainOut')) $('#t2GainOut').textContent = (nextDb > 0 ? '+' : '') + nextDb.toFixed(1) + ' dB';
-      } else if (drag.mode === 'stemVol' && Stems.clips[drag.stemIdx]) {
-        Stems.clips[drag.stemIdx].gainDb = nextDb;
-      }
-      syncMixNodes();
-      fxDirty = true;
-      return;
-    } else if (drag.mode === 't1Pan' || drag.mode === 't2Pan' || drag.mode === 'stemPan') {
-      const dx = p.x - drag.sx, dy = drag.sy - p.y;
-      const nextPan = Math.round(clamp((drag.pan0 || 0) + dx * 1.1 + dy * 0.6, -100, 100));
-      const panTxt = Math.abs(nextPan) < 2 ? 'Center' : (nextPan < 0 ? Math.abs(nextPan) + '% L' : nextPan + '% R');
-      if (drag.mode === 't1Pan') {
-        MainMix.pan = nextPan;
-        if ($('#t1Pan')) $('#t1Pan').value = nextPan;
-        if ($('#t1PanOut')) $('#t1PanOut').textContent = panTxt;
-      } else if (drag.mode === 't2Pan') {
-        Layer.pan = nextPan;
-        if ($('#t2Pan')) $('#t2Pan').value = nextPan;
-        if ($('#t2PanOut')) $('#t2PanOut').textContent = panTxt;
-      } else if (drag.mode === 'stemPan' && Stems.clips[drag.stemIdx]) {
-        Stems.clips[drag.stemIdx].pan = nextPan;
-      }
-      syncMixNodes();
-      fxDirty = true;
-      return;
-    } else if (drag.mode === 'specPaint' && SpecBrush.draft) {
+    if (drag.mode === 'specPaint' && SpecBrush.draft) {
       const lanesSpec = getTimelineLanes();
       const tCur = clamp(t, 0, dur());
       const fCur = specYToHz(p.y, lanesSpec);
@@ -25343,10 +25933,58 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         const dt = t - drag.t0;
         const maxOff = Math.max(60, dur() + 30);
         const rawOff = clamp(drag.off0 + dt, 0, maxOff);
-        const sn = snapLayerTime(rawOff, drag.regIdx);
+        const sn = snapLayerTime(rawOff, 't1', drag.regIdx);
         rg.offsetSec = Number(clamp(sn.t, 0, maxOff).toFixed(3));
         drag.snapT = sn.snapT;
         baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 't2ClipMove') {
+      const cl = Layer.clips[drag.clipIdx];
+      if (cl) {
+        const dt = t - drag.t0;
+        const maxOff = Math.max(60, dur() + 30);
+        const rawOff = clamp(drag.off0 + dt, 0, maxOff);
+        const sn = snapLayerTime(rawOff, 't2', drag.clipIdx);
+        cl.offsetSec = Number(clamp(sn.t, 0, maxOff).toFixed(3));
+        drag.snapT = sn.snapT;
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 't2ClipTrimL') {
+      const cl = Layer.clips[drag.clipIdx];
+      if (cl) {
+        const rawDur = cl.data[0].length / cl.rate;
+        const maxDelta = rawDur - (drag.trimIn0 + drag.trimOut0) - 0.04;
+        const delta = clamp(t - drag.t0, -drag.trimIn0, maxDelta);
+        cl.trimInSec = Number((drag.trimIn0 + delta).toFixed(3));
+        cl.offsetSec = Number(Math.max(0, drag.off0 + delta).toFixed(3));
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 't2ClipTrimR') {
+      const cl = Layer.clips[drag.clipIdx];
+      if (cl) {
+        const rawDur = cl.data[0].length / cl.rate;
+        const maxTrimOut = rawDur - (cl.trimInSec || 0) - 0.04;
+        cl.trimOutSec = Number(clamp(drag.trimOut0 - (t - drag.t0), 0, maxTrimOut).toFixed(3));
+        baseDirty = true; fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 't2ClipFadeIn') {
+      const cl = Layer.clips[drag.clipIdx];
+      if (cl) {
+        const { playDur } = layerClipTrimmedSpan(cl);
+        cl.fadeInMs = Math.round(clamp(drag.fadeIn0 + (t - drag.t0), 0, playDur * 0.48) * 1000);
+        fxDirty = true;
+      }
+      return;
+    } else if (drag.mode === 't2ClipFadeOut') {
+      const cl = Layer.clips[drag.clipIdx];
+      if (cl) {
+        const { playDur } = layerClipTrimmedSpan(cl);
+        cl.fadeOutMs = Math.round(clamp(drag.fadeOut0 - (t - drag.t0), 0, playDur * 0.48) * 1000);
+        fxDirty = true;
       }
       return;
     } else if (drag.mode === 'regTrimL') {
@@ -25435,7 +26073,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         const dt = t - drag.t0;
         const maxOff = Math.max(60, dur() + 30);
         const rawOff = clamp(drag.off0 + dt, 0, maxOff);
-        const sn = snapLayerTime(rawOff);
+        const sn = snapLayerTime(rawOff, 't3', drag.stemIdx);
         st.offsetSec = Number(clamp(sn.t, 0, maxOff).toFixed(3));
         drag.snapT = sn.snapT;
         fxDirty = true;
@@ -25534,6 +26172,33 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       }
       fxDirty = true;
       return;
+    } else if (drag.mode === 'longScrub') {
+      const prevT = P.t;
+      const dyAbs = Math.abs(p.y - drag.sy);
+      const rateMul = dyAbs < 28 ? 1.0 : (dyAbs < 65 ? 0.5 : (dyAbs < 110 ? 0.25 : 0.1));
+      drag.rateMul = rateMul;
+      drag.px = p.x; drag.py = p.y;
+      const dx = p.x - (drag.lastX ?? p.x);
+      drag.lastX = p.x;
+      let nextT = clamp(P.t + (dx / Math.max(1, V.pps)) * rateMul, 0, totalDur());
+      // Magnetic snap to selection edges & markers when moving slowly
+      const [sa, sb] = selRange();
+      const ta = sa / S.rate, tb = sb / S.rate;
+      const sTol = (Prefs.snapPx == null ? 6 : Prefs.snapPx) / Math.max(1, V.pps);
+      if (sTol > 0 && Math.abs(nextT - ta) <= sTol) {
+        nextT = ta;
+        if (drag.lastCoincide !== 'a') { triggerCoincideFeedback('a'); drag.lastCoincide = 'a'; }
+      } else if (sTol > 0 && Math.abs(nextT - tb) <= sTol) {
+        nextT = tb;
+        if (drag.lastCoincide !== 'b') { triggerCoincideFeedback('b'); drag.lastCoincide = 'b'; }
+      } else {
+        drag.lastCoincide = null;
+        checkCrossingCoincide(prevT, nextT);
+      }
+      P.t = nextT;
+      updateTimecode();
+      if ($('#jogTimeOut')) $('#jogTimeOut').textContent = fmtTime(P.t);
+      playScrubGrain(P.t);
     } else if (drag.mode === 'scrub') {
       const prevT = P.t;
       const rawT = clamp(t, 0, totalDur());
@@ -25589,12 +26254,16 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     fxDirty = true;
   });
   function endPointer(e) {
+    clearLongPressTimer();
     pointers.delete(e.pointerId);
-    if (pointers.size < 2) pinch = null;
+    if (pointers.size < 2) {
+      if (pinch) fxDirty = true;
+      pinch = null;
+    }
+    if (pointers.size === 0) gestureSnap = null;
     if (drag && drag.id === e.pointerId) {
-      if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol' || drag.mode === 't1Pan' || drag.mode === 't2Pan' || drag.mode === 'stemPan') {
-        renderLayersUI(); renderStemList();
-        fxDirty = true; scheduleSave();
+      if (drag.mode === 'longScrub') {
+        fxDirty = true; haptic(5);
       } else if (drag.mode === 'specPaint') {
         if (SpecBrush.draft) {
           const d = SpecBrush.draft;
@@ -25622,7 +26291,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         }
       } else if (/^(t2|stem)/.test(drag.mode) && drag.mode !== 't2Auto') {
         clampView();
-        renderLayersUI();
+        renderLayersUI(); renderStemList();
+        if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
         baseDirty = fxDirty = true;
         scheduleSave();
         haptic(5);
@@ -25640,7 +26310,6 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   baseCv.addEventListener('dblclick', (e) => {
     if (!hasAudio || processing) return;
     const p = canvasXY(e);
-    if (getTrackVolPillRects().some((vp) => p.x >= vp.x - 6 && p.x <= vp.x + vp.w + 6 && p.y >= vp.y - 6 && p.y <= vp.y + vp.h + 6)) return;
     Sel.a = Math.round(xToT(p.x) * S.rate);
     Sel.b = S.data[0].length;
     syncSelectionUI(); baseDirty = fxDirty = true;
@@ -26194,21 +26863,22 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   </div>
   <div class="export-presets" role="group" aria-label="Export presets">
     <button type="button" data-export-preset="quality"><b>Lossless WAV</b><span>24-bit · Original Hz</span></button>
+    <button type="button" data-export-preset="flac"><b>Lossless FLAC</b><span>24-bit · ~50% smaller</span></button>
+    <button type="button" data-export-preset="wav32"><b>32-bit Float WAV</b><span>Max studio headroom</span></button>
     <button type="button" data-export-preset="podcast"><b>Podcast MP3</b><span>192 kbps · 44.1 kHz</span></button>
-    <button type="button" data-export-preset="social"><b>Social / Reels</b><span>256 kbps · 48 kHz</span></button>
-    <button type="button" data-export-preset="voice"><b>Voice Note</b><span>128 kbps · 32 kHz</span></button>
   </div>
   <div class="ex-card">
     <div class="grid-2">
       <div class="field"><label for="exFormat">Format</label><select id="exFormat">
-        <option value="wav">WAV — lossless</option>
+        <option value="wav">WAV — lossless PCM / Float</option>
+        <option value="flac">FLAC — lossless compressed</option>
         <option value="mp3">MP3 — compressed</option>
         <option value="opus">Opus (.ogg / .webm)</option>
         <option value="m4a">AAC (.m4a)</option>
         <option value="m4r">Ringtone (.m4r)</option>
       </select></div>
       <div class="field"><label for="exBits" id="exBitsLbl">Bit depth</label><select id="exBits">
-        <option value="16">16-bit</option><option value="24">24-bit</option><option value="32">32-bit float</option>
+        <option value="16">16-bit PCM (CD)</option><option value="24">24-bit PCM (Studio)</option><option value="32" id="exBits32Opt">32-bit IEEE Float</option>
       </select></div>
       <div class="field" id="exBrWrap" hidden><label for="exBr">Bitrate</label><select id="exBr">
         <option value="64">64 kbps</option><option value="96">96 kbps</option><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="256">256 kbps</option><option value="320">320 kbps</option>
@@ -26863,6 +27533,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           <input type="range" id="t2DuckRel" min="100" max="900" step="20" value="340">
         </div>
       </div>
+      <div class="btn-row" id="t2ClipActionsRow">
+        <button type="button" class="btn sm" id="btnT2Split">Split T2 @ Playhead</button>
+        <button type="button" class="btn sm" id="btnT2Crossfade">Crossfade T2</button>
+        <button type="button" class="btn sm" id="btnT2CloseGaps">Close T2 Gaps</button>
+        <button type="button" class="btn sm" id="btnT2BounceClips" hidden>Flatten T2 Clips</button>
+      </div>
+      <div class="region-list" id="t2ClipList" hidden></div>
       <button type="button" class="btn primary sm wide" id="btnBounceMix">Bounce T1 + T2 Mix into Main Track</button>
     </div>
   </div>
@@ -26891,6 +27568,12 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       <button type="button" class="btn sm primary" id="btnStemPick">＋ Add SFX / Stem clips</button>
       <button type="button" class="btn sm" id="btnStemSnap">＋ Selection as stem</button>
       <button type="button" class="btn sm accent" id="btnQuickOverdub">● Punch-In Overdub</button>
+    </div>
+    <div class="btn-row" id="t3ClipActionsRow">
+      <button type="button" class="btn sm" id="btnT3Split">Split @ Playhead</button>
+      <button type="button" class="btn sm" id="btnT3Crossfade">Crossfade</button>
+      <button type="button" class="btn sm" id="btnT3CloseGaps">Close Gaps</button>
+      <button type="button" class="btn sm" id="btnT3Bounce">Bounce T3</button>
     </div>
     <div class="stem-list" id="stemList"><p class="empty-note">Drop jingles, SFX stings, or vocal ad-libs here and place them anywhere on the timeline.</p></div>
   </div>
@@ -27007,9 +27690,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if ($('#t1DelSend')) $('#t1DelSend').value = MainMix.delSend || 0;
     if ($('#t1DelSendOut')) $('#t1DelSendOut').textContent = Math.round(MainMix.delSend || 0) + '%';
     $$('#t1AutoSeg [data-t1auto]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t1auto === MainMix.autoMode));
+    syncFitTimelineBtn();
 
     const { rawDur: t2RawDur, playDur: t2PlayDur } = layerTrimmedSpan();
-    if ($('#t2Name')) $('#t2Name').textContent = Layer.active ? (Layer.name + ' (' + fmtTime(t2PlayDur, true) + ')') : 'Layer Track 2 (Empty)';
+    if ($('#t2Name')) $('#t2Name').textContent = Layer.active
+      ? ((Layer.clips && Layer.clips.length) ? `${Layer.name || 'Track 2'} (${Layer.clips.length} clips)` : (Layer.name + ' (' + fmtTime(t2PlayDur, true) + ')'))
+      : 'Layer Track 2 (Empty)';
+    if ($('#btnT2BounceClips')) $('#btnT2BounceClips').hidden = !(Layer.clips && Layer.clips.length > 0);
     if ($('#btnLayerPick')) $('#btnLayerPick').textContent = Layer.active ? '⇄ Replace Track 2' : '＋ Load Track 2';
     if ($('#btnAddTrackAuto')) $('#btnAddTrackAuto').textContent = Layer.active ? '＋ Add Track 3 layer' : '＋ Add Track 2 layer';
     if ($('#t2MsGrp')) $('#t2MsGrp').hidden = !Layer.active;
@@ -27070,11 +27757,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       $('#btnLayers').classList.toggle('on', totalLayers > 1 || Regions.list.length > 0);
     }
     const wasMulti = document.body.classList.contains('has-multitrack');
-    const isMulti = (Layer.active && !!Layer.data) || (Stems.clips.length > 0 && !Stems.mute);
+    const isMulti = (Layer.active && (!!Layer.data || (Layer.clips && Layer.clips.length > 0))) || Stems.clips.length > 0;
     document.body.classList.toggle('has-multitrack', isMulti);
     if (wasMulti !== isMulti && typeof resizeCanvases === 'function') {
       requestAnimationFrame(() => { resizeCanvases(); render(true); });
     }
+    if (typeof renderT2ClipList === 'function') renderT2ClipList();
+    if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
     if ($('#exStudioWrap')) $('#exStudioWrap').hidden = !hasStudioEdits;
     renderRackList();
     renderCompList();
@@ -27180,7 +27869,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     for (let i = 0; i < d.length; i++) b.copyToChannel(d[i], i);
     const wasActive = Layer.active;
     Layer.active = true; Layer.data = d; Layer.buffer = b; Layer.rate = trackRate;
-    Layer.peaksCache = null;
+    Layer.peaksCache = null; Layer.clips = []; Layer.selectedId = null;
     Layer.name = name || 'Layer Track 2'; Layer.mute = false; Layer.solo = false;
     if (!wasActive) { Layer.offset = 0; }
     computeDuckCurve();
@@ -27195,11 +27884,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   function clearLayer() {
     killLayerSource();
     Layer.active = false; Layer.data = null; Layer.buffer = null; Layer.duckCurve = null;
+    Layer.clips = []; Layer.selectedId = null; Layer.clipEdit = false;
     Layer.name = ''; Layer.mute = false; Layer.solo = false;
     Layer.trimInSec = 0; Layer.trimOutSec = 0; Layer.fadeInMs = 0; Layer.fadeOutMs = 0;
     Layer.volEnv = []; Layer.panEnv = []; Layer.autoMode = 'off'; Layer.revSend = 0; Layer.delSend = 0;
     syncMixNodes();
     renderLayersUI();
+    if (typeof syncRegionQuickBar === 'function') syncRegionQuickBar();
     baseDirty = fxDirty = true;
   }
 
@@ -27236,8 +27927,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const hasSends = (MainMix.revSend || 0) > 0.5 || (MainMix.delSend || 0) > 0.5
       || (layerOn && ((Layer.revSend || 0) > 0.5 || (Layer.delSend || 0) > 0.5))
       || (!Stems.mute && Stems.clips.some((st) => !st.mute && ((st.revSend || 0) > 0.5 || (st.delSend || 0) > 0.5)));
+    const layerStereo = (Layer.data && Layer.data.length > 1) || (Layer.clips && Layer.clips.some((cl) => cl.data && cl.data.length > 1));
     const stemStereo = Stems.clips.some((st) => st.data.length > 1 || Math.abs(st.pan || 0) > 1);
-    const outCh = ((layerOn && Layer.data && Layer.data.length > 1) || S.data.length > 1 || stemStereo || hasT1Pan || hasLayerPan || hasSends) ? 2 : 1;
+    const outCh = ((layerOn && layerStereo) || S.data.length > 1 || stemStereo || hasT1Pan || hasLayerPan || hasSends) ? 2 : 1;
     const out = Array.from({ length: outCh }, () => new Float32Array(n));
     const anyRev = (MainMix.revSend || 0) > 0.5 || (layerOn && (Layer.revSend || 0) > 0.5) || (!Stems.mute && Stems.clips.some((st) => !st.mute && (st.revSend || 0) > 0.5));
     const anyDel = (MainMix.delSend || 0) > 0.5 || (layerOn && (Layer.delSend || 0) > 0.5) || (!Stems.mute && Stems.clips.some((st) => !st.mute && (st.delSend || 0) > 0.5));
@@ -27274,20 +27966,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       for (let i = 0; i < n; i++) { delBuf[0][i] += out[0][i] * t1DelG; delBuf[1][i] += out[outCh > 1 ? 1 : 0][i] * t1DelG; }
     }
 
-    if (layerOn && Layer.data && Layer.data[0].length) {
-      const lData = Layer.data;
-      const lRate = Layer.rate || S.rate;
-      const rateRatio = lRate / S.rate;
-      const sameRate = Math.abs(rateRatio - 1) < 1e-6;
-      const lMax = lData[0].length - 1;
-      const { inS, playDur } = layerTrimmedSpan();
-      const inSamp = inS * lRate;
-      const lPlayLen = Math.max(1, Math.round(playDur * S.rate));
+    if (layerOn && ((Layer.clips && Layer.clips.length) || (Layer.data && Layer.data[0].length))) {
       const baseG = Math.pow(10, (Layer.gainDb || 0) / 20);
-      const offS = Math.round((Layer.offset || 0) * S.rate);
       const stepS = Math.max(1, Math.round((Layer.duckStepSec || 0.02) * S.rate));
-      const fiS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeInMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
-      const foS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeOutMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
       const t2VolPts = (Layer.volEnv && Layer.volEnv.length >= 2) ? Layer.volEnv.slice().sort((x, y) => x.t - y.t) : null;
       const t2PanPts = (Layer.panEnv && Layer.panEnv.length >= 2) ? Layer.panEnv.slice().sort((x, y) => x.t - y.t) : null;
       const t2RevG = clamp((Layer.revSend || 0) / 100, 0, 1);
@@ -27295,43 +27976,109 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       const staticPan = clamp((Layer.pan || 0) / 100, -1, 1);
       const sPanL = outCh > 1 ? Math.cos((staticPan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
       const sPanR = outCh > 1 ? Math.sin((staticPan + 1) * Math.PI * 0.25) * Math.SQRT2 : 1;
-      const lCh0 = lData[0], lCh1 = lData[lData.length > 1 ? 1 : 0];
 
-      for (let i = 0; i < n; i++) {
-        const gIdx = a + i;
-        let li = gIdx - offS;
-        if (Layer.loopBed) li = ((li % lPlayLen) + lPlayLen) % lPlayLen;
-        if (li < 0 || li >= lPlayLen) continue;
-        let rawL, rawR;
-        if (sameRate) {
-          const srcIdx = clamp(Math.round(inSamp) + li, 0, lMax);
-          rawL = lCh0[srcIdx]; rawR = lCh1[srcIdx];
-        } else {
-          const pos = clamp(inSamp + li * rateRatio, 0, lMax);
-          const i0 = pos | 0, i1 = i0 < lMax ? i0 + 1 : lMax, f = pos - i0;
-          rawL = lCh0[i0] + (lCh0[i1] - lCh0[i0]) * f;
-          rawR = lCh1[i0] + (lCh1[i1] - lCh1[i0]) * f;
+      if (Layer.clips && Layer.clips.length) {
+        for (const cl of Layer.clips) {
+          if (cl.mute || !cl.data || !cl.data[0]) continue;
+          const lData = cl.data;
+          const lRate = cl.rate || S.rate;
+          const rateRatio = lRate / S.rate;
+          const sameRate = Math.abs(rateRatio - 1) < 1e-6;
+          const lMax = lData[0].length - 1;
+          const { inS, playDur } = layerClipTrimmedSpan(cl);
+          const inSamp = inS * lRate;
+          const lPlayLen = Math.max(1, Math.round(playDur * S.rate));
+          const clG = baseG * Math.pow(10, (cl.gainDb || 0) / 20);
+          const offS = Math.round((cl.offsetSec || 0) * S.rate);
+          const fiS = Math.min(Math.round(((cl.fadeInMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48));
+          const foS = Math.min(Math.round(((cl.fadeOutMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48));
+          const lCh0 = lData[0], lCh1 = lData[lData.length > 1 ? 1 : 0];
+          for (let i = 0; i < n; i++) {
+            const gIdx = a + i;
+            const li = gIdx - offS;
+            if (li < 0 || li >= lPlayLen) continue;
+            let rawL, rawR;
+            if (sameRate) {
+              const srcIdx = clamp(Math.round(inSamp) + li, 0, lMax);
+              rawL = lCh0[srcIdx]; rawR = lCh1[srcIdx];
+            } else {
+              const pos = clamp(inSamp + li * rateRatio, 0, lMax);
+              const i0 = pos | 0, i1 = i0 < lMax ? i0 + 1 : lMax, f = pos - i0;
+              rawL = lCh0[i0] + (lCh0[i1] - lCh0[i0]) * f;
+              rawR = lCh1[i0] + (lCh1[i1] - lCh1[i0]) * f;
+            }
+            let dg = clG;
+            if (Layer.duck && Layer.duckCurve) {
+              const di = clamp(Math.floor(gIdx / stepS), 0, Layer.duckCurve.length - 1);
+              dg *= Layer.duckCurve[di];
+            }
+            if (t2VolPts) dg *= Math.pow(10, clamp(evalAutomationPoints(t2VolPts, gIdx / S.rate, 0, 'db'), -36, 12) / 20);
+            if (fiS > 1 && li < fiS) dg *= 0.5 * (1 - Math.cos(Math.PI * (li / fiS)));
+            if (foS > 1 && li > lPlayLen - foS) dg *= 0.5 * (1 - Math.cos(Math.PI * ((lPlayLen - li) / foS)));
+            let pL = sPanL, pR = sPanR;
+            if (outCh > 1 && t2PanPts) {
+              const pv = clamp(evalAutomationPoints(t2PanPts, gIdx / S.rate, Layer.pan || 0, 'pan') / 100, -1, 1);
+              pL = Math.cos((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+              pR = Math.sin((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+            }
+            const sL = rawL * dg * pL;
+            const sR = rawR * dg * pR;
+            if (outCh === 1) out[0][i] += (sL + sR) * 0.5;
+            else { out[0][i] += sL; out[1][i] += sR; }
+            if (revBuf && t2RevG > 0.005) { revBuf[0][i] += sL * t2RevG; revBuf[1][i] += sR * t2RevG; }
+            if (delBuf && t2DelG > 0.005) { delBuf[0][i] += sL * t2DelG; delBuf[1][i] += sR * t2DelG; }
+          }
         }
-        let dg = baseG;
-        if (Layer.duck && Layer.duckCurve) {
-          const di = clamp(Math.floor(gIdx / stepS), 0, Layer.duckCurve.length - 1);
-          dg *= Layer.duckCurve[di];
+      } else {
+        const lData = Layer.data;
+        const lRate = Layer.rate || S.rate;
+        const rateRatio = lRate / S.rate;
+        const sameRate = Math.abs(rateRatio - 1) < 1e-6;
+        const lMax = lData[0].length - 1;
+        const { inS, playDur } = layerTrimmedSpan();
+        const inSamp = inS * lRate;
+        const lPlayLen = Math.max(1, Math.round(playDur * S.rate));
+        const offS = Math.round((Layer.offset || 0) * S.rate);
+        const fiS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeInMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
+        const foS = !Layer.loopBed ? Math.min(Math.round(((Layer.fadeOutMs || 0) / 1000) * S.rate), Math.floor(lPlayLen * 0.48)) : 0;
+        const lCh0 = lData[0], lCh1 = lData[lData.length > 1 ? 1 : 0];
+
+        for (let i = 0; i < n; i++) {
+          const gIdx = a + i;
+          let li = gIdx - offS;
+          if (Layer.loopBed) li = ((li % lPlayLen) + lPlayLen) % lPlayLen;
+          if (li < 0 || li >= lPlayLen) continue;
+          let rawL, rawR;
+          if (sameRate) {
+            const srcIdx = clamp(Math.round(inSamp) + li, 0, lMax);
+            rawL = lCh0[srcIdx]; rawR = lCh1[srcIdx];
+          } else {
+            const pos = clamp(inSamp + li * rateRatio, 0, lMax);
+            const i0 = pos | 0, i1 = i0 < lMax ? i0 + 1 : lMax, f = pos - i0;
+            rawL = lCh0[i0] + (lCh0[i1] - lCh0[i0]) * f;
+            rawR = lCh1[i0] + (lCh1[i1] - lCh1[i0]) * f;
+          }
+          let dg = baseG;
+          if (Layer.duck && Layer.duckCurve) {
+            const di = clamp(Math.floor(gIdx / stepS), 0, Layer.duckCurve.length - 1);
+            dg *= Layer.duckCurve[di];
+          }
+          if (t2VolPts) dg *= Math.pow(10, clamp(evalAutomationPoints(t2VolPts, gIdx / S.rate, 0, 'db'), -36, 12) / 20);
+          if (fiS > 1 && li < fiS) dg *= 0.5 * (1 - Math.cos(Math.PI * (li / fiS)));
+          if (foS > 1 && li > lPlayLen - foS) dg *= 0.5 * (1 - Math.cos(Math.PI * ((lPlayLen - li) / foS)));
+          let pL = sPanL, pR = sPanR;
+          if (outCh > 1 && t2PanPts) {
+            const pv = clamp(evalAutomationPoints(t2PanPts, gIdx / S.rate, Layer.pan || 0, 'pan') / 100, -1, 1);
+            pL = Math.cos((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+            pR = Math.sin((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
+          }
+          const sL = rawL * dg * pL;
+          const sR = rawR * dg * pR;
+          if (outCh === 1) out[0][i] += (sL + sR) * 0.5;
+          else { out[0][i] += sL; out[1][i] += sR; }
+          if (revBuf && t2RevG > 0.005) { revBuf[0][i] += sL * t2RevG; revBuf[1][i] += sR * t2RevG; }
+          if (delBuf && t2DelG > 0.005) { delBuf[0][i] += sL * t2DelG; delBuf[1][i] += sR * t2DelG; }
         }
-        if (t2VolPts) dg *= Math.pow(10, clamp(evalAutomationPoints(t2VolPts, gIdx / S.rate, 0, 'db'), -36, 12) / 20);
-        if (fiS > 1 && li < fiS) dg *= 0.5 * (1 - Math.cos(Math.PI * (li / fiS)));
-        if (foS > 1 && li > lPlayLen - foS) dg *= 0.5 * (1 - Math.cos(Math.PI * ((lPlayLen - li) / foS)));
-        let pL = sPanL, pR = sPanR;
-        if (outCh > 1 && t2PanPts) {
-          const pv = clamp(evalAutomationPoints(t2PanPts, gIdx / S.rate, Layer.pan || 0, 'pan') / 100, -1, 1);
-          pL = Math.cos((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
-          pR = Math.sin((pv + 1) * Math.PI * 0.25) * Math.SQRT2;
-        }
-        const sL = rawL * dg * pL;
-        const sR = rawR * dg * pR;
-        if (outCh === 1) out[0][i] += (sL + sR) * 0.5;
-        else { out[0][i] += sL; out[1][i] += sR; }
-        if (revBuf && t2RevG > 0.005) { revBuf[0][i] += sL * t2RevG; revBuf[1][i] += sR * t2RevG; }
-        if (delBuf && t2DelG > 0.005) { delBuf[0][i] += sL * t2DelG; delBuf[1][i] += sR * t2DelG; }
       }
     }
     if (!Stems.mute && Stems.clips.length) {
@@ -27543,15 +28290,19 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const c = AC();
     const b = c.createBuffer(d.length, d[0].length, trackRate);
     for (let i = 0; i < d.length; i++) b.copyToChannel(d[i], i);
+    const newId = Stems.nextId++;
     Stems.clips.push({
-      id: Stems.nextId++,
+      id: newId,
       name: name || ('Stem ' + (Stems.clips.length + 1)),
       data: d, buffer: b, rate: trackRate,
       offsetSec: Math.max(0, offsetSec == null ? P.t : offsetSec),
       trimInSec: 0, trimOutSec: 0,
       gainDb: 0, pan: 0, fadeInMs: 15, fadeOutMs: 25,
       revSend: 0, delSend: 0, mute: false,
+      peaksCache: buildClipPeaks(d),
     });
+    Stems.selectedId = newId;
+    ClipSel.track = 't3';
     fitView();
     renderStemList(); renderLayersUI(); baseDirty = fxDirty = true;
     if ($('#sheet') && $('#sheet').classList.contains('on')) closeOverlays();
@@ -27580,6 +28331,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
           <button type="button" class="btn sm" data-sact="start0" data-idx="${idx}" title="Overlap from 0:00">Overlap</button>
           <button type="button" class="btn sm" data-sact="after" data-idx="${idx}" title="Place right after previous track">After prev</button>
           <button type="button" class="btn sm" data-sact="cue" data-idx="${idx}" title="Move start to playhead">@ Playhead</button>
+          <button type="button" class="btn sm" data-sact="split" data-idx="${idx}" title="Split this clip at playhead">Split</button>
+          <button type="button" class="btn sm" data-sact="dup" data-idx="${idx}" title="Duplicate clip">Dup</button>
+          <button type="button" class="btn sm ${st.mute ? 'on' : ''}" data-sact="mute" data-idx="${idx}" title="Mute clip">${st.mute ? 'Unmute' : 'Mute'}</button>
           <button type="button" class="btn icon sm ghost" data-sact="del" data-idx="${idx}" aria-label="Remove">×</button>
         </div>
         <div class="stem-grid">
@@ -27651,22 +28405,405 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     Regions.selectedId = Regions.list[idx].id;
     return idx;
   }
+  function makeLayerClipObj(name, data, rate, offsetSec) {
+    const c = AC();
+    const b = c.createBuffer(data.length, data[0].length, rate);
+    for (let i = 0; i < data.length; i++) b.copyToChannel(data[i], i);
+    return {
+      id: Layer.nextId++, name, data, buffer: b, rate,
+      offsetSec: Math.max(0, offsetSec || 0),
+      trimInSec: 0, trimOutSec: 0,
+      gainDb: 0, fadeInMs: 12, fadeOutMs: 12,
+      mute: false,
+      peaksCache: buildClipPeaks(data),
+    };
+  }
+  function ensureLayerClips() {
+    if (!Layer.active) return false;
+    if (Layer.clips && Layer.clips.length) return true;
+    if (!Layer.data || !Layer.data[0]) return false;
+    const cl = makeLayerClipObj(Layer.name || 'Track 2', cloneData(Layer.data), Layer.rate || S.rate, Math.max(0, Layer.offset || 0));
+    cl.trimInSec = Layer.trimInSec || 0;
+    cl.trimOutSec = Layer.trimOutSec || 0;
+    cl.fadeInMs = Layer.fadeInMs || 0;
+    cl.fadeOutMs = Layer.fadeOutMs || 0;
+    Layer.clips = [cl];
+    Layer.selectedId = cl.id;
+    Layer.loopBed = false;
+    return true;
+  }
+  function getSelectedLayerClipIndex() {
+    if (!Layer.clips || !Layer.clips.length) return -1;
+    let idx = Layer.clips.findIndex((r) => r.id === Layer.selectedId);
+    if (idx < 0) {
+      idx = Layer.clips.findIndex((r) => {
+        const { playDur } = layerClipTrimmedSpan(r);
+        return P.t >= r.offsetSec && P.t <= r.offsetSec + playDur;
+      });
+    }
+    if (idx < 0) idx = 0;
+    Layer.selectedId = Layer.clips[idx].id;
+    return idx;
+  }
+  function getSelectedStemIndex() {
+    if (!Stems.clips.length) return -1;
+    let idx = Stems.clips.findIndex((s) => s.id === Stems.selectedId);
+    if (idx < 0) {
+      idx = Stems.clips.findIndex((s) => {
+        const { playDur } = stemTrimmedSpan(s);
+        return P.t >= s.offsetSec && P.t <= s.offsetSec + playDur;
+      });
+    }
+    if (idx < 0) idx = 0;
+    Stems.selectedId = Stems.clips[idx].id;
+    return idx;
+  }
+  function renderT2ClipList() {
+    const host = $('#t2ClipList');
+    if (!host) return;
+    const hasClips = Layer.active && Layer.clips && Layer.clips.length > 0;
+    host.hidden = !hasClips;
+    if (!hasClips) { host.innerHTML = ''; return; }
+    host.innerHTML = '';
+    Layer.clips.forEach((cl, idx) => {
+      const row = document.createElement('div');
+      row.className = 'region-card' + (Layer.selectedId === cl.id ? ' is-sel' : '');
+      const { playDur } = layerClipTrimmedSpan(cl);
+      row.innerHTML = `
+        <div class="region-card-h">
+          <b></b>
+          <span>+${cl.offsetSec.toFixed(2)}s · ${fmtTime(playDur, true)}</span>
+          <button type="button" class="btn sm ${cl.mute ? 'on' : ''}" data-t2cact="mute" data-idx="${idx}">${cl.mute ? 'Muted' : 'Mute'}</button>
+          <button type="button" class="btn sm" data-t2cact="dup" data-idx="${idx}">Dup</button>
+          <button type="button" class="btn icon sm ghost" data-t2cact="del" data-idx="${idx}" aria-label="Delete">×</button>
+        </div>
+        <div class="stem-grid">
+          <div><div class="range-row"><label>Gain</label><output>${cl.gainDb > 0 ? '+' : ''}${(cl.gainDb || 0).toFixed(1)} dB</output></div><input type="range" data-t2cfld="gainDb" data-idx="${idx}" min="-24" max="12" step="0.5" value="${cl.gainDb || 0}"></div>
+          <div><div class="range-row"><label>Start</label><output>${cl.offsetSec.toFixed(2)} s</output></div><input type="range" data-t2cfld="offsetSec" data-idx="${idx}" min="0" max="${Math.max(30, Math.ceil(totalDur() + 20))}" step="0.05" value="${cl.offsetSec.toFixed(2)}"></div>
+        </div>`;
+      row.querySelector('b').textContent = cl.name;
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button,input')) return;
+        Layer.selectedId = cl.id; ClipSel.track = 't2';
+        renderT2ClipList(); syncRegionQuickBar(); fxDirty = true;
+      });
+      host.append(row);
+    });
+  }
+  function splitT2AtPlayhead() {
+    if (!Layer.active) return toast('Load Track 2 first', 'info');
+    if (!ensureLayerClips()) return toast('Track 2 has no audio to split', 'info');
+    const idx = Layer.clips.findIndex((cl) => {
+      const { playDur } = layerClipTrimmedSpan(cl);
+      return P.t > cl.offsetSec + 0.04 && P.t < cl.offsetSec + playDur - 0.04;
+    });
+    if (idx < 0) return toast('Move playhead inside a Track 2 clip to split it', 'info');
+    const cl = Layer.clips[idx];
+    const { inS, outS } = layerClipTrimmedSpan(cl);
+    const localPlaySec = P.t - cl.offsetSec;
+    const splitRawS = clamp(Math.round((inS + localPlaySec) * cl.rate), 16, cl.data[0].length - 16);
+    const inSamp = Math.round(inS * cl.rate);
+    const outSamp = Math.round(outS * cl.rate);
+    const leftD = cl.data.map((ch) => ch.slice(inSamp, splitRawS));
+    const rightD = cl.data.map((ch) => ch.slice(splitRawS, Math.max(splitRawS + 16, cl.data[0].length - outSamp)));
+    const leftC = Object.assign(makeLayerClipObj(cl.name + ' A', leftD, cl.rate, cl.offsetSec), { gainDb: cl.gainDb, fadeInMs: cl.fadeInMs, fadeOutMs: 12, mute: cl.mute });
+    const rightC = Object.assign(makeLayerClipObj(cl.name + ' B', rightD, cl.rate, P.t), { gainDb: cl.gainDb, fadeInMs: 12, fadeOutMs: cl.fadeOutMs, mute: cl.mute });
+    Layer.clips.splice(idx, 1, leftC, rightC);
+    Layer.selectedId = rightC.id;
+    ClipSel.track = 't2';
+    renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    if (P.playing) { P.t = curTime(); play(); }
+    toast('Split Track 2 clip at playhead', 'ok', 1800);
+  }
+  function dupT2Clip() {
+    if (!ensureLayerClips()) return;
+    const idx = getSelectedLayerClipIndex();
+    const cl = Layer.clips[idx];
+    if (!cl) return;
+    const { playDur } = layerClipTrimmedSpan(cl);
+    const dup = Object.assign(makeLayerClipObj(cl.name + ' copy', cloneData(cl.data), cl.rate, cl.offsetSec + playDur + 0.05), {
+      trimInSec: cl.trimInSec || 0, trimOutSec: cl.trimOutSec || 0,
+      gainDb: cl.gainDb, fadeInMs: cl.fadeInMs, fadeOutMs: cl.fadeOutMs, mute: cl.mute,
+    });
+    Layer.clips.splice(idx + 1, 0, dup);
+    Layer.selectedId = dup.id;
+    ClipSel.track = 't2';
+    clampView(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+  }
+  function crossfadeT2Clips(ms = 80) {
+    if (!ensureLayerClips() || Layer.clips.length < 2) return toast('Split or duplicate Track 2 clips first', 'info');
+    Layer.clips.sort((a, b) => a.offsetSec - b.offsetSec);
+    const xfSec = ms / 1000;
+    for (let i = 1; i < Layer.clips.length; i++) {
+      const prev = Layer.clips[i - 1], cur = Layer.clips[i];
+      const prevEnd = prev.offsetSec + layerClipTrimmedSpan(prev).playDur;
+      if (Math.abs(cur.offsetSec - prevEnd) <= 0.15) {
+        cur.offsetSec = Number(Math.max(0, prevEnd - xfSec).toFixed(3));
+        prev.fadeOutMs = Math.max(prev.fadeOutMs || 0, ms);
+        cur.fadeInMs = Math.max(cur.fadeInMs || 0, ms);
+      }
+    }
+    clampView(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast(`Applied ${ms} ms crossfades on Track 2`, 'ok', 2000);
+  }
+  function closeT2Gaps() {
+    if (!Layer.clips || !Layer.clips.length) return;
+    Layer.clips.sort((a, b) => a.offsetSec - b.offsetSec);
+    let cursor = Layer.clips[0] ? Layer.clips[0].offsetSec : 0;
+    for (const cl of Layer.clips) {
+      cl.offsetSec = Number(cursor.toFixed(3));
+      cursor += layerClipTrimmedSpan(cl).playDur;
+    }
+    clampView(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast('Closed gaps between Track 2 clips', 'ok', 1800);
+  }
+  function toggleMuteT2Clip() {
+    if (!ensureLayerClips()) return;
+    const idx = getSelectedLayerClipIndex();
+    const cl = Layer.clips[idx];
+    if (!cl) return;
+    cl.mute = !cl.mute;
+    renderLayersUI(); baseDirty = fxDirty = true; scheduleSave();
+  }
+  function deleteSelectedT2Clip() {
+    if (!Layer.clips || !Layer.clips.length) return;
+    const idx = getSelectedLayerClipIndex();
+    Layer.clips.splice(idx, 1);
+    if (!Layer.clips.length) clearLayer();
+    else {
+      Layer.selectedId = Layer.clips[Math.min(idx, Layer.clips.length - 1)]?.id ?? null;
+      clampView(); renderLayersUI();
+      baseDirty = fxDirty = true; scheduleSave();
+      if (P.playing) { P.t = curTime(); play(); }
+    }
+  }
+  function bounceT2ClipsToSingle() {
+    if (!Layer.clips || !Layer.clips.length) return;
+    let maxEnd = 0, nCh = 1, sr = Layer.rate || S.rate;
+    for (const cl of Layer.clips) {
+      if (cl.mute) continue;
+      nCh = Math.max(nCh, cl.data.length);
+      maxEnd = Math.max(maxEnd, cl.offsetSec + layerClipTrimmedSpan(cl).playDur);
+    }
+    if (maxEnd <= 0.02) return toast('No unmuted Track 2 clips to flatten', 'info');
+    const len = Math.max(1, Math.round(maxEnd * sr));
+    const out = Array.from({ length: nCh }, () => new Float32Array(len));
+    for (const cl of Layer.clips) {
+      if (cl.mute) continue;
+      const { inS, playDur } = layerClipTrimmedSpan(cl);
+      const offS = Math.round(cl.offsetSec * sr);
+      const cLen = Math.max(1, Math.round(playDur * sr));
+      const ratio = (cl.rate || sr) / sr;
+      const inSamp = inS * (cl.rate || sr);
+      const cMax = cl.data[0].length - 1;
+      const baseG = Math.pow(10, (cl.gainDb || 0) / 20);
+      const fi = Math.min(Math.round(((cl.fadeInMs || 0) / 1000) * sr), Math.floor(cLen * 0.45));
+      const fo = Math.min(Math.round(((cl.fadeOutMs || 0) / 1000) * sr), Math.floor(cLen * 0.45));
+      for (let i = 0; i < cLen; i++) {
+        const dst = offS + i;
+        if (dst < 0 || dst >= len) continue;
+        let g = baseG;
+        if (fi > 1 && i < fi) g *= 0.5 * (1 - Math.cos(Math.PI * (i / fi)));
+        if (fo > 1 && i > cLen - fo) g *= 0.5 * (1 - Math.cos(Math.PI * ((cLen - i) / fo)));
+        const pos = clamp(inSamp + i * ratio, 0, cMax);
+        const i0 = pos | 0, i1 = i0 < cMax ? i0 + 1 : cMax, fr = pos - i0;
+        for (let c = 0; c < nCh; c++) {
+          const ch = cl.data[c % cl.data.length];
+          out[c][dst] += (ch[i0] + (ch[i1] - ch[i0]) * fr) * g;
+        }
+      }
+    }
+    const c = AC();
+    const b = c.createBuffer(nCh, len, sr);
+    for (let i = 0; i < nCh; i++) b.copyToChannel(out[i], i);
+    Layer.data = out; Layer.buffer = b; Layer.rate = sr;
+    Layer.offset = 0; Layer.trimInSec = 0; Layer.trimOutSec = 0;
+    Layer.fadeInMs = 0; Layer.fadeOutMs = 0;
+    Layer.peaksCache = null; Layer.clips = []; Layer.selectedId = null;
+    computeDuckCurve(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast('Flattened Track 2 clips into single bed track', 'ok', 2200);
+  }
+  function splitT3AtPlayhead(explicitIdx) {
+    if (!Stems.clips.length) return toast('Add a Track 3 clip first', 'info');
+    let idx = explicitIdx != null ? explicitIdx : Stems.clips.findIndex((st) => {
+      const { playDur } = stemTrimmedSpan(st);
+      return P.t > st.offsetSec + 0.04 && P.t < st.offsetSec + playDur - 0.04;
+    });
+    if (idx < 0) return toast('Move playhead inside a Track 3 clip to split it', 'info');
+    const st = Stems.clips[idx];
+    const { inS, outS, playDur } = stemTrimmedSpan(st);
+    if (!(P.t > st.offsetSec + 0.04 && P.t < st.offsetSec + playDur - 0.04)) return toast('Move playhead inside that Track 3 clip', 'info');
+    const localPlaySec = P.t - st.offsetSec;
+    const splitRawS = clamp(Math.round((inS + localPlaySec) * st.rate), 16, st.data[0].length - 16);
+    const inSamp = Math.round(inS * st.rate);
+    const outSamp = Math.round(outS * st.rate);
+    const leftD = st.data.map((ch) => ch.slice(inSamp, splitRawS));
+    const rightD = st.data.map((ch) => ch.slice(splitRawS, Math.max(splitRawS + 16, st.data[0].length - outSamp)));
+    const c = AC();
+    const mkBuf = (d) => { const b = c.createBuffer(d.length, d[0].length, st.rate); for (let i = 0; i < d.length; i++) b.copyToChannel(d[i], i); return b; };
+    const leftS = { ...st, id: Stems.nextId++, name: st.name + ' A', data: leftD, buffer: mkBuf(leftD), trimInSec: 0, trimOutSec: 0, fadeOutMs: 12, peaksCache: buildClipPeaks(leftD) };
+    const rightS = { ...st, id: Stems.nextId++, name: st.name + ' B', data: rightD, buffer: mkBuf(rightD), offsetSec: P.t, trimInSec: 0, trimOutSec: 0, fadeInMs: 12, peaksCache: buildClipPeaks(rightD) };
+    Stems.clips.splice(idx, 1, leftS, rightS);
+    Stems.selectedId = rightS.id;
+    ClipSel.track = 't3';
+    renderStemList(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    if (P.playing) { P.t = curTime(); play(); }
+    toast('Split Track 3 clip at playhead', 'ok', 1800);
+  }
+  function dupT3Clip(explicitIdx) {
+    if (!Stems.clips.length) return;
+    const idx = explicitIdx != null ? explicitIdx : getSelectedStemIndex();
+    const st = Stems.clips[idx];
+    if (!st) return;
+    const { playDur } = stemTrimmedSpan(st);
+    const cloneD = cloneData(st.data);
+    const c = AC();
+    const b = c.createBuffer(cloneD.length, cloneD[0].length, st.rate);
+    for (let i = 0; i < cloneD.length; i++) b.copyToChannel(cloneD[i], i);
+    const dup = { ...st, id: Stems.nextId++, name: st.name + ' copy', data: cloneD, buffer: b, offsetSec: st.offsetSec + playDur + 0.05, peaksCache: buildClipPeaks(cloneD) };
+    Stems.clips.splice(idx + 1, 0, dup);
+    Stems.selectedId = dup.id;
+    ClipSel.track = 't3';
+    clampView(); renderStemList(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+  }
+  function crossfadeT3Clips(ms = 80) {
+    if (Stems.clips.length < 2) return toast('Need at least 2 Track 3 clips to crossfade', 'info');
+    Stems.clips.sort((a, b) => a.offsetSec - b.offsetSec);
+    const xfSec = ms / 1000;
+    for (let i = 1; i < Stems.clips.length; i++) {
+      const prev = Stems.clips[i - 1], cur = Stems.clips[i];
+      const prevEnd = prev.offsetSec + stemTrimmedSpan(prev).playDur;
+      if (Math.abs(cur.offsetSec - prevEnd) <= 0.15) {
+        cur.offsetSec = Number(Math.max(0, prevEnd - xfSec).toFixed(3));
+        prev.fadeOutMs = Math.max(prev.fadeOutMs || 0, ms);
+        cur.fadeInMs = Math.max(cur.fadeInMs || 0, ms);
+      }
+    }
+    clampView(); renderStemList(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast(`Applied ${ms} ms crossfades on Track 3`, 'ok', 2000);
+  }
+  function closeT3Gaps() {
+    if (!Stems.clips.length) return;
+    Stems.clips.sort((a, b) => a.offsetSec - b.offsetSec);
+    let cursor = Stems.clips[0] ? Stems.clips[0].offsetSec : 0;
+    for (const st of Stems.clips) {
+      st.offsetSec = Number(cursor.toFixed(3));
+      cursor += stemTrimmedSpan(st).playDur;
+    }
+    clampView(); renderStemList(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    toast('Closed gaps between Track 3 clips', 'ok', 1800);
+  }
+  function toggleMuteT3Clip() {
+    if (!Stems.clips.length) return;
+    const idx = getSelectedStemIndex();
+    const st = Stems.clips[idx];
+    if (!st) return;
+    st.mute = !st.mute;
+    renderStemList(); renderLayersUI(); baseDirty = fxDirty = true; scheduleSave();
+  }
+  function deleteSelectedT3Clip() {
+    if (!Stems.clips.length) return;
+    const idx = getSelectedStemIndex();
+    Stems.clips.splice(idx, 1);
+    Stems.selectedId = Stems.clips[Math.min(idx, Stems.clips.length - 1)]?.id ?? null;
+    clampView(); renderStemList(); renderLayersUI();
+    baseDirty = fxDirty = true; scheduleSave();
+    if (P.playing) { P.t = curTime(); play(); }
+  }
+  function bounceT3ToSingle() {
+    if (!Stems.clips.length) return;
+    let maxEnd = 0, nCh = 2, sr = S.rate;
+    for (const st of Stems.clips) {
+      if (st.mute) continue;
+      maxEnd = Math.max(maxEnd, st.offsetSec + stemTrimmedSpan(st).playDur);
+    }
+    if (maxEnd <= 0.02) return toast('No unmuted Track 3 clips to bounce', 'info');
+    const len = Math.max(1, Math.round(maxEnd * sr));
+    const out = [new Float32Array(len), new Float32Array(len)];
+    for (const st of Stems.clips) {
+      if (st.mute) continue;
+      const { inS, playDur } = stemTrimmedSpan(st);
+      const offS = Math.round(st.offsetSec * sr);
+      const cLen = Math.max(1, Math.round(playDur * sr));
+      const ratio = (st.rate || sr) / sr;
+      const inSamp = inS * (st.rate || sr);
+      const cMax = st.data[0].length - 1;
+      const baseG = Math.pow(10, (st.gainDb || 0) / 20);
+      const pan = clamp((st.pan || 0) / 100, -1, 1);
+      const pL = Math.cos((pan + 1) * Math.PI * 0.25) * Math.SQRT2;
+      const pR = Math.sin((pan + 1) * Math.PI * 0.25) * Math.SQRT2;
+      const fi = Math.min(Math.round(((st.fadeInMs || 0) / 1000) * sr), Math.floor(cLen * 0.45));
+      const fo = Math.min(Math.round(((st.fadeOutMs || 0) / 1000) * sr), Math.floor(cLen * 0.45));
+      const s0 = st.data[0], s1 = st.data[st.data.length > 1 ? 1 : 0];
+      for (let i = 0; i < cLen; i++) {
+        const dst = offS + i;
+        if (dst < 0 || dst >= len) continue;
+        let g = baseG;
+        if (fi > 1 && i < fi) g *= 0.5 * (1 - Math.cos(Math.PI * (i / fi)));
+        if (fo > 1 && i > cLen - fo) g *= 0.5 * (1 - Math.cos(Math.PI * ((cLen - i) / fo)));
+        const pos = clamp(inSamp + i * ratio, 0, cMax);
+        const i0 = pos | 0, i1 = i0 < cMax ? i0 + 1 : cMax, fr = pos - i0;
+        out[0][dst] += (s0[i0] + (s0[i1] - s0[i0]) * fr) * g * pL;
+        out[1][dst] += (s1[i0] + (s1[i1] - s1[i0]) * fr) * g * pR;
+      }
+    }
+    Stems.clips = [];
+    addStemClip(out, sr, 'Track 3 Mix', 0);
+  }
+  function activeClipTrack() {
+    if (ClipSel.track === 't2' && Layer.active && ((Layer.clips && Layer.clips.length) || Layer.data)) return 't2';
+    if (ClipSel.track === 't3' && Stems.clips.length > 0) return 't3';
+    if (Regions.list.length > 0) return 't1';
+    if (Layer.active && ((Layer.clips && Layer.clips.length) || Layer.data)) return 't2';
+    if (Stems.clips.length > 0) return 't3';
+    return 't1';
+  }
   function syncRegionQuickBar() {
     const bar = $('#regionQuickBar');
     if (!bar) return;
-    const hasRegs = hasAudio && Regions.list.length > 0;
-    bar.hidden = !hasRegs;
-    if (!hasRegs) return;
-    const idx = getSelectedRegionIndex();
-    const rg = Regions.list[idx];
-    if ($('#rqLabel')) {
+    const hasT1 = Regions.list.length > 0;
+    const hasT2 = Layer.active && ((Layer.clips && Layer.clips.length > 0) || !!Layer.data);
+    const hasT3 = Stems.clips.length > 0;
+    const show = hasAudio && (hasT1 || (hasT2 && Layer.clips && Layer.clips.length > 0) || hasT3);
+    bar.hidden = !show;
+    if (!show) return;
+    const trk = activeClipTrack();
+    ClipSel.track = trk;
+    if (trk === 't2') {
+      ensureLayerClips();
+      const idx = getSelectedLayerClipIndex();
+      const cl = Layer.clips[idx];
+      const span = cl ? layerClipTrimmedSpan(cl) : { playDur: 0 };
+      if ($('#rqLabel')) $('#rqLabel').textContent = cl ? `T2 · ${Layer.clips.length} clips · ${cl.name} (${span.playDur.toFixed(2)}s)` : 'T2 Clips';
+      if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').hidden = true;
+      if ($('#btnRqMute') && cl) $('#btnRqMute').setAttribute('aria-pressed', cl.mute ? 'true' : 'false');
+    } else if (trk === 't3') {
+      const idx = getSelectedStemIndex();
+      const st = Stems.clips[idx];
+      const span = st ? stemTrimmedSpan(st) : { playDur: 0 };
+      if ($('#rqLabel')) $('#rqLabel').textContent = st ? `T3 · ${Stems.clips.length} clips · ${st.name} (${span.playDur.toFixed(2)}s)` : 'T3 Clips';
+      if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').hidden = true;
+      if ($('#btnRqMute') && st) $('#btnRqMute').setAttribute('aria-pressed', st.mute ? 'true' : 'false');
+    } else {
+      const idx = getSelectedRegionIndex();
+      const rg = Regions.list[idx];
       const span = rg ? regionTrimmedSpan(rg) : { playDur: 0 };
-      $('#rqLabel').textContent = rg
-        ? `${Regions.list.length} clips · ${rg.name} (${span.playDur.toFixed(2)}s)`
-        : `${Regions.list.length} clips`;
+      if ($('#rqLabel')) $('#rqLabel').textContent = rg ? `T1 · ${Regions.list.length} clips · ${rg.name} (${span.playDur.toFixed(2)}s)` : 'T1 Clips';
+      if ($('#btnT1ClipEdit')) {
+        $('#btnT1ClipEdit').hidden = false;
+        $('#btnT1ClipEdit').setAttribute('aria-pressed', Regions.clipEdit ? 'true' : 'false');
+      }
+      if ($('#btnRqMute') && rg) $('#btnRqMute').setAttribute('aria-pressed', rg.mute ? 'true' : 'false');
     }
-    if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').setAttribute('aria-pressed', Regions.clipEdit ? 'true' : 'false');
-    if ($('#btnRqMute') && rg) $('#btnRqMute').setAttribute('aria-pressed', rg.mute ? 'true' : 'false');
   }
   function splitTrackToRegions(cutsSec) {
     if (!hasAudio) return;
@@ -28141,8 +29278,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if ($('#btnFitMulti')) {
       $('#btnFitMulti').addEventListener('click', () => {
         if (!hasAudio) return;
-        fitView(); haptic(5);
+        const wasFitted = isTimelineFitted();
+        fitView();
+        syncFitTimelineBtn();
+        haptic(5);
+        toast(wasFitted ? 'Timeline already fitted (' + fmtTime(totalDur(), true) + ')' : 'Timeline fitted to all tracks (' + fmtTime(totalDur(), true) + ')', 'ok', 1800);
       });
+      syncFitTimelineBtn();
     }
     const setT2Offset = (valSec) => {
       const t2Dur = Layer.data ? (Layer.data[0].length / Layer.rate) : 10;
@@ -28402,6 +29544,15 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         } else if (b.dataset.sact === 'cue') {
           st.offsetSec = clamp(P.t, 0, Math.max(dur() + 30, st.offsetSec));
           renderStemList(); fxDirty = true; haptic(5);
+        } else if (b.dataset.sact === 'split') {
+          splitT3AtPlayhead(idx); haptic(6);
+        } else if (b.dataset.sact === 'dup') {
+          dupT3Clip(idx); haptic(5);
+        } else if (b.dataset.sact === 'mute') {
+          st.mute = !st.mute;
+          Stems.selectedId = st.id;
+          ClipSel.track = 't3';
+          renderStemList(); renderLayersUI(); baseDirty = fxDirty = true; haptic(5);
         }
       });
       $('#stemList').addEventListener('input', (e) => {
@@ -28433,19 +29584,93 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         baseDirty = true; fxDirty = true;
       });
     }
+    if ($('#btnT2Split')) $('#btnT2Split').addEventListener('click', splitT2AtPlayhead);
+    if ($('#btnT2Crossfade')) $('#btnT2Crossfade').addEventListener('click', () => crossfadeT2Clips(80));
+    if ($('#btnT2CloseGaps')) $('#btnT2CloseGaps').addEventListener('click', closeT2Gaps);
+    if ($('#btnT2BounceClips')) $('#btnT2BounceClips').addEventListener('click', bounceT2ClipsToSingle);
+    if ($('#t2ClipList')) {
+      $('#t2ClipList').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-t2cact]');
+        if (!b) return;
+        const idx = Number(b.dataset.idx);
+        const cl = Layer.clips[idx];
+        if (!cl) return;
+        Layer.selectedId = cl.id; ClipSel.track = 't2';
+        if (b.dataset.t2cact === 'mute') toggleMuteT2Clip();
+        else if (b.dataset.t2cact === 'dup') dupT2Clip();
+        else if (b.dataset.t2cact === 'del') deleteSelectedT2Clip();
+        haptic(5);
+      });
+      $('#t2ClipList').addEventListener('input', (e) => {
+        const inp = e.target;
+        const fld = inp.dataset.t2cfld;
+        if (!fld) return;
+        const cl = Layer.clips[Number(inp.dataset.idx)];
+        if (!cl) return;
+        const v = parseFloat(inp.value) || 0;
+        cl[fld] = v;
+        const out = inp.parentElement.querySelector('output');
+        if (out) out.textContent = fld === 'gainDb' ? ((v > 0 ? '+' : '') + v.toFixed(1) + ' dB') : (v.toFixed(2) + ' s');
+        baseDirty = fxDirty = true;
+      });
+    }
+    if ($('#btnT3Split')) $('#btnT3Split').addEventListener('click', () => splitT3AtPlayhead());
+    if ($('#btnT3Crossfade')) $('#btnT3Crossfade').addEventListener('click', () => crossfadeT3Clips(80));
+    if ($('#btnT3CloseGaps')) $('#btnT3CloseGaps').addEventListener('click', closeT3Gaps);
+    if ($('#btnT3Bounce')) $('#btnT3Bounce').addEventListener('click', bounceT3ToSingle);
     if ($('#btnSplitAtPlayheadRegion')) $('#btnSplitAtPlayheadRegion').addEventListener('click', splitAtPlayheadRegion);
-    if ($('#qSplitClip')) $('#qSplitClip').addEventListener('click', splitAtPlayheadRegion);
+    if ($('#qSplitClip')) $('#qSplitClip').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2' && Layer.clips.length) splitT2AtPlayhead();
+      else if (trk === 't3' && Stems.clips.length) splitT3AtPlayhead();
+      else splitAtPlayheadRegion();
+    });
     if ($('#btnSplitMarkersToRegions')) $('#btnSplitMarkersToRegions').addEventListener('click', () => splitTrackToRegions(Markers.list.map((m) => m.t)));
     if ($('#btnBounceRegions')) $('#btnBounceRegions').addEventListener('click', bounceRegionsToMain);
     if ($('#btnClearRegions')) $('#btnClearRegions').addEventListener('click', () => { Regions.list = []; Regions.selectedId = null; Regions.clipEdit = false; renderRegionList(); renderLayersUI(); baseDirty = fxDirty = true; if (P.playing) { P.t = curTime(); play(); } });
     if ($('#btnT1ClipEdit')) $('#btnT1ClipEdit').addEventListener('click', () => { Regions.clipEdit = !Regions.clipEdit; syncRegionQuickBar(); haptic(5); });
-    if ($('#btnRqSplit')) $('#btnRqSplit').addEventListener('click', splitAtPlayheadRegion);
-    if ($('#btnRqFade')) $('#btnRqFade').addEventListener('click', () => crossfadeAdjacentRegions(80));
-    if ($('#btnRqRipple')) $('#btnRqRipple').addEventListener('click', closeRegionGaps);
-    if ($('#btnRqDup')) $('#btnRqDup').addEventListener('click', dupSelectedRegion);
-    if ($('#btnRqMute')) $('#btnRqMute').addEventListener('click', toggleMuteSelectedRegion);
-    if ($('#btnRqDel')) $('#btnRqDel').addEventListener('click', deleteSelectedRegion);
-    if ($('#btnRqBounce')) $('#btnRqBounce').addEventListener('click', bounceRegionsToMain);
+    if ($('#btnRqSplit')) $('#btnRqSplit').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') splitT2AtPlayhead();
+      else if (trk === 't3') splitT3AtPlayhead();
+      else splitAtPlayheadRegion();
+    });
+    if ($('#btnRqFade')) $('#btnRqFade').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') crossfadeT2Clips(80);
+      else if (trk === 't3') crossfadeT3Clips(80);
+      else crossfadeAdjacentRegions(80);
+    });
+    if ($('#btnRqRipple')) $('#btnRqRipple').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') closeT2Gaps();
+      else if (trk === 't3') closeT3Gaps();
+      else closeRegionGaps();
+    });
+    if ($('#btnRqDup')) $('#btnRqDup').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') dupT2Clip();
+      else if (trk === 't3') dupT3Clip();
+      else dupSelectedRegion();
+    });
+    if ($('#btnRqMute')) $('#btnRqMute').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') toggleMuteT2Clip();
+      else if (trk === 't3') toggleMuteT3Clip();
+      else toggleMuteSelectedRegion();
+    });
+    if ($('#btnRqDel')) $('#btnRqDel').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') deleteSelectedT2Clip();
+      else if (trk === 't3') deleteSelectedT3Clip();
+      else deleteSelectedRegion();
+    });
+    if ($('#btnRqBounce')) $('#btnRqBounce').addEventListener('click', () => {
+      const trk = activeClipTrack();
+      if (trk === 't2') bounceT2ClipsToSingle();
+      else if (trk === 't3') bounceT3ToSingle();
+      else bounceRegionsToMain();
+    });
     if ($('#btnSpecBrush')) $('#btnSpecBrush').addEventListener('click', () => setSpecBrushActive(!SpecBrush.active));
     if ($('#specRepairBar')) {
       $('#specRepairBar').addEventListener('click', (e) => {
@@ -29099,9 +30324,15 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       });
     }
     const sync = () => {
-      const compressed = fmt.value !== 'wav';
-      $('#exBrWrap').hidden = !compressed;
-      $('#exBits').closest('.field').style.display = compressed ? 'none' : '';
+      const isLossless = fmt.value === 'wav' || fmt.value === 'flac';
+      $('#exBrWrap').hidden = isLossless;
+      $('#exBits').closest('.field').style.display = isLossless ? '' : 'none';
+      const opt32 = $('#exBits32Opt');
+      if (opt32) {
+        opt32.hidden = fmt.value === 'flac';
+        opt32.disabled = fmt.value === 'flac';
+      }
+      if (fmt.value === 'flac' && $('#exBits').value === '32') $('#exBits').value = '24';
       estimateSize();
     };
     fmt.addEventListener('change', sync);
@@ -29114,7 +30345,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   }
   function exportSettings() {
     const fmt = $('#exFormat').value;
-    const compressed = fmt !== 'wav';
+    const isLossless = fmt === 'wav' || fmt === 'flac';
+    const compressed = !isLossless;
     let rate = parseInt($('#exRate').value,10) || S.rate;
     let br = parseInt($('#exBr').value,10);
     if (fmt === 'mp3') {
@@ -29126,6 +30358,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     } else if (fmt === 'm4a' || fmt === 'm4r') {
       const supAac = [16000, 22050, 24000, 32000, 44100, 48000];
       rate = supAac.reduce((best,v) => Math.abs(v-rate) < Math.abs(best-rate) ? v : best, supAac[5]);
+    } else if (fmt === 'flac') {
+      rate = clamp(rate, 8000, 192000);
     }
     return {rate,br,channels:compressed?Math.min(2,S.data.length):S.data.length};
   }
@@ -29133,14 +30367,17 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const el = $('#exEst');
     if (!el || !hasAudio) return;
     const fmt = $('#exFormat').value;
+    const isLossless = fmt === 'wav' || fmt === 'flac';
     const {rate, br, channels} = exportSettings();
     const [a, b] = selRange();
     const secs = (b - a) / S.rate;
     if ($('#exRangeTxt')) $('#exRangeTxt').textContent = fmtTime(a / S.rate, true) + ' – ' + fmtTime(b / S.rate, true);
+    const bits = parseInt($('#exBits').value, 10);
     let bytes;
-    if (fmt !== 'wav') bytes = (br * 1000 / 8) * secs;
-    else bytes = secs * rate * S.data.length * (parseInt($('#exBits').value, 10) / 8);
-    el.textContent = '≈ ' + fmtBytes(bytes) + ' · ' + fmtTime(secs, true) + ' · ' + (rate / 1000).toFixed(1) + ' kHz · ' + channels + ' ch' + (fmt !== 'wav' ? ' · ' + br + ' kbps' : '');
+    if (!isLossless) bytes = (br * 1000 / 8) * secs;
+    else if (fmt === 'flac') bytes = secs * rate * S.data.length * ((bits === 32 ? 24 : bits) / 8) * 0.55;
+    else bytes = secs * rate * S.data.length * (bits / 8);
+    el.textContent = '≈ ' + fmtBytes(bytes) + ' · ' + fmtTime(secs, true) + ' · ' + (rate / 1000).toFixed(1) + ' kHz · ' + channels + ' ch' + (isLossless ? ' · ' + (fmt === 'flac' ? (bits === 32 ? 24 : bits) + '-bit FLAC' : (bits === 32 ? '32-bit Float' : bits + '-bit PCM')) : ' · ' + br + ' kbps');
   }
 
   function muxAacMp4(frames, sampleRate, channels, totalSamples, ascBytes) {
@@ -29412,6 +30649,11 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       } else if (format === 'm4a' || format === 'm4r') {
         const res = await encodeAacM4aBytes(data, rate, br, (p) => setProg(0.1 + 0.85 * p));
         bytes = res.bytes; mime = format === 'm4r' ? 'audio/x-m4r' : 'audio/mp4'; ext = format;
+      } else if (format === 'flac') {
+        const rawBits = parseInt($('#exBits').value, 10);
+        const bits = rawBits === 24 ? 24 : (rawBits === 32 ? 24 : 16);
+        bytes = await runTask({ act: 'flac', data: cloneData(data), rate, bits, meta }, (p) => setProg(0.1 + 0.85 * p));
+        mime = 'audio/flac'; ext = 'flac';
       } else {
         const bits = parseInt($('#exBits').value, 10);
         const id3 = encodeId3v2(meta, CoverArt);
@@ -29638,7 +30880,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         bypass: { ...FXRack.bypass },
         values: captureFxValues(),
       },
-      layer: (Layer.active && Layer.data) ? {
+      layer: (Layer.active && (Layer.data || (Layer.clips && Layer.clips.length))) ? {
         active: true,
         name: Layer.name,
         rate: Layer.rate,
@@ -29661,7 +30903,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         duckSensDb: Layer.duckSensDb,
         duckReleaseMs: Layer.duckReleaseMs,
         loopBed: Layer.loopBed,
-        data: includeAudio ? cloneData(Layer.data) : undefined,
+        data: (includeAudio && Layer.data) ? cloneData(Layer.data) : undefined,
+        clips: (Layer.clips || []).map((cl) => ({
+          name: cl.name, rate: cl.rate, offsetSec: cl.offsetSec,
+          trimInSec: cl.trimInSec || 0, trimOutSec: cl.trimOutSec || 0,
+          gainDb: cl.gainDb || 0, fadeInMs: cl.fadeInMs || 0, fadeOutMs: cl.fadeOutMs || 0,
+          mute: !!cl.mute, data: includeAudio ? cloneData(cl.data) : undefined,
+        })),
       } : null,
       stems: Stems.clips.map((c) => ({
         name: c.name,
@@ -29777,7 +31025,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         if (lData) layerAudio = { data: lData, rate: proj.layer.rate };
       } catch (e) {}
     }
-    if (proj.layer && layerAudio && layerAudio.data) {
+    if (proj.layer && ((layerAudio && layerAudio.data) || (Array.isArray(proj.layer.clips) && proj.layer.clips.length))) {
       Layer.offset = proj.layer.offset || 0;
       Layer.trimInSec = proj.layer.trimInSec || 0;
       Layer.trimOutSec = proj.layer.trimOutSec || 0;
@@ -29795,7 +31043,32 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       Layer.duckSensDb = proj.layer.duckSensDb ?? -32;
       Layer.duckReleaseMs = proj.layer.duckReleaseMs ?? 340;
       Layer.loopBed = !!proj.layer.loopBed;
-      await loadLayerData(cloneData(layerAudio.data), layerAudio.rate || S.rate, proj.layer.name || 'Track 2');
+      if (layerAudio && layerAudio.data) {
+        await loadLayerData(cloneData(layerAudio.data), layerAudio.rate || S.rate, proj.layer.name || 'Track 2');
+      } else {
+        Layer.active = true; Layer.name = proj.layer.name || 'Track 2'; Layer.rate = proj.layer.rate || S.rate;
+      }
+      if (Array.isArray(proj.layer.clips) && proj.layer.clips.length) {
+        const restoredClips = [];
+        for (let ci = 0; ci < proj.layer.clips.length; ci++) {
+          const cl = proj.layer.clips[ci];
+          let cData = cl.data ? cloneData(cl.data) : null;
+          if (!cData && cl.opfsKey) {
+            try { cData = await OPFSSwap.readAudio(cl.opfsKey); } catch (e) {}
+          }
+          if (!cData || !cData.length) continue;
+          const obj = Object.assign(
+            makeLayerClipObj(cl.name || ('Clip ' + (ci + 1)), cloneData(cData), cl.rate || Layer.rate || S.rate, cl.offsetSec || 0),
+            { trimInSec: cl.trimInSec || 0, trimOutSec: cl.trimOutSec || 0, gainDb: cl.gainDb || 0, fadeInMs: cl.fadeInMs || 0, fadeOutMs: cl.fadeOutMs || 0, mute: !!cl.mute }
+          );
+          restoredClips.push(obj);
+        }
+        if (restoredClips.length) {
+          Layer.clips = restoredClips;
+          Layer.selectedId = restoredClips[0].id;
+          if (!Layer.data) { Layer.data = restoredClips[0].data; Layer.rate = restoredClips[0].rate; }
+        }
+      }
       Layer.mute = !!proj.layer.mute;
       Layer.solo = !!proj.layer.solo;
       if ($('#t2Gain')) { $('#t2Gain').value = Layer.gainDb; $('#t2GainOut').textContent = (Layer.gainDb > 0 ? '+' : '') + Layer.gainDb.toFixed(1) + ' dB'; }
@@ -30476,21 +31749,44 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       strip.replaceChildren();
       strip.hidden = Markers.list.length === 0;
       Markers.list.forEach((m, i) => {
-        const pill = document.createElement('button'); pill.type = 'button'; pill.className = 'mpill';
+        const pill = document.createElement('div'); pill.className = 'mpill';
+        const jumpBtn = document.createElement('button'); jumpBtn.type = 'button'; jumpBtn.className = 'mpill-jump';
         const dot = document.createElement('span'); dot.className = 'mpill-dot';
         dot.style.background = markerColor(m.tag);
         const tm = document.createElement('span'); tm.className = 'mpill-t';
         tm.textContent = fmtTime(m.t, true);
         const lbl = document.createElement('span');
         lbl.textContent = m.name || ('Cue ' + (i + 1));
-        const ed = document.createElement('span'); ed.className = 'mpill-edit'; ed.textContent = m.note ? '📝' : '⋯';
-        pill.title = (m.note ? m.note + ' · ' : '') + 'Tap to jump · Click icon to edit';
-        pill.onclick = (ev) => {
-          if (ev.target === ed) { openMarkerPop(i); return; }
+        jumpBtn.title = (m.note ? m.note + ' · ' : '') + 'Tap to jump to marker';
+        jumpBtn.setAttribute('aria-label', 'Jump to ' + (m.name || ('Marker ' + (i + 1))) + ' at ' + fmtTime(m.t, true));
+        jumpBtn.onclick = () => {
           seek(m.t, false);
           ensureVisible(Math.max(0, m.t - 1), Math.min(dur(), m.t + 2));
         };
-        pill.append(dot, tm, lbl, ed);
+        jumpBtn.append(dot, tm, lbl);
+
+        const ed = document.createElement('button'); ed.type = 'button'; ed.className = 'mpill-edit';
+        ed.textContent = m.note ? '📝' : '⋯';
+        ed.title = 'Edit marker cue & note';
+        ed.setAttribute('aria-label', 'Edit ' + (m.name || ('Marker ' + (i + 1))));
+        ed.onclick = (ev) => { ev.stopPropagation(); openMarkerPop(i); };
+
+        const del = document.createElement('button'); del.type = 'button'; del.className = 'mpill-del';
+        del.textContent = '×';
+        del.title = 'Delete marker';
+        del.setAttribute('aria-label', 'Delete ' + (m.name || ('Marker ' + (i + 1))));
+        del.onclick = (ev) => {
+          ev.stopPropagation();
+          if (Markers.activeIdx === i) closeMarkerPop();
+          else if (Markers.activeIdx > i) Markers.activeIdx--;
+          Markers.list.splice(i, 1);
+          renderMarkers();
+          fxDirty = true;
+          haptic(6);
+          scheduleSave();
+        };
+
+        pill.append(jumpBtn, ed, del);
         strip.append(pill);
       });
     }
@@ -31432,6 +32728,12 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     { t: 'Isolate center vocals', cat: 'Effects', sub: 'Extract lead center voice via M/S masking', run: () => doVocalTool('isolate') },
     { t: 'Smart Stem Separation (Vocals / Drums / Bass / Other)', cat: 'Effects', sub: 'STFT + HPSS split into multitrack stems', run: () => { switchSideTab('fx'); if ($('#stemSepAcc')) $('#stemSepAcc').classList.add('open'); } },
     { t: 'Live AudioWorklet FX Engine (Zero-Bake)', cat: 'Effects', sub: 'Real-time tape warmth, chorus, echo, lo-fi & auto-pan', run: () => { switchSideTab('fx'); if ($('#workletFxAcc')) $('#workletFxAcc').classList.add('open'); } },
+    { t: 'Split Track 2 clip at playhead', cat: 'Track', sub: 'Non-destructive slice on Track 2 lane', run: splitT2AtPlayhead },
+    { t: 'Crossfade Track 2 clips', cat: 'Track', sub: 'Equal-power 80 ms fade between touching Track 2 clips', run: () => crossfadeT2Clips(80) },
+    { t: 'Split Track 3 clip at playhead', cat: 'Track', sub: 'Non-destructive slice on Track 3 stems lane', run: () => splitT3AtPlayhead() },
+    { t: 'Close Track 3 gaps', cat: 'Track', sub: 'Ripple-pack Track 3 stems consecutively', run: closeT3Gaps },
+    { t: 'Export Lossless FLAC', cat: 'Track', sub: 'Pure-JS RFC 9639 24-bit/16-bit lossless FLAC export', run: () => { switchSideTab('export'); const f = document.querySelector('[data-fmt="flac"]'); if (f) f.click(); } },
+    { t: 'Export 32-bit Float WAV', cat: 'Track', sub: 'Studio IEEE float master WAV export', run: () => { switchSideTab('export'); const f = document.querySelector('[data-fmt="wav32"]'); if (f) f.click(); } },
 
     { t: 'Zoom in', cat: 'View', sub: 'Inspect waveform detail', k: '+', run: () => zoomAt(1.4) },
     { t: 'Zoom out', cat: 'View', sub: 'See wider timeline', k: '−', run: () => zoomAt(1 / 1.4) },
@@ -31694,7 +32996,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         <div class="pref-card">
           <div class="field"><label for="prefDefExport">Default export format</label>
             <select id="prefDefExport">
-              <option value="wav" ${Prefs.defExport === 'wav' ? 'selected' : ''}>WAV — lossless</option>
+              <option value="wav" ${Prefs.defExport === 'wav' ? 'selected' : ''}>WAV — lossless PCM / Float</option>
+              <option value="flac" ${Prefs.defExport === 'flac' ? 'selected' : ''}>FLAC — lossless compressed</option>
               <option value="mp3" ${Prefs.defExport === 'mp3' ? 'selected' : ''}>MP3 — compressed</option>
               <option value="opus" ${Prefs.defExport === 'opus' ? 'selected' : ''}>Opus — voice (.ogg / .webm)</option>
               <option value="m4a" ${Prefs.defExport === 'm4a' ? 'selected' : ''}>AAC — Apple (.m4a)</option>
@@ -31968,6 +33271,15 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
             if (lBytes >= OPFS_SWAP_BYTES) {
               const lm = await OPFSSwap.writeAudio('proj_layer', proj.layer.data).catch(() => null);
               if (lm) { proj.layer.opfsKey = 'proj_layer'; delete proj.layer.data; usedOpfs = true; }
+            }
+          }
+          if (proj.layer && Array.isArray(proj.layer.clips)) {
+            for (let i = 0; i < proj.layer.clips.length; i++) {
+              const cl = proj.layer.clips[i];
+              if (cl.data && cl.data.reduce((m, c) => m + c.byteLength, 0) >= OPFS_SWAP_BYTES) {
+                const cm = await OPFSSwap.writeAudio('proj_layer_clip_' + i, cl.data).catch(() => null);
+                if (cm) { cl.opfsKey = 'proj_layer_clip_' + i; delete cl.data; usedOpfs = true; }
+              }
             }
           }
           if (Array.isArray(proj.stems)) {
@@ -33104,10 +34416,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     for (const [id,key] of [['exTitle','title'],['exArtist','artist']]) { if ($('#' + id)) $('#' + id).addEventListener('change', () => { S.meta[key] = $('#' + id).value; scheduleSave(); }); }
     $$('[data-export-preset]').forEach(b => b.onclick = () => {
       const key = b.dataset.exportPreset;
-      $('#exFormat').value = key === 'quality' ? 'wav' : 'mp3';
-      $('#exBits').value = '24';
-      $('#exRate').value = key === 'social' ? '48000' : key === 'podcast' ? '44100' : key === 'voice' ? '32000' : '0';
-      $('#exBr').value = key === 'social' ? '256' : key === 'voice' ? '128' : '192';
+      $('#exFormat').value = key === 'flac' ? 'flac' : (key === 'quality' || key === 'wav32') ? 'wav' : 'mp3';
+      $('#exBits').value = key === 'wav32' ? '32' : '24';
+      $('#exRate').value = key === 'podcast' ? '44100' : '0';
+      $('#exBr').value = '192';
       $('#exFormat').dispatchEvent(new Event('change'));
       $$('[data-export-preset]').forEach(x => x.setAttribute('aria-pressed', x === b));
       haptic(5);
@@ -33259,5 +34571,5 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60fa2292976fbe5',t:'MTc5NTc2Njc4NQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60fa2292976fbe5',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60fed9d3da679ec',t:'MTc5NTc2OTg3Ng=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60fed9d3da679ec',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
