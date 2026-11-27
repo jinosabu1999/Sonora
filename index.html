@@ -806,6 +806,23 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .ag-art-meta { flex: 1; min-width: 0; }
 .ag-art-meta b { display: block; font-size: 12px; font-weight: 620; color: var(--txt); }
 .ag-art-meta span { display: block; font-size: 11px; color: var(--txt-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-safezone-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px 9px; border-radius: 12px;
+  background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.09);
+}
+.ag-safezone-lbl { font-size: 10.5px; font-weight: 680; letter-spacing: .04em; text-transform: uppercase; color: var(--txt-3); margin-right: 2px; }
+.ag-safezone-bar .ag-chip { padding: 4px 9px; font-size: 10.5px; }
+.ag-wm-card {
+  display: flex; flex-direction: column; gap: 9px; padding: 10px 11px; border-radius: 14px;
+  background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.1);
+}
+.ag-quick-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.ag-quick-pill {
+  padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 590;
+  background: rgba(100,210,255,.1); border: 1px solid rgba(100,210,255,.26); color: #cbeeff;
+}
+.ag-quick-pill:hover { background: rgba(100,210,255,.2); }
 .ag-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; min-width: 0; }
 .ag-actions .btn { flex: 1 1 120px; min-width: 0; max-width: 100%; min-height: 44px; padding: 0 12px; text-align: center; }
 .ag-actions .btn.primary { flex: 1 1 100%; min-height: 46px; }
@@ -20847,10 +20864,12 @@ self.onmessage = function (e) {
     return FXRack.order.some((id) => !FXRack.bypass[id] && fxModuleDirty(id));
   }
   function effectiveTrackAudibility() {
-    const anySolo = (MainMix.solo) || (Layer.active && Layer.solo);
+    const anyStemSolo = Stems.clips.some((c) => !!c.solo);
+    const anySolo = (MainMix.solo) || (Layer.active && Layer.solo) || anyStemSolo;
     const mainOn = !MainMix.mute && (!anySolo || MainMix.solo);
     const layerOn = Layer.active && !Layer.mute && (!anySolo || Layer.solo);
-    return { mainOn, layerOn };
+    const stemOn = (clip) => !Stems.mute && !clip.mute && (!anySolo || !!clip.solo);
+    return { mainOn, layerOn, stemOn, anySolo };
   }
   function syncRefSwitchNodes() {
     if (!ctx || !mixBusNode || !RefTrack.gainNode) return;
@@ -20863,7 +20882,7 @@ self.onmessage = function (e) {
   function syncMixNodes() {
     if (!ctx) return;
     const t = ctx.currentTime;
-    const { mainOn, layerOn } = effectiveTrackAudibility();
+    const { mainOn, layerOn, stemOn } = effectiveTrackAudibility();
     if (mainTrackGainNode) {
       const mg = mainOn ? Math.pow(10, (MainMix.gainDb || 0) / 20) : 0;
       mainTrackGainNode.gain.setTargetAtTime(mg, t, 0.015);
@@ -20911,6 +20930,17 @@ self.onmessage = function (e) {
       } else {
         Layer.gainNode.gain.cancelScheduledValues(t);
         Layer.gainNode.gain.setTargetAtTime(Math.pow(10, (Layer.gainDb || 0) / 20), t, 0.015);
+      }
+    }
+    if (Stems && Stems.clips) {
+      for (const clip of Stems.clips) {
+        if (clip._liveGain && clip._liveGain.gain) {
+          const sg = stemOn(clip) ? Math.pow(10, (clip.gainDb || 0) / 20) : 0;
+          clip._liveGain.gain.setTargetAtTime(sg, t, 0.015);
+        }
+        if (clip._livePan && clip._livePan.pan) {
+          clip._livePan.pan.setTargetAtTime(clamp((clip.pan || 0) / 100, -1, 1), t, 0.015);
+        }
       }
     }
     syncSendBusWiring();
@@ -21204,10 +21234,11 @@ self.onmessage = function (e) {
   function startStemPlayback(when, fromSec, hiSec) {
     if (!Stems.clips.length || Stems.mute || !ctx) return;
     const c = ctx;
+    const { stemOn } = effectiveTrackAudibility();
     const rate = P.rate || 1;
     const maxWin = Math.max(0.01, (hiSec - fromSec) / rate);
     for (const clip of Stems.clips) {
-      if (!clip.buffer || clip.mute) continue;
+      if (!clip.buffer || !stemOn(clip)) continue;
       const { inS, playDur: clipDur } = stemTrimmedSpan(clip);
       const off = clip.offsetSec || 0;
       const rel = fromSec - off;
@@ -21243,6 +21274,8 @@ self.onmessage = function (e) {
       }
       const pNode = c.createStereoPanner ? c.createStereoPanner() : null;
       const outNode = pNode || g;
+      clip._liveGain = g;
+      clip._livePan = pNode;
       if (pNode) {
         pNode.pan.value = clamp((clip.pan || 0) / 100, -1, 1);
         s.connect(g); g.connect(pNode); pNode.connect(mixBusNode || master);
@@ -21452,9 +21485,120 @@ self.onmessage = function (e) {
     syncTransport(); fxDirty = true;
   }
 
+  /* ---------------------------------------- OPFS audio swap for large files */
+  const OPFS_SWAP_BYTES = 8 * 1024 * 1024; // 8 MiB threshold for automatic OPFS disk swap
+  const OPFSSwap = {
+    supported: typeof navigator !== 'undefined' && !!navigator.storage && typeof navigator.storage.getDirectory === 'function',
+    dir: null,
+    initPromise: null,
+    sizes: new Map(),
+    totalBytes: 0,
+    nextSeq: 1,
+    async init() {
+      if (!this.supported) return null;
+      if (this.dir) return this.dir;
+      if (this.initPromise) return this.initPromise;
+      this.initPromise = (async () => {
+        try {
+          const root = await navigator.storage.getDirectory();
+          this.dir = await root.getDirectoryHandle('sonora-swap', { create: true });
+          return this.dir;
+        } catch (e) {
+          this.supported = false;
+          return null;
+        }
+      })();
+      return this.initPromise;
+    },
+    async writeAudio(key, channels) {
+      const dir = await this.init();
+      if (!dir || !channels || !channels.length) return null;
+      const chCount = channels.length;
+      const chLen = channels[0].length;
+      const byteLen = 8 + chCount * chLen * 4;
+      const fh = await dir.getFileHandle(key + '.pcm', { create: true });
+      const wr = await fh.createWritable();
+      try {
+        const hdr = new Uint32Array([chCount, chLen]);
+        await wr.write(hdr);
+        for (let c = 0; c < chCount; c++) await wr.write(channels[c]);
+        await wr.close();
+      } catch (e) {
+        try { await wr.abort(); } catch (_) {}
+        throw e;
+      }
+      const prev = this.sizes.get(key) || 0;
+      this.sizes.set(key, byteLen);
+      this.totalBytes = Math.max(0, this.totalBytes - prev + byteLen);
+      return { key, chCount, chLen, bytes: byteLen };
+    },
+    async readAudio(key) {
+      const dir = await this.init();
+      if (!dir) throw new Error('OPFS swap unavailable');
+      const fh = await dir.getFileHandle(key + '.pcm');
+      const file = await fh.getFile();
+      const ab = await file.arrayBuffer();
+      const hdr = new Uint32Array(ab, 0, 2);
+      const chCount = hdr[0], chLen = hdr[1];
+      const out = new Array(chCount);
+      for (let c = 0; c < chCount; c++) {
+        out[c] = new Float32Array(ab.slice(8 + c * chLen * 4, 8 + (c + 1) * chLen * 4));
+      }
+      return out;
+    },
+    async unlink(key) {
+      if (!key) return;
+      const dir = await this.init();
+      const prev = this.sizes.get(key) || 0;
+      this.sizes.delete(key);
+      this.totalBytes = Math.max(0, this.totalBytes - prev);
+      if (!dir) return;
+      try { await dir.removeEntry(key + '.pcm'); } catch (e) {}
+    },
+    async clearAll(keepPrefix) {
+      const dir = await this.init();
+      if (!dir) return;
+      try {
+        for await (const name of dir.keys()) {
+          if (keepPrefix && name.startsWith(keepPrefix)) continue;
+          try { await dir.removeEntry(name); } catch (e) {}
+          const k = name.replace(/\.pcm$/, '');
+          const prev = this.sizes.get(k) || 0;
+          this.sizes.delete(k);
+          this.totalBytes = Math.max(0, this.totalBytes - prev);
+        }
+      } catch (e) {}
+    },
+  };
+
+  function snapRamBytes(h) {
+    return h && h.d ? h.d.reduce((m, c) => m + c.byteLength, 0) : 0;
+  }
+  function disposeSnap(h) {
+    if (!h) return;
+    if (h.opfs && h.opfs.key) OPFSSwap.unlink(h.opfs.key);
+    h.d = null;
+    h.opfs = null;
+  }
+  function offloadSnapToOPFS(snap) {
+    if (!OPFSSwap.supported || !snap || !snap.d || snap.opfs || snap._swapPromise) return;
+    const ram = snapRamBytes(snap);
+    if (ram < OPFS_SWAP_BYTES) return;
+    const key = 'undo_' + (OPFSSwap.nextSeq++) + '_' + Date.now();
+    const copy = snap.d;
+    snap._swapPromise = OPFSSwap.writeAudio(key, copy).then((meta) => {
+      if (meta && !snap._disposed) {
+        snap.opfs = meta;
+        snap.d = null; // Free RAM heap now that PCM is safely swapped to OPFS
+      }
+    }).catch(() => {}).finally(() => { snap._swapPromise = null; });
+  }
+
   /* ----------------------------------------------------------- edit engine */
   function captureState(label) {
-    return { d: cloneData(S.data), r: S.rate, a: Sel.a, b: Sel.b, t: P.t,
+    const d = cloneData(S.data);
+    const bytes = d.reduce((m, c) => m + c.byteLength, 0);
+    return { d, bytes, opfs: null, _swapPromise: null, _disposed: false, r: S.rate, a: Sel.a, b: Sel.b, t: P.t,
       dur: S.data[0].length / S.rate, ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       markers: Markers.list.map(m => ({...m})),
       regions: Regions.list.map(rg => ({ ...rg })),
@@ -21462,16 +21606,34 @@ self.onmessage = function (e) {
       label: label || 'Edit' };
   }
   function snapshot(label) {
-    H.undo.push(captureState(label)); H.redo.length = 0;
-    // Float32 history is lossless. Keep at least the latest edit within a 96 MiB budget.
-    let bytes = H.undo.reduce((n, h) => n + h.d.reduce((m, c) => m + c.byteLength, 0), 0);
-    while (H.undo.length > 1 && (H.undo.length > H.max || bytes > 96 * 1024 * 1024)) {
-      bytes -= H.undo.shift().d.reduce((n, c) => n + c.byteLength, 0);
+    while (H.redo.length) disposeSnap(H.redo.pop());
+    const snap = captureState(label);
+    H.undo.push(snap);
+    offloadSnapToOPFS(snap);
+    // Float32 history is lossless. Keep RAM snapshots within 96 MiB and swap larger files to OPFS.
+    let ramBytes = H.undo.reduce((n, h) => n + snapRamBytes(h), 0);
+    let totalBytes = H.undo.reduce((n, h) => n + (h.bytes || snapRamBytes(h)), 0);
+    while (H.undo.length > 1 && (H.undo.length > H.max || ramBytes > 96 * 1024 * 1024 || totalBytes > 512 * 1024 * 1024)) {
+      const drop = H.undo.shift();
+      drop._disposed = true;
+      ramBytes -= snapRamBytes(drop);
+      totalBytes -= (drop.bytes || 0);
+      disposeSnap(drop);
     }
     syncHistory();
   }
-  function restore(snap) {
-    pausePlay(); S.data = cloneData(snap.d); S.rate = snap.r;
+  async function restore(snap) {
+    pausePlay();
+    if (snap._swapPromise) { try { await snap._swapPromise; } catch (e) {} }
+    let restored = snap.d ? cloneData(snap.d) : null;
+    if (!restored && snap.opfs && snap.opfs.key) {
+      const large = (snap.opfs.bytes || 0) >= 24 * 1024 * 1024;
+      if (large) busy(true, 'Reading OPFS audio swap…');
+      try { restored = await OPFSSwap.readAudio(snap.opfs.key); }
+      finally { if (large) busy(false); }
+    }
+    if (!restored) throw new Error('Audio snapshot unavailable');
+    S.data = restored; S.rate = snap.r;
     Sel.a = snap.a; Sel.b = snap.b; P.t = snap.t;
     Markers.list = snap.markers.map(m => ({...m})); renderMarkers();
     if (Array.isArray(snap.regions)) {
@@ -21481,27 +21643,40 @@ self.onmessage = function (e) {
     }
     afterEdit(true); syncTransport();
   }
-  function undo() {
+  async function undo() {
     if (processing || importing) return;
     if (!H.undo.length) return toast('Nothing to undo', 'info', 1600);
-    const state = H.undo.pop(); H.redo.push(captureState(state.label));
-    restore(state); syncHistory(); haptic(8); toast('Undid ' + state.label, 'info', 1400);
+    const state = H.undo.pop();
+    const redoSnap = captureState(state.label);
+    H.redo.push(redoSnap);
+    offloadSnapToOPFS(redoSnap);
+    await restore(state);
+    disposeSnap(state);
+    syncHistory(); haptic(8); toast('Undid ' + state.label, 'info', 1400);
   }
-  function redo() {
+  async function redo() {
     if (processing || importing) return;
     if (!H.redo.length) return toast('Nothing to redo', 'info', 1600);
-    const state = H.redo.pop(); H.undo.push(captureState(state.label));
-    restore(state); syncHistory(); haptic(8); toast('Redid ' + state.label, 'info', 1400);
+    const state = H.redo.pop();
+    const undoSnap = captureState(state.label);
+    H.undo.push(undoSnap);
+    offloadSnapToOPFS(undoSnap);
+    await restore(state);
+    disposeSnap(state);
+    syncHistory(); haptic(8); toast('Redid ' + state.label, 'info', 1400);
   }
-  function jumpToHistory(idx) {
+  async function jumpToHistory(idx) {
     if (processing || importing || idx < 0 || idx >= H.undo.length) return;
     let target = null;
     while (H.undo.length > idx) {
       const st = H.undo.pop();
-      H.redo.push(captureState(st.label));
+      const redoSnap = captureState(st.label);
+      H.redo.push(redoSnap);
+      offloadSnapToOPFS(redoSnap);
+      if (target) disposeSnap(target);
       target = st;
     }
-    if (target) { restore(target); syncHistory(); toast('Jumped back to ' + target.label, 'ok', 1600); }
+    if (target) { await restore(target); disposeSnap(target); syncHistory(); toast('Jumped back to ' + target.label, 'ok', 1600); }
   }
   function syncHistory() {
     $('#btnUndo').disabled = !H.undo.length;
@@ -21574,7 +21749,10 @@ self.onmessage = function (e) {
       afterEdit(false); haptic(9); toast(label + ' applied', 'ok', 1800);
     } catch (e) {
       const before = H.undo.pop();
-      if (before) restore(before);
+      if (before) {
+        try { await restore(before); } catch (_) {}
+        disposeSnap(before);
+      }
       H.redo = previousRedo; syncHistory(); haptic([16, 30, 16]);
       toast(label + ' failed: ' + e.message, 'err', 4200);
     } finally {
@@ -22573,7 +22751,15 @@ self.onmessage = function (e) {
     if (typeof clearReferenceTrack === 'function') clearReferenceTrack();
     if (typeof computeDuckCurve === 'function') computeDuckCurve();
     if (typeof renderLayersUI === 'function') renderLayersUI();
-    H.undo.length = 0; H.redo.length = 0; syncHistory();
+    while (H.undo.length) disposeSnap(H.undo.pop());
+    while (H.redo.length) disposeSnap(H.redo.pop());
+    syncHistory();
+    const pcmBytes = data.reduce((n, ch) => n + ch.byteLength, 0);
+    if (pcmBytes >= OPFS_SWAP_BYTES && OPFSSwap.supported) {
+      OPFSSwap.init().then((dir) => {
+        if (dir) toast(`Large file (${fmtBytes(pcmBytes)}) — OPFS disk swap active`, 'info', 2600);
+      });
+    }
     hasAudio = true;
     makeBuffer();
     S.orig = { buffer: S.buffer };   // untouched audio, for hold-to-compare
@@ -23172,57 +23358,44 @@ self.onmessage = function (e) {
   function getTrackVolPillRects() {
     if (!hasAudio) return [];
     const lanes = getTimelineLanes();
-    const pills = [];
-    const pw = 92;
-    const rightX = Math.max(8, canvasW - pw - 22);
-    pills.push({
-      mode: 't1Vol', stemIdx: -1, label: 'T1',
-      x: rightX, y: lanes.top + 5, w: pw, h: 20,
-      db: MainMix.gainDb || 0, mute: !!MainMix.mute,
-      color: '#64d2ff', bg: 'rgba(8, 16, 28, .86)',
-    });
+    const items = [];
+    const compact = canvasW < 430;
+    const mW = 19, sW = 19, panW = compact ? 38 : 44, volW = compact ? 68 : 78, gap = 4;
+    const totalW = mW + sW + panW + volW + gap * 3;
+    const pushCluster = (trackKey, stemIdx, label, rightEdge, y, h, db, pan, mute, solo, color, bg) => {
+      const startX = clamp(rightEdge - totalW, 6, Math.max(6, canvasW - totalW - 8));
+      items.push({ kind: 'mute', mode: trackKey + 'Mute', trackKey, stemIdx, label, x: startX, y, w: mW, h, mute, color, bg });
+      items.push({ kind: 'solo', mode: trackKey + 'Solo', trackKey, stemIdx, label, x: startX + mW + gap, y, w: sW, h, solo, color, bg });
+      items.push({ kind: 'pan', mode: trackKey + 'Pan', trackKey, stemIdx, label, x: startX + mW + sW + gap * 2, y, w: panW, h, pan, mute, color, bg });
+      items.push({ kind: 'vol', mode: trackKey + 'Vol', trackKey, stemIdx, label, x: startX + mW + sW + panW + gap * 3, y, w: volW, h, db, mute, color, bg });
+    };
+
+    pushCluster('t1', -1, 'T1', canvasW - 14, lanes.top + 5, 20, MainMix.gainDb || 0, MainMix.pan || 0, !!MainMix.mute, !!MainMix.solo, '#64d2ff', 'rgba(8, 16, 28, .88)');
     if (lanes.hasT2 && Layer.data) {
-      pills.push({
-        mode: 't2Vol', stemIdx: -1, label: 'T2',
-        x: rightX, y: lanes.t2Top + 4, w: pw, h: 18,
-        db: Layer.gainDb || 0, mute: !!Layer.mute,
-        color: '#30d158', bg: 'rgba(8, 18, 12, .86)',
-      });
+      pushCluster('t2', -1, 'T2', canvasW - 14, lanes.t2Top + 4, 18, Layer.gainDb || 0, Layer.pan || 0, !!Layer.mute, !!Layer.solo, '#30d158', 'rgba(8, 18, 12, .88)');
     }
     if (lanes.hasT3 && Stems.clips.length) {
       const placed = [];
       for (let i = Stems.clips.length - 1; i >= 0; i--) {
         const st = Stems.clips[i];
-        if (st.mute) continue;
         const { playDur } = stemTrimmedSpan(st);
         const sx0 = tToX(st.offsetSec);
         const sx1 = tToX(st.offsetSec + playDur);
         if (sx1 < 0 || sx0 > canvasW) continue;
-        const sw = Math.min(82, pw);
-        const px = clamp(sx1 - sw - 6, 8, Math.max(8, canvasW - sw - 22));
-        if (placed.some((ox) => Math.abs(ox - px) < sw + 4)) continue;
-        placed.push(px);
-        pills.push({
-          mode: 'stemVol', stemIdx: i, label: 'T3',
-          x: px, y: lanes.t3Top + 4, w: sw, h: 18,
-          db: st.gainDb || 0, mute: !!st.mute,
-          color: '#bf5af2', bg: 'rgba(18, 10, 26, .88)',
-        });
+        const rEdge = clamp(sx1 - 6, totalW + 8, canvasW - 14);
+        if (placed.some((ox) => Math.abs(ox - rEdge) < totalW + 6)) continue;
+        placed.push(rEdge);
+        pushCluster('stem', i, 'T3', rEdge, lanes.t3Top + 4, 18, st.gainDb || 0, st.pan || 0, !!st.mute, !!st.solo, '#bf5af2', 'rgba(18, 10, 26, .9)');
       }
       if (!placed.length) {
-        const idx = Stems.clips.findIndex((st) => !st.mute);
-        if (idx >= 0) {
-          const st = Stems.clips[idx];
-          pills.push({
-            mode: 'stemVol', stemIdx: idx, label: 'T3',
-            x: rightX, y: lanes.t3Top + 4, w: pw, h: 18,
-            db: st.gainDb || 0, mute: !!st.mute,
-            color: '#bf5af2', bg: 'rgba(18, 10, 26, .88)',
-          });
+        const idx = Math.max(0, Stems.clips.findIndex((st) => !st.mute));
+        const st = Stems.clips[idx];
+        if (st) {
+          pushCluster('stem', idx, 'T3', canvasW - 14, lanes.t3Top + 4, 18, st.gainDb || 0, st.pan || 0, !!st.mute, !!st.solo, '#bf5af2', 'rgba(18, 10, 26, .9)');
         }
       }
     }
-    return pills;
+    return items;
   }
   function specYToHz(y, lanes) {
     const ln = lanes || getTimelineLanes();
@@ -23789,43 +23962,89 @@ self.onmessage = function (e) {
       c.restore();
     }
 
-    // Interactive per-track Volume Pills (works across Spectrogram, Wave, L·R & Mix)
+    // Interactive per-track Direct Controls: [M] Mute, [S] Solo, [Pan], [Vol]
     const volPills = getTrackVolPillRects();
     for (let i = 0; i < volPills.length; i++) {
       const vp = volPills[i];
       const active = drag && drag.mode === vp.mode && drag.stemIdx === vp.stemIdx;
-      const frac = vp.mute ? 0 : clamp((vp.db + 24) / 36, 0, 1);
       c.save();
-      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2);
-      c.fillStyle = vp.bg; c.fill();
-      c.save();
-      c.clip();
-      c.fillStyle = vp.color;
-      c.globalAlpha = active ? 0.36 : 0.22;
-      c.fillRect(vp.x, vp.y, vp.w * frac, vp.h);
-      c.restore();
-      c.strokeStyle = active ? '#ffffff' : vp.color;
-      c.globalAlpha = active ? 1 : 0.72;
-      c.lineWidth = active ? 1.5 : 1;
-      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2);
-      c.stroke();
-      c.globalAlpha = 1;
-      c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f4f6fc';
-      c.font = '700 9.5px ui-monospace, monospace';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      const dbStr = vp.mute ? 'MUTE' : ((vp.db > 0 ? '+' : '') + vp.db.toFixed(1) + 'dB');
-      c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 8);
-      if (active) {
-        const hudTxt = `${vp.label} Vol: ${(vp.db > 0 ? '+' : '') + vp.db.toFixed(1)} dB`;
-        c.font = '700 10.5px ui-monospace, monospace';
-        const hw2 = c.measureText(hudTxt).width + 14;
-        const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
-        c.fillStyle = 'rgba(10, 12, 18, .94)';
-        c.strokeStyle = vp.color;
-        c.lineWidth = 1.2;
-        roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
-        c.fillStyle = '#ffffff';
-        c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
+      roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.kind === 'mute' || vp.kind === 'solo' ? 6 : vp.h / 2);
+      if (vp.kind === 'mute') {
+        c.fillStyle = vp.mute ? 'rgba(255, 69, 58, .36)' : vp.bg; c.fill();
+        c.strokeStyle = vp.mute ? '#ff6b62' : 'rgba(255,255,255,.22)';
+        c.lineWidth = vp.mute ? 1.3 : 0.9; c.stroke();
+        c.fillStyle = vp.mute ? '#ffd6d4' : 'rgba(240,244,252,.78)';
+        c.font = '700 9.5px ui-monospace, monospace';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText('M', vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5);
+      } else if (vp.kind === 'solo') {
+        c.fillStyle = vp.solo ? 'rgba(255, 214, 10, .34)' : vp.bg; c.fill();
+        c.strokeStyle = vp.solo ? '#ffd60a' : 'rgba(255,255,255,.22)';
+        c.lineWidth = vp.solo ? 1.3 : 0.9; c.stroke();
+        c.fillStyle = vp.solo ? '#fff4b8' : 'rgba(240,244,252,.78)';
+        c.font = '700 9.5px ui-monospace, monospace';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText('S', vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5);
+      } else if (vp.kind === 'pan') {
+        c.fillStyle = vp.bg; c.fill();
+        const panFrac = clamp((vp.pan || 0) / 100, -1, 1);
+        c.save(); c.clip();
+        const cx = vp.x + vp.w / 2;
+        const barW = Math.abs(panFrac) * (vp.w * 0.5);
+        c.fillStyle = vp.color; c.globalAlpha = active ? 0.36 : 0.24;
+        if (barW > 0.5) c.fillRect(panFrac < 0 ? cx - barW : cx, vp.y, barW, vp.h);
+        c.restore();
+        c.strokeStyle = active ? '#ffffff' : vp.color;
+        c.globalAlpha = active ? 1 : 0.62;
+        c.lineWidth = active ? 1.5 : 0.95;
+        roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2); c.stroke();
+        c.globalAlpha = 1;
+        c.fillStyle = vp.mute ? 'rgba(255,255,255,.45)' : '#e8effa';
+        c.font = '700 9px ui-monospace, monospace';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        const pVal = Math.round(vp.pan || 0);
+        const pStr = Math.abs(pVal) < 2 ? 'C' : (pVal < 0 ? `${Math.abs(pVal)}L` : `${pVal}R`);
+        c.fillText(pStr, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 6);
+        if (active) {
+          const hudTxt = `${vp.label} Pan: ${Math.abs(pVal) < 2 ? 'Center' : (pVal < 0 ? Math.abs(pVal) + '% L' : pVal + '% R')}`;
+          c.font = '700 10.5px ui-monospace, monospace';
+          const hw2 = c.measureText(hudTxt).width + 14;
+          const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
+          c.fillStyle = 'rgba(10, 12, 18, .94)';
+          c.strokeStyle = vp.color; c.lineWidth = 1.2;
+          roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
+          c.fillStyle = '#ffffff';
+          c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
+        }
+      } else {
+        const frac = vp.mute ? 0 : clamp((vp.db + 24) / 36, 0, 1);
+        c.fillStyle = vp.bg; c.fill();
+        c.save(); c.clip();
+        c.fillStyle = vp.color;
+        c.globalAlpha = active ? 0.36 : 0.22;
+        c.fillRect(vp.x, vp.y, vp.w * frac, vp.h);
+        c.restore();
+        c.strokeStyle = active ? '#ffffff' : vp.color;
+        c.globalAlpha = active ? 1 : 0.72;
+        c.lineWidth = active ? 1.5 : 1;
+        roundRect(c, vp.x, vp.y, vp.w, vp.h, vp.h / 2); c.stroke();
+        c.globalAlpha = 1;
+        c.fillStyle = vp.mute ? 'rgba(255,255,255,.5)' : '#f4f6fc';
+        c.font = '700 9.5px ui-monospace, monospace';
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        const dbStr = vp.mute ? 'MUTE' : ((vp.db > 0 ? '+' : '') + vp.db.toFixed(1) + 'dB');
+        c.fillText(`${vp.label} ${dbStr}`, vp.x + vp.w / 2, vp.y + vp.h / 2 + 0.5, vp.w - 8);
+        if (active) {
+          const hudTxt = `${vp.label} Vol: ${(vp.db > 0 ? '+' : '') + vp.db.toFixed(1)} dB`;
+          c.font = '700 10.5px ui-monospace, monospace';
+          const hw2 = c.measureText(hudTxt).width + 14;
+          const hx2 = clamp(vp.x - hw2 - 6, 8, Math.max(8, canvasW - hw2 - 8));
+          c.fillStyle = 'rgba(10, 12, 18, .94)';
+          c.strokeStyle = vp.color; c.lineWidth = 1.2;
+          roundRect(c, hx2, vp.y - 1, hw2, vp.h + 2, 7); c.fill(); c.stroke();
+          c.fillStyle = '#ffffff';
+          c.fillText(hudTxt, hx2 + hw2 / 2, vp.y + vp.h / 2 + 0.5);
+        }
       }
       c.restore();
     }
@@ -24145,23 +24364,48 @@ self.onmessage = function (e) {
       const volPills = getTrackVolPillRects();
       for (let i = 0; i < volPills.length; i++) {
         const vp = volPills[i];
-        if (p.x >= vp.x - 6 && p.x <= vp.x + vp.w + 6 && p.y >= vp.y - 6 && p.y <= vp.y + vp.h + 6) {
+        if (p.x >= vp.x - 4 && p.x <= vp.x + vp.w + 4 && p.y >= vp.y - 5 && p.y <= vp.y + vp.h + 5) {
+          if (vp.kind === 'mute') {
+            if (vp.trackKey === 't1') MainMix.mute = !MainMix.mute;
+            else if (vp.trackKey === 't2') Layer.mute = !Layer.mute;
+            else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].mute = !Stems.clips[vp.stemIdx].mute;
+            syncMixNodes(); renderLayersUI(); renderStemList();
+            baseDirty = fxDirty = true; haptic(8); scheduleSave();
+            return;
+          }
+          if (vp.kind === 'solo') {
+            if (vp.trackKey === 't1') MainMix.solo = !MainMix.solo;
+            else if (vp.trackKey === 't2') Layer.solo = !Layer.solo;
+            else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].solo = !Stems.clips[vp.stemIdx].solo;
+            syncMixNodes(); renderLayersUI(); renderStemList();
+            baseDirty = fxDirty = true; haptic(8); scheduleSave();
+            return;
+          }
           baseCv.setPointerCapture(e.pointerId);
           pointers.set(e.pointerId, p);
           const tapKey = vp.mode + ':' + vp.stemIdx;
           const nowMs = performance.now();
           if (lastVolTapKey === tapKey && (nowMs - lastVolTapAt) < 320) {
-            if (vp.mode === 't1Vol') MainMix.gainDb = 0;
-            else if (vp.mode === 't2Vol') Layer.gainDb = 0;
-            else if (vp.mode === 'stemVol' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].gainDb = 0;
+            if (vp.kind === 'pan') {
+              if (vp.trackKey === 't1') MainMix.pan = 0;
+              else if (vp.trackKey === 't2') Layer.pan = 0;
+              else if (vp.trackKey === 'stem' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].pan = 0;
+              drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, pan0: 0, moved: true };
+            } else {
+              if (vp.mode === 't1Vol') MainMix.gainDb = 0;
+              else if (vp.mode === 't2Vol') Layer.gainDb = 0;
+              else if (vp.mode === 'stemVol' && Stems.clips[vp.stemIdx]) Stems.clips[vp.stemIdx].gainDb = 0;
+              drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: 0, moved: true };
+            }
             syncMixNodes(); renderLayersUI(); renderStemList();
             fxDirty = true; haptic(8);
             lastVolTapAt = 0;
-            drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: 0, moved: true };
             return;
           }
           lastVolTapAt = nowMs; lastVolTapKey = tapKey;
-          drag = { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: vp.db, moved: false };
+          drag = vp.kind === 'pan'
+            ? { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, pan0: vp.pan || 0, moved: false }
+            : { mode: vp.mode, stemIdx: vp.stemIdx, id: e.pointerId, sx: p.x, sy: p.y, db0: vp.db || 0, moved: false };
           haptic(6); fxDirty = true;
           return;
         }
@@ -24334,6 +24578,11 @@ self.onmessage = function (e) {
     if (!pointers.has(e.pointerId)) {
       if (hasAudio && !drag) {
         const p = canvasXY(e);
+        const vpHit = getTrackVolPillRects().find((vp) => p.x >= vp.x - 4 && p.x <= vp.x + vp.w + 4 && p.y >= vp.y - 5 && p.y <= vp.y + vp.h + 5);
+        if (vpHit) {
+          baseCv.style.cursor = (vpHit.kind === 'mute' || vpHit.kind === 'solo') ? 'pointer' : 'ew-resize';
+          return;
+        }
         const h = hitTest(p.x, p.y);
         baseCv.style.cursor = (h === 't2' || h === 'stem' || h === 'regMove') ? 'grab' : ((h === 't2TrimL' || h === 't2TrimR' || h === 't2FadeIn' || h === 't2FadeOut' || h === 'stemTrimL' || h === 'stemTrimR' || h === 'stemFadeIn' || h === 'stemFadeOut' || h === 'regTrimL' || h === 'regTrimR' || h === 'regFadeIn' || h === 'regFadeOut') ? 'ew-resize' : ((h === 'scrub' || h === 'specPaint') ? 'crosshair' : 'ew-resize'));
       }
@@ -24369,6 +24618,24 @@ self.onmessage = function (e) {
         if ($('#t2GainOut')) $('#t2GainOut').textContent = (nextDb > 0 ? '+' : '') + nextDb.toFixed(1) + ' dB';
       } else if (drag.mode === 'stemVol' && Stems.clips[drag.stemIdx]) {
         Stems.clips[drag.stemIdx].gainDb = nextDb;
+      }
+      syncMixNodes();
+      fxDirty = true;
+      return;
+    } else if (drag.mode === 't1Pan' || drag.mode === 't2Pan' || drag.mode === 'stemPan') {
+      const dx = p.x - drag.sx, dy = drag.sy - p.y;
+      const nextPan = Math.round(clamp((drag.pan0 || 0) + dx * 1.1 + dy * 0.6, -100, 100));
+      const panTxt = Math.abs(nextPan) < 2 ? 'Center' : (nextPan < 0 ? Math.abs(nextPan) + '% L' : nextPan + '% R');
+      if (drag.mode === 't1Pan') {
+        MainMix.pan = nextPan;
+        if ($('#t1Pan')) $('#t1Pan').value = nextPan;
+        if ($('#t1PanOut')) $('#t1PanOut').textContent = panTxt;
+      } else if (drag.mode === 't2Pan') {
+        Layer.pan = nextPan;
+        if ($('#t2Pan')) $('#t2Pan').value = nextPan;
+        if ($('#t2PanOut')) $('#t2PanOut').textContent = panTxt;
+      } else if (drag.mode === 'stemPan' && Stems.clips[drag.stemIdx]) {
+        Stems.clips[drag.stemIdx].pan = nextPan;
       }
       syncMixNodes();
       fxDirty = true;
@@ -24644,7 +24911,7 @@ self.onmessage = function (e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) pinch = null;
     if (drag && drag.id === e.pointerId) {
-      if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol') {
+      if (drag.mode === 't1Vol' || drag.mode === 't2Vol' || drag.mode === 'stemVol' || drag.mode === 't1Pan' || drag.mode === 't2Pan' || drag.mode === 'stemPan') {
         renderLayersUI(); renderStemList();
         fxDirty = true; scheduleSave();
       } else if (drag.mode === 'specPaint') {
@@ -26221,7 +26488,7 @@ self.onmessage = function (e) {
   }
   function renderMixedRange(a, b) {
     const n = Math.max(1, b - a);
-    const { mainOn, layerOn } = effectiveTrackAudibility();
+    const { mainOn, layerOn, stemOn } = effectiveTrackAudibility();
     const hasT1Pan = Math.abs(MainMix.pan || 0) > 1 || (PanEnv.enabled && PanEnv.points.length >= 2);
     const hasLayerPan = layerOn && (Math.abs(Layer.pan || 0) > 1 || (Layer.panEnv && Layer.panEnv.length >= 2));
     const hasSends = (MainMix.revSend || 0) > 0.5 || (MainMix.delSend || 0) > 0.5
@@ -26327,7 +26594,7 @@ self.onmessage = function (e) {
     }
     if (!Stems.mute && Stems.clips.length) {
       for (const st of Stems.clips) {
-        if (st.mute) continue;
+        if (!stemOn(st)) continue;
         const offS = Math.round((st.offsetSec || 0) * S.rate);
         const sData = st.data;
         const stRate = st.rate || S.rate;
@@ -28559,6 +28826,7 @@ self.onmessage = function (e) {
         revSend: c.revSend || 0,
         delSend: c.delSend || 0,
         mute: !!c.mute,
+        solo: !!c.solo,
         data: includeAudio ? cloneData(c.data) : undefined,
       })),
       regions: Regions.list.map((r) => ({
@@ -28580,8 +28848,11 @@ self.onmessage = function (e) {
   }
 
   async function restoreProjectSnapshot(proj, externalBuffers) {
-    const mainData = externalBuffers?.main?.data || proj.mainChannels;
-    const mainRate = externalBuffers?.main?.rate || proj.rate || 48000;
+    let mainData = externalBuffers?.main?.data || proj.mainChannels;
+    if (!mainData && proj.mainOpfs && proj.mainOpfs.key) {
+      mainData = await OPFSSwap.readAudio(proj.mainOpfs.key);
+    }
+    const mainRate = externalBuffers?.main?.rate || proj.mainOpfs?.rate || proj.rate || 48000;
     if (!mainData || !mainData.length) throw new Error('Project contains no main audio');
 
     await loadAudio(cloneData(mainData), mainRate, proj.name || 'project', proj.meta || {});
@@ -28644,7 +28915,13 @@ self.onmessage = function (e) {
 
     // Track 2 Layer
     clearLayer();
-    const layerAudio = externalBuffers?.layer || (proj.layer && proj.layer.data ? { data: proj.layer.data, rate: proj.layer.rate } : null);
+    let layerAudio = externalBuffers?.layer || (proj.layer && proj.layer.data ? { data: proj.layer.data, rate: proj.layer.rate } : null);
+    if (!layerAudio && proj.layer && proj.layer.opfsKey) {
+      try {
+        const lData = await OPFSSwap.readAudio(proj.layer.opfsKey);
+        if (lData) layerAudio = { data: lData, rate: proj.layer.rate };
+      } catch (e) {}
+    }
     if (proj.layer && layerAudio && layerAudio.data) {
       Layer.offset = proj.layer.offset || 0;
       Layer.trimInSec = proj.layer.trimInSec || 0;
@@ -28678,7 +28955,13 @@ self.onmessage = function (e) {
     if (Array.isArray(proj.stems)) {
       for (let i = 0; i < proj.stems.length; i++) {
         const sm = proj.stems[i];
-        const sAud = externalBuffers?.stems?.[i] || (sm.data ? { data: sm.data, rate: sm.rate } : null);
+        let sAud = externalBuffers?.stems?.[i] || (sm.data ? { data: sm.data, rate: sm.rate } : null);
+        if (!sAud && sm.opfsKey) {
+          try {
+            const sData = await OPFSSwap.readAudio(sm.opfsKey);
+            if (sData) sAud = { data: sData, rate: sm.rate };
+          } catch (e) {}
+        }
         if (!sAud || !sAud.data) continue;
         await addStemClip(cloneData(sAud.data), sAud.rate || S.rate, sm.name || ('Stem ' + (i + 1)), sm.offsetSec || 0);
         const added = Stems.clips[Stems.clips.length - 1];
@@ -28692,6 +28975,7 @@ self.onmessage = function (e) {
           added.revSend = sm.revSend || 0;
           added.delSend = sm.delSend || 0;
           added.mute = !!sm.mute;
+          added.solo = !!sm.solo;
         }
       }
       renderStemList();
@@ -30561,6 +30845,10 @@ self.onmessage = function (e) {
             </select>
           </div>
           <label class="checkrow"><input type="checkbox" id="prefAutosave" ${Prefs.autosave ? 'checked' : ''}><span><b>IndexedDB Auto-save</b> — continuous crash recovery</span></label>
+          <div class="field" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <span id="prefOpfsInfo" style="font-size:12px;color:var(--dim)">OPFS Audio Swap: ${OPFSSwap.supported ? (OPFSSwap.totalBytes > 0 ? fmtBytes(OPFSSwap.totalBytes) + ' swapped to disk' : 'Ready (auto-swaps ≥ 8 MB)') : 'Unavailable in this context'}</span>
+            <button type="button" class="btn sm" id="btnClearOpfs" ${OPFSSwap.supported ? '' : 'disabled'}>Clear Swap Cache</button>
+          </div>
         </div>
       </div>`;
     $('#prefHaptic').addEventListener('change', (e) => { Prefs.haptic = e.target.checked; savePrefs(); if (Prefs.haptic) haptic(14); });
@@ -30578,6 +30866,16 @@ self.onmessage = function (e) {
       if (Prefs.autosave && hasAudio) scheduleSave();
       else if (!Prefs.autosave && $('#saveStatus')) $('#saveStatus').textContent = 'Autosave off';
     });
+    if ($('#btnClearOpfs')) {
+      $('#btnClearOpfs').addEventListener('click', async () => {
+        while (H.undo.length) disposeSnap(H.undo.pop());
+        while (H.redo.length) disposeSnap(H.redo.pop());
+        syncHistory();
+        await OPFSSwap.clearAll();
+        if ($('#prefOpfsInfo')) $('#prefOpfsInfo').textContent = 'OPFS Audio Swap: 0 B · Cache cleared';
+        toast('OPFS swap cache cleared', 'ok', 1800);
+      });
+    }
     $('#modal').classList.add('on'); $('#modalClose').focus();
     $('#scrim').classList.add('on');
   }
@@ -30716,6 +31014,16 @@ self.onmessage = function (e) {
 
   /* -------------------------------------- export audio-to-video studio */
   let agAnimRaf = 0, agCoverImg = null;
+  let agWmLogoImg = null, agWmLogoUrl = '', agWmLogoName = '';
+  const agWmCfg = {
+    enabled: true,
+    text: 'Sonora by @jinosabu1999',
+    style: 'glass-pill',
+    pos: 'tr',
+    opacity: 88,
+    size: 100,
+    safeZone: 'off',
+  };
   let agBgVideo = null, agBgVideoUrl = '', agBgVideoName = '';
   let agPreviewCtx = null, agPreviewSrc = null, agPreviewAn = null, agPreviewBins = null;
   let agPreviewPlaying = false, agPreviewStartAt = 0, agPreviewOffset = 0, agPreviewDur = 0;
@@ -31033,6 +31341,103 @@ self.onmessage = function (e) {
         c.stroke();
         c.restore();
       }
+    } else if (viz === 'waveform') {
+      const wfCount = 96;
+      const step = barsW / wfCount;
+      const bw = Math.max(3, step * 0.6);
+      const midY = barBaseY - maxBarH * 0.48;
+      const wEnv = o.waveEnv;
+      const wfGrad = c.createLinearGradient(barsX, midY - maxBarH * 0.5, barsX + barsW, midY + maxBarH * 0.5);
+      wfGrad.addColorStop(0, pal[2]); wfGrad.addColorStop(1, pal[3]);
+      for (let i = 0; i < wfCount; i++) {
+        const u = i / Math.max(1, wfCount - 1);
+        let amp = 0.14 + 0.35 * Math.abs(Math.sin(u * 11 + tSec * 2.2));
+        if (wEnv && wEnv.length) {
+          const idx = clamp(Math.floor(u * (wEnv.length - 1)), 0, wEnv.length - 1);
+          amp = Math.max(0.06, wEnv[idx] / 255);
+        } else if (bins && bins.length) {
+          const bi = clamp(Math.floor(u * (bins.length * 0.6)), 0, bins.length - 1);
+          amp = Math.max(0.06, bins[bi] / 255);
+        }
+        const played = u <= progress;
+        const boost = played && Math.abs(u - progress) < 0.025 ? 1.12 : 1;
+        const half = Math.max(3, Math.min(maxBarH * 0.5, amp * maxBarH * 0.52 * boost));
+        c.fillStyle = played ? wfGrad : 'rgba(255,255,255,.22)';
+        roundRect(c, barsX + i * step, midY - half, bw, half * 2, bw / 2); c.fill();
+      }
+      const playX = barsX + progress * barsW;
+      c.save();
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = Math.max(2, minDim * 0.0032);
+      c.beginPath(); c.moveTo(playX, midY - maxBarH * 0.52); c.lineTo(playX, midY + maxBarH * 0.52); c.stroke();
+      c.fillStyle = pal[2];
+      c.beginPath(); c.arc(playX, midY - maxBarH * 0.52, Math.max(3.5, minDim * 0.006), 0, Math.PI * 2); c.fill();
+      c.restore();
+    } else if (viz === 'spectrogram') {
+      const boxY = barBaseY - maxBarH;
+      const boxR = Math.round(minDim * 0.018);
+      c.save();
+      roundRect(c, barsX, boxY, barsW, maxBarH, boxR);
+      c.fillStyle = 'rgba(6, 9, 16, .82)'; c.fill();
+      c.clip();
+      const sm = o.specMap;
+      if (sm && sm.data && sm.cols > 0 && sm.rows > 0) {
+        const sKey = `${barsW}x${maxBarH}:${o.theme || 'glass'}:${sm.cols}x${sm.rows}:${sm.sig || 0}`;
+        if (!drawAudiogramFrame._specCache || drawAudiogramFrame._specKey !== sKey) {
+          const sc = drawAudiogramFrame._specCache || (drawAudiogramFrame._specCache = (typeof OffscreenCanvas !== 'undefined' && typeof document === 'undefined') ? new OffscreenCanvas(barsW, maxBarH) : document.createElement('canvas'));
+          sc.width = barsW; sc.height = maxBarH;
+          const sx = sc.getContext('2d');
+          const cw = barsW / sm.cols, ch = maxBarH / sm.rows;
+          const hexRgb = (hx) => [parseInt(hx.slice(1, 3), 16), parseInt(hx.slice(3, 5), 16), parseInt(hx.slice(5, 7), 16)];
+          const c0 = hexRgb(pal[0]), c1 = hexRgb(pal[2]), c2 = hexRgb(pal[3]);
+          for (let col = 0; col < sm.cols; col++) {
+            const x0 = Math.floor(col * cw), x1 = Math.ceil((col + 1) * cw);
+            for (let row = 0; row < sm.rows; row++) {
+              const v = sm.data[col * sm.rows + row] / 255;
+              if (v < 0.04) continue;
+              let r, g, b;
+              if (v < 0.55) {
+                const k = v / 0.55;
+                r = Math.round(c0[0] + (c1[0] - c0[0]) * k);
+                g = Math.round(c0[1] + (c1[1] - c0[1]) * k);
+                b = Math.round(c0[2] + (c1[2] - c0[2]) * k);
+              } else {
+                const k = (v - 0.55) / 0.45;
+                r = Math.round(c1[0] + (c2[0] - c1[0]) * k * 0.7 + 255 * k * 0.3);
+                g = Math.round(c1[1] + (c2[1] - c1[1]) * k * 0.7 + 255 * k * 0.3);
+                b = Math.round(c1[2] + (c2[2] - c1[2]) * k * 0.7 + 255 * k * 0.3);
+              }
+              const y0 = Math.floor(maxBarH - (row + 1) * ch), y1 = Math.ceil(maxBarH - row * ch);
+              sx.fillStyle = `rgba(${r},${g},${b},${(0.28 + v * 0.72).toFixed(2)})`;
+              sx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+            }
+          }
+          drawAudiogramFrame._specKey = sKey;
+        }
+        c.drawImage(drawAudiogramFrame._specCache, barsX, boxY, barsW, maxBarH);
+      } else {
+        // Fallback live spectral strip if specMap unavailable
+        const cols = 48, cw = barsW / cols;
+        for (let i = 0; i < cols; i++) {
+          const bi = bins && bins.length ? clamp(Math.floor((i / cols) * (bins.length * 0.65)), 0, bins.length - 1) : 0;
+          const v = bins ? bins[bi] / 255 : (0.2 + 0.4 * Math.abs(Math.sin(tSec * 3 + i * 0.3)));
+          c.fillStyle = i % 2 === 0 ? pal[2] : pal[3];
+          c.globalAlpha = 0.25 + v * 0.65;
+          c.fillRect(barsX + i * cw, boxY + maxBarH * (1 - v), Math.max(2, cw - 1), maxBarH * v);
+        }
+        c.globalAlpha = 1;
+      }
+      const playX = barsX + progress * barsW;
+      if (playX < barsX + barsW) {
+        c.fillStyle = 'rgba(6, 9, 16, .48)';
+        c.fillRect(playX, boxY, barsX + barsW - playX, maxBarH);
+      }
+      c.strokeStyle = '#ffffff';
+      c.lineWidth = Math.max(2, minDim * 0.003);
+      c.beginPath(); c.moveTo(playX, boxY); c.lineTo(playX, boxY + maxBarH); c.stroke();
+      c.restore();
+      roundRect(c, barsX, boxY, barsW, maxBarH, boxR);
+      c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = Math.max(1.5, minDim * 0.0022); c.stroke();
     }
 
     // 5. Optional Marker Captions lower-third pill
@@ -31077,15 +31482,212 @@ self.onmessage = function (e) {
     c.textAlign = 'right'; c.fillText(fmtTime(totalSec, true), px + pw, py + pH + 8);
     c.textAlign = 'left';
 
-    // 7. Optional Sonora corner badge
-    if (o.badge !== false) {
+    // 7. Modern Custom Watermark / Logo Overlay (defaults to "Sonora by @jinosabu1999")
+    const wmOn = o.badge !== false && o.wmEnabled !== false;
+    const wmLogo = o.wmLogoImg !== undefined ? o.wmLogoImg : (typeof agWmLogoImg !== 'undefined' ? agWmLogoImg : null);
+    const wmTextRaw = (o.wmText != null ? String(o.wmText) : 'Sonora by @jinosabu1999').trim();
+    if (wmOn && (wmTextRaw || wmLogo)) {
       c.save();
-      const bFont = Math.round(minDim * 0.017);
-      const bPad = Math.round(minDim * 0.025);
-      c.font = `700 ${bFont}px -apple-system, sans-serif`;
-      c.textAlign = 'right'; c.textBaseline = 'top';
-      c.fillStyle = 'rgba(255,255,255,.45)';
-      c.fillText('SONORA', w - bPad, bPad);
+      const wmStyle = o.wmStyle || 'glass-pill';
+      const wmPos = o.wmPos || o.pos || 'tr';
+      const wmAlpha = clamp((o.wmOpacity != null ? o.wmOpacity : 88) / 100, 0.15, 1);
+      const wmScale = clamp((o.wmSize != null ? o.wmSize : 100) / 100, 0.65, 1.6);
+      c.globalAlpha = wmAlpha;
+
+      let bass = 0.28;
+      if (bins && bins.length) {
+        let sum = 0; const n = Math.min(12, bins.length);
+        for (let k = 0; k < n; k++) sum += bins[k];
+        bass = clamp((sum / n) / 255, 0, 1);
+      } else {
+        bass = 0.25 + 0.25 * Math.sin(tSec * 4.2);
+      }
+
+      const fSize = Math.max(11, Math.round(minDim * 0.0185 * wmScale));
+      const icoSize = Math.round(fSize * 1.62);
+      const padX = Math.round(fSize * 0.78);
+      const padY = Math.round(fSize * 0.48);
+      const gap = Math.round(fSize * 0.55);
+
+      const byIdx = wmTextRaw.toLowerCase().indexOf(' by ');
+      const hasSplit = byIdx > 0 && byIdx < wmTextRaw.length - 4;
+      const leadTxt = hasSplit ? wmTextRaw.slice(0, byIdx).toUpperCase() : wmTextRaw;
+      const trailTxt = hasSplit ? 'by ' + wmTextRaw.slice(byIdx + 4) : '';
+
+      c.font = `700 ${fSize}px -apple-system, BlinkMacSystemFont, "Inter", sans-serif`;
+      const leadW = leadTxt ? c.measureText(leadTxt).width : 0;
+      c.font = `600 ${Math.round(fSize * 0.92)}px ui-monospace, "SF Mono", Menlo, monospace`;
+      const trailW = trailTxt ? c.measureText(trailTxt).width : 0;
+      const txtW = leadW + (trailTxt ? (Math.round(fSize * 0.45) + trailW) : 0);
+
+      const boxW = Math.round(padX * 2 + icoSize + (txtW > 0 ? gap + txtW : 0));
+      const boxH = Math.round(Math.max(icoSize, fSize * 1.25) + padY * 2);
+      const edgeX = Math.round(w * 0.044);
+      const topY = Math.round(h * (vertical ? 0.042 : 0.045));
+      const botY = py - boxH - Math.round(minDim * 0.024);
+
+      const bx = wmPos.endsWith('l') ? edgeX : (wmPos.endsWith('c') ? Math.round((w - boxW) / 2) : (w - edgeX - boxW));
+      const by = wmPos.startsWith('b') ? Math.max(topY, botY) : topY;
+
+      if (wmStyle === 'glass-pill') {
+        const rad = Math.round(boxH / 2);
+        roundRect(c, bx, by, boxW, boxH, rad);
+        const bgGrad = c.createLinearGradient(bx, by, bx + boxW, by + boxH);
+        bgGrad.addColorStop(0, 'rgba(12, 16, 28, .80)');
+        bgGrad.addColorStop(1, 'rgba(18, 26, 42, .68)');
+        c.fillStyle = bgGrad;
+        c.fill();
+        const borderGrad = c.createLinearGradient(bx, by, bx + boxW, by);
+        borderGrad.addColorStop(0, pal[2] + 'aa');
+        borderGrad.addColorStop(0.5, 'rgba(255,255,255,.28)');
+        borderGrad.addColorStop(1, pal[3] + 'aa');
+        c.strokeStyle = borderGrad;
+        c.lineWidth = Math.max(1.2, minDim * 0.0018);
+        c.stroke();
+      } else if (wmStyle === 'editorial') {
+        roundRect(c, bx, by, boxW, boxH, Math.round(boxH * 0.22));
+        c.fillStyle = 'rgba(8, 10, 18, .66)';
+        c.fill();
+        const barGrad = c.createLinearGradient(bx, by, bx, by + boxH);
+        barGrad.addColorStop(0, pal[2]); barGrad.addColorStop(1, pal[3]);
+        c.fillStyle = barGrad;
+        roundRect(c, bx, by + 3, Math.max(3, Math.round(fSize * 0.24)), boxH - 6, 2);
+        c.fill();
+      } else if (wmStyle === 'neon') {
+        const brLen = Math.round(boxH * 0.34);
+        c.save();
+        c.shadowColor = pal[2];
+        c.shadowBlur = Math.round(6 + bass * 10);
+        c.strokeStyle = pal[2];
+        c.lineWidth = Math.max(1.6, minDim * 0.0022);
+        c.beginPath();
+        c.moveTo(bx + brLen, by); c.lineTo(bx, by); c.lineTo(bx, by + boxH); c.lineTo(bx + brLen, by + boxH);
+        c.moveTo(bx + boxW - brLen, by); c.lineTo(bx + boxW, by); c.lineTo(bx + boxW, by + boxH); c.lineTo(bx + boxW - brLen, by + boxH);
+        c.stroke();
+        c.restore();
+        c.fillStyle = 'rgba(8, 12, 22, .45)';
+        c.fillRect(bx + 2, by + 2, boxW - 4, boxH - 4);
+      }
+
+      // Emblem or Custom Logo
+      const ix = bx + padX;
+      const iy = by + Math.round((boxH - icoSize) / 2);
+      if (wmLogo) {
+        c.save();
+        roundRect(c, ix, iy, icoSize, icoSize, Math.round(icoSize * 0.26));
+        c.clip();
+        const scL = Math.max(icoSize / wmLogo.width, icoSize / wmLogo.height);
+        const lw = wmLogo.width * scL, lh = wmLogo.height * scL;
+        c.drawImage(wmLogo, ix + (icoSize - lw) / 2, iy + (icoSize - lh) / 2, lw, lh);
+        c.restore();
+      } else {
+        const cx = ix + icoSize / 2, cy = iy + icoSize / 2, r = icoSize * 0.46;
+        c.save();
+        const ringG = c.createLinearGradient(ix, iy, ix + icoSize, iy + icoSize);
+        ringG.addColorStop(0, pal[2]); ringG.addColorStop(1, pal[3]);
+        c.fillStyle = 'rgba(255,255,255,.08)';
+        c.strokeStyle = ringG;
+        c.lineWidth = Math.max(1.2, icoSize * 0.075);
+        c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill(); c.stroke();
+        const bw = Math.max(1.8, icoSize * 0.11);
+        const bGap = bw * 1.55;
+        const h1 = icoSize * (0.24 + bass * 0.24);
+        const h2 = icoSize * (0.42 + bass * 0.28);
+        const h3 = icoSize * (0.28 + bass * 0.20);
+        c.fillStyle = ringG;
+        roundRect(c, cx - bGap - bw / 2, cy - h1 / 2, bw, h1, bw / 2); c.fill();
+        roundRect(c, cx - bw / 2, cy - h2 / 2, bw, h2, bw / 2); c.fill();
+        roundRect(c, cx + bGap - bw / 2, cy - h3 / 2, bw, h3, bw / 2); c.fill();
+        c.restore();
+      }
+
+      // Signature Text
+      if (txtW > 0) {
+        const tx = ix + icoSize + gap;
+        const ty = by + boxH / 2 + 0.5;
+        c.textAlign = 'left';
+        c.textBaseline = 'middle';
+        c.shadowColor = 'rgba(0,0,0,.55)';
+        c.shadowBlur = 4;
+        c.font = `700 ${fSize}px -apple-system, BlinkMacSystemFont, "Inter", sans-serif`;
+        c.fillStyle = '#ffffff';
+        c.fillText(leadTxt, tx, ty);
+        if (trailTxt) {
+          const tGrad = c.createLinearGradient(tx + leadW, ty, bx + boxW, ty);
+          tGrad.addColorStop(0, pal[2]);
+          tGrad.addColorStop(1, pal[3]);
+          c.font = `600 ${Math.round(fSize * 0.92)}px ui-monospace, "SF Mono", Menlo, monospace`;
+          c.fillStyle = tGrad;
+          c.fillText(trailTxt, tx + leadW + Math.round(fSize * 0.45), ty);
+        }
+      }
+      c.restore();
+    }
+
+    // 8. Preview-Only Safe-Zone Guides (never rendered into exported files)
+    const szMode = o.safeZone || 'off';
+    if (szMode && szMode !== 'off') {
+      c.save();
+      const labelFont = Math.max(10, Math.round(minDim * 0.0145));
+      c.font = `700 ${labelFont}px ui-monospace, monospace`;
+      c.textBaseline = 'top';
+      const drawTag = (tx, ty, txt, col, bg) => {
+        const tw = c.measureText(txt).width + 10;
+        const th = labelFont + 6;
+        c.fillStyle = bg || 'rgba(8, 12, 20, .78)';
+        roundRect(c, tx, ty, tw, th, 4); c.fill();
+        c.fillStyle = col;
+        c.textAlign = 'left';
+        c.fillText(txt, tx + 5, ty + 3);
+      };
+
+      if (szMode === 'broadcast' || szMode === 'all') {
+        // 5% Action-Safe & 10% Title-Safe
+        const ax = Math.round(w * 0.05), ay = Math.round(h * 0.05);
+        c.strokeStyle = 'rgba(100, 210, 255, .65)';
+        c.lineWidth = 1.5;
+        c.setLineDash([8, 6]);
+        c.strokeRect(ax, ay, w - ax * 2, h - ay * 2);
+        drawTag(ax + 6, ay + 6, 'ACTION SAFE 90%', '#7ee0ff');
+
+        const tx = Math.round(w * 0.10), ty = Math.round(h * 0.10);
+        c.strokeStyle = 'rgba(255, 214, 10, .75)';
+        c.setLineDash([5, 5]);
+        c.strokeRect(tx, ty, w - tx * 2, h - ty * 2);
+        drawTag(tx + 6, ty + 6, 'TITLE SAFE 80%', '#ffe066');
+      }
+
+      if (szMode === 'social' || szMode === 'shorts' || szMode === 'all') {
+        const isShorts = szMode === 'shorts';
+        const topDead = Math.round(h * (isShorts ? 0.10 : 0.11));
+        const botDead = Math.round(h * (isShorts ? 0.24 : 0.21));
+        const rightRailW = Math.round(w * (isShorts ? 0.15 : 0.16));
+        const railTop = Math.round(h * 0.42);
+        const railBot = h - botDead - 8;
+
+        c.setLineDash([]);
+        c.fillStyle = 'rgba(255, 55, 95, .14)';
+        c.fillRect(0, 0, w, topDead);
+        c.fillRect(0, h - botDead, w, botDead);
+        c.fillRect(w - rightRailW, railTop, rightRailW, Math.max(40, railBot - railTop));
+
+        c.strokeStyle = 'rgba(255, 95, 130, .78)';
+        c.lineWidth = 1.5;
+        c.setLineDash([6, 4]);
+        c.strokeRect(1, 1, w - 2, topDead);
+        c.strokeRect(1, h - botDead, w - 2, botDead - 1);
+        c.strokeRect(w - rightRailW, railTop, rightRailW - 1, Math.max(40, railBot - railTop));
+
+        drawTag(10, 8, isShorts ? 'SHORTS HEADER UI' : 'REELS / TIKTOK TOP UI', '#ff8aa3');
+        drawTag(10, h - botDead + 8, isShorts ? 'CHANNEL · TITLE · SUBSCRIBE ZONE' : 'CAPTIONS · USERNAME · AUDIO ZONE', '#ff8aa3');
+        drawTag(Math.max(10, w - rightRailW - 76), railTop + 6, 'ACTION RAIL', '#ff8aa3');
+
+        // Clean inner safe rectangle
+        c.strokeStyle = 'rgba(48, 209, 88, .75)';
+        c.setLineDash([8, 5]);
+        c.strokeRect(Math.round(w * 0.05), topDead + 6, Math.round(w * 0.95) - rightRailW - 8, h - topDead - botDead - 12);
+        drawTag(Math.round(w * 0.05) + 6, topDead + 12, 'SAFE CONTENT ZONE', '#6bf28b');
+      }
       c.restore();
     }
   }
@@ -32348,7 +32950,7 @@ self.onmessage = function (e) {
 
       }
 
-      const { opts, channels, rate, fps, vBps, pref, coverBitmap } = job;
+      const { opts, channels, rate, fps, vBps, pref, coverBitmap, wmLogoBitmap } = job;
 
       const startFrame = Math.max(0, job.startFrame | 0);
 
@@ -32357,6 +32959,10 @@ self.onmessage = function (e) {
       const tmpCv = new OffscreenCanvas(16, 16);
 
       opts.coverImg = coverBitmap || null;
+
+      opts.wmLogoImg = wmLogoBitmap || null;
+
+      opts.safeZone = 'off';
 
       opts.bgVideo = null;
 
@@ -32719,9 +33325,8 @@ self.onmessage = function (e) {
     const setButtonsRunning = (running) => {
       if ($('#btnRenderAudiogram')) {
         $('#btnRenderAudiogram').disabled = running;
-        $('#btnRenderAudiogram').textContent = running ? 'Rendering video…' : 'Render & Download Video';
+        $('#btnRenderAudiogram').textContent = running ? 'Rendering in background…' : 'Render in Background';
       }
-      if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = !running;
       if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = !running;
     };
 
@@ -32786,9 +33391,16 @@ self.onmessage = function (e) {
           } else if (optsUI.coverImg && typeof createImageBitmap === 'function') {
             try { coverBitmap = await createImageBitmap(optsUI.coverImg); } catch (e) {}
           }
+          let wmLogoBitmap = null;
+          if (jobRecord.wmLogoBlob && typeof createImageBitmap === 'function') {
+            try { wmLogoBitmap = await createImageBitmap(jobRecord.wmLogoBlob); } catch (e) {}
+          } else if (optsUI.wmLogoImg && typeof createImageBitmap === 'function') {
+            try { wmLogoBitmap = await createImageBitmap(optsUI.wmLogoImg); } catch (e) {}
+          }
           const chCopies = jobRecord.channels.map((ch) => new Float32Array(ch));
           const transfer = chCopies.map((ch) => ch.buffer);
           if (coverBitmap) transfer.push(coverBitmap);
+          if (wmLogoBitmap) transfer.push(wmLogoBitmap);
           worker.postMessage({
             type: 'start',
             opts: jobRecord.opts,
@@ -32798,6 +33410,7 @@ self.onmessage = function (e) {
             vBps: jobRecord.vBps,
             pref: jobRecord.pref,
             coverBitmap,
+            wmLogoBitmap,
             startFrame: jobRecord.nextFrame || 0,
             initialVChunks: jobRecord.vChunks || [],
             initialVDesc: jobRecord.vDesc || null,
@@ -32831,6 +33444,7 @@ self.onmessage = function (e) {
         jobRecord.aChunks = [];
         jobRecord.channels = [];
         jobRecord.coverBlob = null;
+        jobRecord.wmLogoBlob = null;
         jobRecord.updatedAt = Date.now();
         await rqPut(jobRecord);
         downloadBlob(blob, fname);
@@ -32935,6 +33549,83 @@ self.onmessage = function (e) {
     }
   });
 
+  function buildAgVisualizerMaps(channels, rate, rangeA = 0, rangeB = null) {
+    if (!channels || !channels.length || !channels[0] || !channels[0].length) return { waveEnv: null, specMap: null };
+    const ch0 = channels[0];
+    const ch1 = channels[1] || ch0;
+    const a = Math.max(0, rangeA | 0);
+    const b = Math.min(ch0.length, rangeB == null ? ch0.length : (rangeB | 0));
+    const span = Math.max(1, b - a);
+
+    // 1. Waveform envelope (160 peak points across selection)
+    const wCols = 160;
+    const waveEnv = new Uint8Array(wCols);
+    const wStep = Math.max(1, Math.floor(span / wCols));
+    for (let i = 0; i < wCols; i++) {
+      const s0 = a + Math.floor((i / wCols) * span);
+      const s1 = Math.min(b, s0 + Math.max(1, wStep));
+      const inner = Math.max(1, Math.floor((s1 - s0) / 12));
+      let pk = 0;
+      for (let j = s0; j < s1; j += inner) {
+        const v = Math.abs(0.5 * (ch0[j] + ch1[j]));
+        if (v > pk) pk = v;
+      }
+      waveEnv[i] = clamp(Math.round(Math.pow(pk, 0.72) * 255), 0, 255);
+    }
+
+    // 2. Spectrogram heatmap (160 time columns x 40 log-frequency rows, 60 Hz..12 kHz)
+    const cols = 160, rows = 40, N = 256;
+    const data = new Uint8Array(cols * rows);
+    const hann = new Float32Array(N);
+    const rev = new Uint8Array(N);
+    const cosT = new Float32Array(N / 2), sinT = new Float32Array(N / 2);
+    for (let i = 0; i < N; i++) {
+      hann[i] = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (N - 1)));
+      let r = 0, x = i;
+      for (let k = 0; k < 8; k++) { r = (r << 1) | (x & 1); x >>= 1; }
+      rev[i] = r;
+    }
+    for (let i = 0; i < N / 2; i++) {
+      cosT[i] = Math.cos((-2 * Math.PI * i) / N);
+      sinT[i] = Math.sin((-2 * Math.PI * i) / N);
+    }
+    const re = new Float32Array(N), im = new Float32Array(N);
+    const fMin = 60, fMax = Math.min(12000, rate * 0.48);
+    const rowBin = new Uint8Array(rows);
+    for (let r = 0; r < rows; r++) {
+      const hz = fMin * Math.pow(fMax / fMin, r / Math.max(1, rows - 1));
+      rowBin[r] = clamp(Math.round((hz / (rate / 2)) * (N / 2)), 1, (N / 2) - 1);
+    }
+    for (let col = 0; col < cols; col++) {
+      const center = a + Math.floor(((col + 0.5) / cols) * span);
+      const start = clamp(center - (N >> 1), a, Math.max(a, b - N));
+      for (let i = 0; i < N; i++) {
+        const idx = rev[i];
+        const s = start + idx < b ? 0.5 * (ch0[start + idx] + ch1[start + idx]) : 0;
+        re[i] = s * hann[idx]; im[i] = 0;
+      }
+      for (let sz = 2; sz <= N; sz <<= 1) {
+        const half = sz >> 1, step = N / sz;
+        for (let i = 0; i < N; i += sz) {
+          for (let j = 0; j < half; j++) {
+            const k = j * step, wr = cosT[k], wi = sinT[k];
+            const tr = wr * re[i + j + half] - wi * im[i + j + half];
+            const ti = wr * im[i + j + half] + wi * re[i + j + half];
+            re[i + j + half] = re[i + j] - tr; im[i + j + half] = im[i + j] - ti;
+            re[i + j] += tr; im[i + j] += ti;
+          }
+        }
+      }
+      for (let r = 0; r < rows; r++) {
+        const k = rowBin[r];
+        const mag = Math.hypot(re[k], im[k]) / (N * 0.5);
+        const db = 20 * Math.log10(mag + 1e-6);
+        data[col * rows + r] = clamp(Math.round(((db + 88) / 68) * 255), 0, 255);
+      }
+    }
+    return { waveEnv, specMap: { cols, rows, data, sig: `${a}-${b}-${rate}` } };
+  }
+
   async function openAudiogramModal() {
     if (!hasAudio) return toast('Open an audio file first', 'info');
     const canWebCodecs = typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined' && typeof VideoEncoder !== 'undefined' && typeof AudioEncoder !== 'undefined';
@@ -32978,6 +33669,14 @@ self.onmessage = function (e) {
             <input type="range" id="agPreviewScrub" min="0" max="1000" value="0" aria-label="Preview scrub">
             <span id="agPreviewTime">0:00.0 / ${fmtTime(selDurS, false)}</span>
           </div>
+          <div class="ag-safezone-bar" id="agSafeZoneRow" title="Preview-only safe-zone guides (never exported)">
+            <span class="ag-safezone-lbl">Safe Zones</span>
+            <button type="button" class="ag-chip" data-ag-sz="off" aria-pressed="${agWmCfg.safeZone === 'off'}">Off</button>
+            <button type="button" class="ag-chip" data-ag-sz="social" aria-pressed="${agWmCfg.safeZone === 'social'}">Reels / TikTok</button>
+            <button type="button" class="ag-chip" data-ag-sz="shorts" aria-pressed="${agWmCfg.safeZone === 'shorts'}">YT Shorts</button>
+            <button type="button" class="ag-chip" data-ag-sz="broadcast" aria-pressed="${agWmCfg.safeZone === 'broadcast'}">Title Safe</button>
+            <button type="button" class="ag-chip" data-ag-sz="all" aria-pressed="${agWmCfg.safeZone === 'all'}">All</button>
+          </div>
         </div>
 
         <div class="ag-tabs" role="tablist" aria-label="Video Studio sections">
@@ -33007,6 +33706,8 @@ self.onmessage = function (e) {
           <div class="field"><label>Visualizer</label>
             <div class="ag-chip-row" id="agVizRow">
               <button type="button" class="ag-chip" data-ag-viz="bars" aria-pressed="true">Spectrum Bars</button>
+              <button type="button" class="ag-chip" data-ag-viz="waveform" aria-pressed="false">Waveform</button>
+              <button type="button" class="ag-chip" data-ag-viz="spectrogram" aria-pressed="false">Spectrogram</button>
               <button type="button" class="ag-chip" data-ag-viz="wave" aria-pressed="false">Liquid Wave</button>
               <button type="button" class="ag-chip" data-ag-viz="mirror" aria-pressed="false">Mirror Bars</button>
               <button type="button" class="ag-chip" data-ag-viz="minimal" aria-pressed="false">Minimal</button>
@@ -33042,7 +33743,49 @@ self.onmessage = function (e) {
           <label class="checkrow"><input type="checkbox" id="agBlurBg" checked><span>Blurred cover art backdrop</span></label>
           <label class="checkrow"><input type="checkbox" id="agParticles" checked><span>Ambient floating bokeh particles</span></label>
           <label class="checkrow"><input type="checkbox" id="agCaptions" ${hasMarkers ? 'checked' : ''}><span>Show markers as timed captions (${hasMarkers ? Markers.list.length : '0'})</span></label>
-          <label class="checkrow"><input type="checkbox" id="agBadge" checked><span>Show Sonora studio watermark</span></label>
+
+          <div class="ag-wm-card">
+            <label class="checkrow" style="margin:0"><input type="checkbox" id="agBadge" ${agWmCfg.enabled ? 'checked' : ''}><span><b>Custom Watermark &amp; Logo Overlay</b></span></label>
+            <div class="field" style="margin:0">
+              <label for="agWmText">Watermark Signature Text</label>
+              <input type="text" id="agWmText" value="${escHtml(agWmCfg.text)}" placeholder="Sonora by @jinosabu1999">
+            </div>
+            <div class="ag-quick-row">
+              <button type="button" class="ag-quick-pill" data-wm-preset="Sonora by @jinosabu1999">Sonora by @jinosabu1999</button>
+              <button type="button" class="ag-quick-pill" data-wm-preset="Sonora by Jino Sabu">Sonora by Jino Sabu</button>
+              <button type="button" class="ag-quick-pill" data-wm-preset="@jinosabu1999">@jinosabu1999</button>
+              <button type="button" class="ag-quick-pill" data-wm-preset="Jino Sabu">Jino Sabu</button>
+            </div>
+            <div class="ag-art-row">
+              <div class="ag-art-thumb" id="agWmLogoThumb">${agWmLogoUrl ? `<img src="${agWmLogoUrl}" alt="Logo">` : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M9 10v4m3-6v8m3-5v2"/></svg>'}</div>
+              <div class="ag-art-meta"><b>Custom Logo Icon</b><span id="agWmLogoName">${agWmLogoName || 'Sonora reactive wave emblem'}</span></div>
+              <button type="button" class="btn sm" id="agWmLogoChoose">Logo</button>
+              <button type="button" class="btn sm ghost" id="agWmLogoClear" ${agWmLogoImg ? '' : 'hidden'}>×</button>
+              <input type="file" id="agWmLogoFile" accept="image/*" hidden>
+            </div>
+            <div class="field" style="margin:0"><label>Watermark Style</label>
+              <div class="ag-chip-row" id="agWmStyleRow">
+                <button type="button" class="ag-chip" data-wm-style="glass-pill" aria-pressed="${agWmCfg.style === 'glass-pill'}">Frosted Pill</button>
+                <button type="button" class="ag-chip" data-wm-style="editorial" aria-pressed="${agWmCfg.style === 'editorial'}">Editorial Stamp</button>
+                <button type="button" class="ag-chip" data-wm-style="neon" aria-pressed="${agWmCfg.style === 'neon'}">Neon Tag</button>
+                <button type="button" class="ag-chip" data-wm-style="minimal" aria-pressed="${agWmCfg.style === 'minimal'}">Minimal</button>
+              </div>
+            </div>
+            <div class="field" style="margin:0"><label>Position</label>
+              <div class="ag-chip-row" id="agWmPosRow">
+                <button type="button" class="ag-chip" data-wm-pos="tl" aria-pressed="${agWmCfg.pos === 'tl'}">Top-Left</button>
+                <button type="button" class="ag-chip" data-wm-pos="tc" aria-pressed="${agWmCfg.pos === 'tc'}">Top-Center</button>
+                <button type="button" class="ag-chip" data-wm-pos="tr" aria-pressed="${agWmCfg.pos === 'tr'}">Top-Right</button>
+                <button type="button" class="ag-chip" data-wm-pos="bl" aria-pressed="${agWmCfg.pos === 'bl'}">Bot-Left</button>
+                <button type="button" class="ag-chip" data-wm-pos="bc" aria-pressed="${agWmCfg.pos === 'bc'}">Bot-Center</button>
+                <button type="button" class="ag-chip" data-wm-pos="br" aria-pressed="${agWmCfg.pos === 'br'}">Bot-Right</button>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div><div class="range-row"><label for="agWmOpacity">Opacity</label><output id="agWmOpacityOut">${agWmCfg.opacity}%</output></div><input type="range" id="agWmOpacity" min="25" max="100" step="1" value="${agWmCfg.opacity}"></div>
+              <div><div class="range-row"><label for="agWmSize">Scale</label><output id="agWmSizeOut">${agWmCfg.size}%</output></div><input type="range" id="agWmSize" min="70" max="150" step="5" value="${agWmCfg.size}"></div>
+            </div>
+          </div>
         </div>
 
         <div class="ag-pane" data-ag-pane="export" hidden>
@@ -33075,8 +33818,7 @@ self.onmessage = function (e) {
         <div id="agQueueHost" class="rq-queue-box" hidden></div>
         <div class="prog" id="agProg"><i></i></div>
         <div class="ag-actions">
-          <button type="button" class="btn primary" id="btnRenderAudiogram">Render &amp; Download Video</button>
-          <button type="button" class="btn" id="btnBgAudiogram" hidden>Render in Background</button>
+          <button type="button" class="btn primary" id="btnRenderAudiogram">Render in Background</button>
           <button type="button" class="btn warn" id="btnCancelAudiogram" hidden>Cancel</button>
         </div>
         <p class="hint" id="agStatus">Press ▶ above for live audio-reactive preview before rendering.</p>
@@ -33090,7 +33832,6 @@ self.onmessage = function (e) {
     if (agRenderActive) {
       $('#btnRenderAudiogram').disabled = true;
       $('#btnRenderAudiogram').textContent = 'Rendering in background…';
-      if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = false;
       if ($('#btnCancelAudiogram')) {
         $('#btnCancelAudiogram').hidden = false;
         $('#btnCancelAudiogram').onclick = () => { if (agCancelRender) agCancelRender(); };
@@ -33098,20 +33839,44 @@ self.onmessage = function (e) {
       setAgBgRenderUI(true, agRenderPct, agRenderMsg);
     }
 
-    const getOpts = (hd = false) => ({
-      ratio: $('#agRatio') ? $('#agRatio').value : '9:16',
-      theme: curTheme,
-      viz: curViz,
-      artStyle: $('#agArtStyle') ? $('#agArtStyle').value : curArtStyle,
-      title: $('#agTitle') ? $('#agTitle').value : defTitle,
-      artist: $('#agArtist') ? $('#agArtist').value : defArtist,
-      blurBg: $('#agBlurBg') ? $('#agBlurBg').checked : true,
-      particles: $('#agParticles') ? $('#agParticles').checked : true,
-      captions: $('#agCaptions') ? $('#agCaptions').checked : false,
-      badge: $('#agBadge') ? $('#agBadge').checked : true,
-      brollDim: $('#agBrollDim') ? Number($('#agBrollDim').value) : 48,
-      hd,
-    });
+    let agVizMapsCache = null, agVizMapsKey = '';
+    const getVizMaps = () => {
+      const [a, b] = scopeRange();
+      const key = `${a}:${b}:${S.rate}:${S.data[0].length}`;
+      if (!agVizMapsCache || agVizMapsKey !== key) {
+        agVizMapsCache = buildAgVisualizerMaps(S.data, S.rate, a, b);
+        agVizMapsKey = key;
+      }
+      return agVizMapsCache;
+    };
+
+    const getOpts = (hd = false) => {
+      const vm = (curViz === 'waveform' || curViz === 'spectrogram') ? getVizMaps() : { waveEnv: null, specMap: null };
+      const wmOn = $('#agBadge') ? $('#agBadge').checked : agWmCfg.enabled;
+      return {
+        ratio: $('#agRatio') ? $('#agRatio').value : '9:16',
+        theme: curTheme,
+        viz: curViz,
+        artStyle: $('#agArtStyle') ? $('#agArtStyle').value : curArtStyle,
+        title: $('#agTitle') ? $('#agTitle').value : defTitle,
+        artist: $('#agArtist') ? $('#agArtist').value : defArtist,
+        blurBg: $('#agBlurBg') ? $('#agBlurBg').checked : true,
+        particles: $('#agParticles') ? $('#agParticles').checked : true,
+        captions: $('#agCaptions') ? $('#agCaptions').checked : false,
+        badge: wmOn,
+        wmEnabled: wmOn,
+        wmText: $('#agWmText') ? $('#agWmText').value : agWmCfg.text,
+        wmStyle: agWmCfg.style,
+        wmPos: agWmCfg.pos,
+        wmOpacity: $('#agWmOpacity') ? Number($('#agWmOpacity').value) : agWmCfg.opacity,
+        wmSize: $('#agWmSize') ? Number($('#agWmSize').value) : agWmCfg.size,
+        safeZone: hd ? 'off' : agWmCfg.safeZone,
+        brollDim: $('#agBrollDim') ? Number($('#agBrollDim').value) : 48,
+        waveEnv: vm.waveEnv,
+        specMap: vm.specMap,
+        hd,
+      };
+    };
 
     const scopeRange = () => ($('#agScope') && $('#agScope').value === 'all') ? [0, S.data[0].length] : selRange();
 
@@ -33138,6 +33903,78 @@ self.onmessage = function (e) {
       };
     });
     if ($('#agArtStyle')) $('#agArtStyle').onchange = () => { curArtStyle = $('#agArtStyle').value; };
+
+    // Preview-only Safe-Zone Guides
+    $$('[data-ag-sz]').forEach((btn) => {
+      btn.onclick = () => {
+        agWmCfg.safeZone = btn.dataset.agSz;
+        $$('[data-ag-sz]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.agSz === agWmCfg.safeZone));
+      };
+    });
+
+    // Custom Watermark / Logo Overlay controls
+    if ($('#agBadge')) $('#agBadge').onchange = () => { agWmCfg.enabled = $('#agBadge').checked; };
+    if ($('#agWmText')) $('#agWmText').oninput = () => { agWmCfg.text = $('#agWmText').value; };
+    $$('[data-wm-preset]').forEach((btn) => {
+      btn.onclick = () => {
+        agWmCfg.text = btn.dataset.wmPreset;
+        if ($('#agWmText')) $('#agWmText').value = agWmCfg.text;
+        agWmCfg.enabled = true;
+        if ($('#agBadge')) $('#agBadge').checked = true;
+      };
+    });
+    $$('[data-wm-style]').forEach((btn) => {
+      btn.onclick = () => {
+        agWmCfg.style = btn.dataset.wmStyle;
+        $$('[data-wm-style]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wmStyle === agWmCfg.style));
+      };
+    });
+    $$('[data-wm-pos]').forEach((btn) => {
+      btn.onclick = () => {
+        agWmCfg.pos = btn.dataset.wmPos;
+        $$('[data-wm-pos]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wmPos === agWmCfg.pos));
+      };
+    });
+    if ($('#agWmOpacity')) {
+      $('#agWmOpacity').oninput = (ev) => {
+        agWmCfg.opacity = Number(ev.target.value);
+        if ($('#agWmOpacityOut')) $('#agWmOpacityOut').textContent = agWmCfg.opacity + '%';
+      };
+    }
+    if ($('#agWmSize')) {
+      $('#agWmSize').oninput = (ev) => {
+        agWmCfg.size = Number(ev.target.value);
+        if ($('#agWmSizeOut')) $('#agWmSizeOut').textContent = agWmCfg.size + '%';
+      };
+    }
+    if ($('#agWmLogoChoose')) $('#agWmLogoChoose').onclick = () => $('#agWmLogoFile') && $('#agWmLogoFile').click();
+    if ($('#agWmLogoFile')) {
+      $('#agWmLogoFile').onchange = (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (!f) return;
+        if (agWmLogoUrl) { try { URL.revokeObjectURL(agWmLogoUrl); } catch (e) {} }
+        const url = URL.createObjectURL(f);
+        const im = new Image();
+        im.onload = () => {
+          agWmLogoImg = im; agWmLogoUrl = url; agWmLogoName = f.name;
+          if ($('#agWmLogoThumb')) $('#agWmLogoThumb').innerHTML = `<img src="${url}" alt="Logo">`;
+          if ($('#agWmLogoName')) $('#agWmLogoName').textContent = f.name;
+          if ($('#agWmLogoClear')) $('#agWmLogoClear').hidden = false;
+        };
+        im.onerror = () => { URL.revokeObjectURL(url); toast('Could not load logo image', 'err'); };
+        im.src = url;
+      };
+    }
+    if ($('#agWmLogoClear')) {
+      $('#agWmLogoClear').onclick = () => {
+        if (agWmLogoUrl) { try { URL.revokeObjectURL(agWmLogoUrl); } catch (e) {} }
+        agWmLogoImg = null; agWmLogoUrl = ''; agWmLogoName = '';
+        if ($('#agWmLogoThumb')) $('#agWmLogoThumb').innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M9 10v4m3-6v8m3-5v2"/></svg>';
+        if ($('#agWmLogoName')) $('#agWmLogoName').textContent = 'Sonora reactive wave emblem';
+        $('#agWmLogoClear').hidden = true;
+      };
+    }
 
     // Custom artwork upload
     if ($('#agArtChoose')) $('#agArtChoose').onclick = () => $('#agArtFile') && $('#agArtFile').click();
@@ -33288,10 +34125,6 @@ self.onmessage = function (e) {
 
 
     if ($('#bgRenderCancel')) $('#bgRenderCancel').onclick = () => { if (agCancelRender) agCancelRender(); };
-    if ($('#btnBgAudiogram')) $('#btnBgAudiogram').onclick = () => {
-      closeOverlays();
-      toast('Rendering continues in background…', 'info', 2200);
-    };
 
     $('#btnRenderAudiogram').onclick = async () => {
       if (agRenderActive) return;
@@ -33300,10 +34133,8 @@ self.onmessage = function (e) {
       let wakeLock = null;
       let worker = null;
       const btn = $('#btnRenderAudiogram');
-      const bgBtn = $('#btnBgAudiogram');
       const cancelBtn = $('#btnCancelAudiogram');
-      btn.disabled = true; btn.textContent = 'Rendering video…';
-      if (bgBtn) bgBtn.hidden = false;
+      btn.disabled = true; btn.textContent = 'Rendering in background…';
       if (cancelBtn) cancelBtn.hidden = false;
       setAgBgRenderUI(true, 1, 'Preparing audio & background encoder…');
 
@@ -33316,8 +34147,7 @@ self.onmessage = function (e) {
         if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
         agCancelRender = null;
         setAgBgRenderUI(false, 0, '');
-        if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = false; $('#btnRenderAudiogram').textContent = 'Render & Download Video'; }
-        if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = true;
+        if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = false; $('#btnRenderAudiogram').textContent = 'Render in Background'; }
         if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = true;
       };
 
@@ -33346,6 +34176,13 @@ self.onmessage = function (e) {
         const vBps = is1080 ? (fps === 60 ? 6000000 : 4200000) : 2500000;
         const pref = ($('#agFormat') && $('#agFormat').value) || 'auto';
         const opts = getOpts(is1080);
+        opts.safeZone = 'off';
+        opts.wmLogoImg = agWmLogoImg || null;
+        if (opts.viz === 'waveform' || opts.viz === 'spectrogram') {
+          const vm = buildAgVisualizerMaps(data, S.rate, 0, data[0].length);
+          opts.waveEnv = vm.waveEnv;
+          opts.specMap = vm.specMap;
+        }
         opts.totalSec = totalSec; opts.startSec = a / S.rate;
         opts.markers = (Markers && Markers.list) ? Markers.list.map((m) => ({ t: m.t, name: m.name, note: m.note, color: m.color })) : [];
 
@@ -33357,6 +34194,11 @@ self.onmessage = function (e) {
           if (agCoverImg && agCoverImg.src) {
             try { coverBlob = await fetch(agCoverImg.src).then((r) => r.blob()); } catch (e) {}
           }
+          let wmLogoBlob = null;
+          if (agWmLogoImg && agWmLogoImg.src) {
+            try { wmLogoBlob = await fetch(agWmLogoImg.src).then((r) => r.blob()); } catch (e) {}
+          }
+          const workerOpts = { ...opts, wmLogoImg: null };
           const jobRecord = {
             id: 'ag_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
             title: opts.title || S.name || 'Sonora Video',
@@ -33364,13 +34206,14 @@ self.onmessage = function (e) {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             checkpointSafe: !$('#agAutoResume') || $('#agAutoResume').checked,
-            opts,
+            opts: workerOpts,
             channels: data.map((ch) => new Float32Array(ch)),
             rate: S.rate,
             fps,
             vBps,
             pref,
             coverBlob,
+            wmLogoBlob,
             totalSec,
             totalFrames: Math.max(1, Math.round(totalSec * fps)),
             nextFrame: 0,
@@ -33382,13 +34225,14 @@ self.onmessage = function (e) {
             aDesc: null,
             pipe: null,
           };
-          const wRes = await runWorkerRenderJob(jobRecord, { coverImg: agCoverImg });
+          closeOverlays();
+          toast('Rendering started in background…', 'info', 2200);
+          const wRes = await runWorkerRenderJob(jobRecord, { coverImg: agCoverImg, wmLogoImg: agWmLogoImg });
           if (wRes && !wRes.unsupported) {
             usedWorker = true;
           } else {
             await rqDel(jobRecord.id);
-            if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = true; $('#btnRenderAudiogram').textContent = 'Rendering video…'; }
-            if ($('#btnBgAudiogram')) $('#btnBgAudiogram').hidden = false;
+            if ($('#btnRenderAudiogram')) { $('#btnRenderAudiogram').disabled = true; $('#btnRenderAudiogram').textContent = 'Rendering in background…'; }
             if ($('#btnCancelAudiogram')) $('#btnCancelAudiogram').hidden = false;
             setAgBgRenderUI(true, 1, 'Starting fallback renderer…');
           }
@@ -33616,8 +34460,39 @@ self.onmessage = function (e) {
         if ($('#saveStatus')) $('#saveStatus').textContent = 'Autosaving…';
         const proj = captureProjectSnapshot(true);
         if (revision !== saveRevision) return;
+        let usedOpfs = false;
+        if (OPFSSwap.supported && proj.mainChannels) {
+          const mainBytes = proj.mainChannels.reduce((m, c) => m + c.byteLength, 0);
+          if (mainBytes >= OPFS_SWAP_BYTES * 2) {
+            const meta = await OPFSSwap.writeAudio('proj_main', proj.mainChannels).catch(() => null);
+            if (meta) {
+              proj.mainOpfs = { key: 'proj_main', rate: proj.rate || S.rate, bytes: meta.bytes };
+              delete proj.mainChannels;
+              usedOpfs = true;
+            }
+          }
+          if (proj.layer && proj.layer.data) {
+            const lBytes = proj.layer.data.reduce((m, c) => m + c.byteLength, 0);
+            if (lBytes >= OPFS_SWAP_BYTES) {
+              const lm = await OPFSSwap.writeAudio('proj_layer', proj.layer.data).catch(() => null);
+              if (lm) { proj.layer.opfsKey = 'proj_layer'; delete proj.layer.data; usedOpfs = true; }
+            }
+          }
+          if (Array.isArray(proj.stems)) {
+            for (let i = 0; i < proj.stems.length; i++) {
+              const sm = proj.stems[i];
+              if (sm.data && sm.data.reduce((m, c) => m + c.byteLength, 0) >= OPFS_SWAP_BYTES) {
+                const smMeta = await OPFSSwap.writeAudio('proj_stem_' + i, sm.data).catch(() => null);
+                if (smMeta) { sm.opfsKey = 'proj_stem_' + i; delete sm.data; usedOpfs = true; }
+              }
+            }
+          }
+        }
+        if (revision !== saveRevision) return;
         await kvSet('active_project', proj);
-        if (revision === saveRevision && $('#saveStatus')) $('#saveStatus').textContent = 'Autosaved locally';
+        if (revision === saveRevision && $('#saveStatus')) {
+          $('#saveStatus').textContent = usedOpfs ? 'Autosaved (OPFS)' : 'Autosaved locally';
+        }
       } catch (e) {
         if (revision === saveRevision && $('#saveStatus')) $('#saveStatus').textContent = 'Autosave unavailable · save .sonora';
       }
@@ -33627,7 +34502,7 @@ self.onmessage = function (e) {
   async function offerRestore() {
     refreshDzRenderRecovery();
     const proj = await kvGet('active_project');
-    if (proj && proj.mainChannels && proj.mainChannels.length) {
+    if (proj && ((proj.mainChannels && proj.mainChannels.length) || (proj.mainOpfs && proj.mainOpfs.key))) {
       const box = document.createElement('div');
       box.className = 'restore-banner';
       const info = document.createElement('div');
@@ -34889,5 +35764,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a609e7dcda10d433',t:'MTc5NTcwNjcyNQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a609e7dcda10d433',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60df23f8cd1a901',t:'MTc5NTc0OTA5NA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60df23f8cd1a901',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
