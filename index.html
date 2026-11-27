@@ -31816,14 +31816,25 @@ self.onmessage = function (e) {
 
         if (el.id === 0x114D9B74 && !sz.unknown) seekHeads.push({ dStart, dEnd: dStart + sz.val });
 
-        if (el.id === 0x1549A966 && !sz.unknown) {
-
+        if (el.id === 0x1549A966) {
           infoStart = p; infoSizeStart = p + el.len; infoSizeLen = sz.len;
-
-          infoDataStart = dStart; infoSizeVal = sz.val;
-
+          infoDataStart = dStart;
+          if (!sz.unknown) {
+            infoSizeVal = sz.val;
+          } else {
+            // Compute Info end by scanning Info children until the next Segment-level element
+            const segChildIds = new Set([0x1654AE6B, 0x1F43B675, 0x1C53BB6B, 0x114D9B74, 0x1043A770, 0x1254C367, 0x1941A469]);
+            let ipScan = dStart;
+            while (ipScan < segLimit) {
+              const ce = _ebmlReadId(u8, ipScan);
+              if (!ce || segChildIds.has(ce.id)) break;
+              const cs = _ebmlReadVintSize(u8, ipScan + ce.len);
+              if (!cs || cs.unknown) break;
+              ipScan = ipScan + ce.len + cs.len + cs.val;
+            }
+            infoSizeVal = Math.max(0, ipScan - dStart);
+          }
           break;
-
         }
 
         if (sz.unknown) break;
@@ -32180,6 +32191,638 @@ self.onmessage = function (e) {
 
   }
 
+  function defragmentMp4(u8, durationMs) {
+
+    try {
+
+      if (!u8 || u8.length < 32) return u8;
+
+      const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+
+      const te = new TextEncoder();
+
+      const readBox = (start, limit) => {
+
+        if (start + 8 > limit) return null;
+
+        let size = dv.getUint32(start, false);
+
+        const type = String.fromCharCode(u8[start + 4], u8[start + 5], u8[start + 6], u8[start + 7]);
+
+        let hdr = 8;
+
+        if (size === 1) {
+
+          if (start + 16 > limit) return null;
+
+          size = Number(dv.getBigUint64(start + 8, false));
+
+          hdr = 16;
+
+        } else if (size === 0) {
+
+          size = limit - start;
+
+        }
+
+        if (size < hdr || start + size > limit) return null;
+
+        return { type, start, dStart: start + hdr, end: start + size };
+
+      };
+
+      const findChild = (start, limit, name) => {
+
+        let p = start;
+
+        while (p < limit) {
+
+          const b = readBox(p, limit); if (!b) break;
+
+          if (b.type === name) return b;
+
+          p = b.end;
+
+        }
+
+        return null;
+
+      };
+
+      const topBoxes = [];
+
+      let hasMoof = false, ftypBox = null, moovBox = null;
+
+      for (let p = 0; p < u8.length;) {
+
+        const b = readBox(p, u8.length); if (!b) break;
+
+        topBoxes.push(b);
+
+        if (b.type === 'ftyp' && !ftypBox) ftypBox = b;
+
+        else if (b.type === 'moov' && !moovBox) moovBox = b;
+
+        else if (b.type === 'moof') hasMoof = true;
+
+        p = b.end;
+
+      }
+
+      if (!hasMoof || !moovBox) {
+
+        const patched = fixMp4Duration(u8, durationMs);
+
+        // Ensure faststart (moov before mdat) for non-fragmented MP4
+
+        const pdv = new DataView(patched.buffer, patched.byteOffset, patched.byteLength);
+
+        let fEnd = 0, moovAt = -1, moovSz = 0, mdatAt = -1;
+
+        for (let p = 0; p + 8 <= patched.length;) {
+
+          const sz = pdv.getUint32(p, false);
+
+          if (sz < 8 || p + sz > patched.length) break;
+
+          const tp = String.fromCharCode(patched[p+4], patched[p+5], patched[p+6], patched[p+7]);
+
+          if (tp === 'ftyp') fEnd = p + sz;
+
+          else if (tp === 'moov') { moovAt = p; moovSz = sz; }
+
+          else if (tp === 'mdat' && mdatAt < 0) mdatAt = p;
+
+          p += sz;
+
+        }
+
+        if (moovAt > mdatAt && mdatAt >= 0) {
+
+          const out = new Uint8Array(patched.length);
+
+          out.set(patched.subarray(0, mdatAt), 0);
+
+          out.set(patched.subarray(moovAt, moovAt + moovSz), mdatAt);
+
+          out.set(patched.subarray(mdatAt, moovAt), mdatAt + moovSz);
+
+          if (moovAt + moovSz < patched.length) out.set(patched.subarray(moovAt + moovSz), mdatAt + moovSz + (moovAt - mdatAt));
+
+          // Shift stco offsets by +moovSz
+
+          const odv = new DataView(out.buffer, out.byteOffset, out.byteLength);
+
+          const shiftStco = (s, lim) => {
+
+            let q = s;
+
+            while (q + 8 <= lim) {
+
+              const sz = odv.getUint32(q, false);
+
+              if (sz < 8 || q + sz > lim) break;
+
+              const tp = String.fromCharCode(out[q+4], out[q+5], out[q+6], out[q+7]);
+
+              if (tp === 'moov' || tp === 'trak' || tp === 'mdia' || tp === 'minf' || tp === 'stbl') shiftStco(q + 8, q + sz);
+
+              else if (tp === 'stco' && sz >= 16) {
+
+                const cnt = odv.getUint32(q + 12, false);
+
+                for (let i = 0; i < cnt && q + 16 + i * 4 + 4 <= q + sz; i++) {
+
+                  odv.setUint32(q + 16 + i * 4, odv.getUint32(q + 16 + i * 4, false) + moovSz, false);
+
+                }
+
+              }
+
+              q += sz;
+
+            }
+
+          };
+
+          shiftStco(mdatAt, mdatAt + moovSz);
+
+          return out;
+
+        }
+
+        return patched;
+
+      }
+
+      // Parse tracks & trex defaults from moov
+
+      const tracks = new Map();
+
+      const trexDefaults = new Map();
+
+      const mvex = findChild(moovBox.dStart, moovBox.end, 'mvex');
+
+      if (mvex) {
+
+        for (let p = mvex.dStart; p < mvex.end;) {
+
+          const b = readBox(p, mvex.end); if (!b) break;
+
+          if (b.type === 'trex' && b.end - b.dStart >= 24) {
+
+            const tid = dv.getUint32(b.dStart + 4, false);
+
+            trexDefaults.set(tid, {
+
+              defDur: dv.getUint32(b.dStart + 12, false),
+
+              defSize: dv.getUint32(b.dStart + 16, false),
+
+              defFlags: dv.getUint32(b.dStart + 20, false),
+
+            });
+
+          }
+
+          p = b.end;
+
+        }
+
+      }
+
+      for (let p = moovBox.dStart; p < moovBox.end;) {
+
+        const tb = readBox(p, moovBox.end); if (!tb) break;
+
+        if (tb.type === 'trak') {
+
+          const tkhd = findChild(tb.dStart, tb.end, 'tkhd');
+
+          const mdia = findChild(tb.dStart, tb.end, 'mdia');
+
+          if (tkhd && mdia) {
+
+            const ver = u8[tkhd.dStart];
+
+            const tid = dv.getUint32(tkhd.dStart + (ver === 1 ? 20 : 12), false);
+
+            const wFix = tkhd.end - tkhd.dStart >= (ver === 1 ? 92 : 80) ? dv.getUint32(tkhd.end - 8, false) : 0;
+
+            const hFix = tkhd.end - tkhd.dStart >= (ver === 1 ? 92 : 80) ? dv.getUint32(tkhd.end - 4, false) : 0;
+
+            const mdhd = findChild(mdia.dStart, mdia.end, 'mdhd');
+
+            const hdlr = findChild(mdia.dStart, mdia.end, 'hdlr');
+
+            const minf = findChild(mdia.dStart, mdia.end, 'minf');
+
+            const stbl = minf ? findChild(minf.dStart, minf.end, 'stbl') : null;
+
+            const stsd = stbl ? findChild(stbl.dStart, stbl.end, 'stsd') : null;
+
+            let timescale = 1000;
+
+            if (mdhd) {
+
+              const mver = u8[mdhd.dStart];
+
+              timescale = dv.getUint32(mdhd.dStart + (mver === 1 ? 20 : 12), false) || 1000;
+
+            }
+
+            const hType = hdlr && hdlr.end - hdlr.dStart >= 12 ? String.fromCharCode(u8[hdlr.dStart+8], u8[hdlr.dStart+9], u8[hdlr.dStart+10], u8[hdlr.dStart+11]) : 'vide';
+
+            if (stsd) {
+
+              tracks.set(tid, {
+
+                id: tid, hType, timescale, wFix, hFix,
+
+                stsdRaw: u8.subarray(stsd.start, stsd.end),
+
+                samples: [],
+
+              });
+
+            }
+
+          }
+
+        }
+
+        p = tb.end;
+
+      }
+
+      if (!tracks.size) return fixMp4Duration(u8, durationMs);
+
+      // Parse all moof + mdat pairs
+
+      for (let idx = 0; idx < topBoxes.length; idx++) {
+
+        const mb = topBoxes[idx];
+
+        if (mb.type !== 'moof') continue;
+
+        let nextMdat = null;
+
+        for (let k = idx + 1; k < topBoxes.length; k++) {
+
+          if (topBoxes[k].type === 'mdat') { nextMdat = topBoxes[k]; break; }
+
+          if (topBoxes[k].type === 'moof') break;
+
+        }
+
+        let prevTrafEnd = nextMdat ? nextMdat.dStart : mb.end;
+
+        for (let p = mb.dStart; p < mb.end;) {
+
+          const traf = readBox(p, mb.end); if (!traf) break;
+
+          if (traf.type === 'traf') {
+
+            const tfhd = findChild(traf.dStart, traf.end, 'tfhd');
+
+            if (tfhd && tfhd.end - tfhd.dStart >= 8) {
+
+              const tfFlags = (u8[tfhd.dStart + 1] << 16) | (u8[tfhd.dStart + 2] << 8) | u8[tfhd.dStart + 3];
+
+              const tid = dv.getUint32(tfhd.dStart + 4, false);
+
+              let tp = tfhd.dStart + 8;
+
+              let baseOff = null;
+
+              if (tfFlags & 0x01) { baseOff = Number(dv.getBigUint64(tp, false)); tp += 8; }
+
+              if (tfFlags & 0x02) tp += 4;
+
+              let tfDefDur = null, tfDefSize = null, tfDefFlags = null;
+
+              if (tfFlags & 0x08) { tfDefDur = dv.getUint32(tp, false); tp += 4; }
+
+              if (tfFlags & 0x10) { tfDefSize = dv.getUint32(tp, false); tp += 4; }
+
+              if (tfFlags & 0x20) { tfDefFlags = dv.getUint32(tp, false); tp += 4; }
+
+              const baseIsMoof = !!(tfFlags & 0x020000);
+
+              const anchor = baseOff != null ? baseOff : (baseIsMoof ? mb.start : prevTrafEnd);
+
+              const td = trexDefaults.get(tid) || {};
+
+              const trk = tracks.get(tid);
+
+              for (let q = traf.dStart; q < traf.end;) {
+
+                const tb = readBox(q, traf.end); if (!tb) break;
+
+                if (tb.type === 'trun' && trk && tb.end - tb.dStart >= 8) {
+
+                  const trVer = u8[tb.dStart];
+
+                  const trFlags = (u8[tb.dStart + 1] << 16) | (u8[tb.dStart + 2] << 8) | u8[tb.dStart + 3];
+
+                  const cnt = dv.getUint32(tb.dStart + 4, false);
+
+                  let rp = tb.dStart + 8;
+
+                  let dataOff = anchor;
+
+                  if (trFlags & 0x01) { dataOff = anchor + dv.getInt32(rp, false); rp += 4; }
+
+                  else if (baseOff == null && !baseIsMoof && nextMdat) dataOff = prevTrafEnd;
+
+                  let firstFlags = null;
+
+                  if (trFlags & 0x04) { firstFlags = dv.getUint32(rp, false); rp += 4; }
+
+                  let curOff = dataOff;
+
+                  for (let i = 0; i < cnt && rp <= tb.end; i++) {
+
+                    const dur = (trFlags & 0x100) ? dv.getUint32(rp, false) : (tfDefDur ?? td.defDur ?? 1);
+
+                    if (trFlags & 0x100) rp += 4;
+
+                    const sz = (trFlags & 0x200) ? dv.getUint32(rp, false) : (tfDefSize ?? td.defSize ?? 0);
+
+                    if (trFlags & 0x200) rp += 4;
+
+                    const sf = (trFlags & 0x400) ? dv.getUint32(rp, false) : (i === 0 && firstFlags != null ? firstFlags : (tfDefFlags ?? td.defFlags ?? 0));
+
+                    if (trFlags & 0x400) rp += 4;
+
+                    let cts = 0;
+
+                    if (trFlags & 0x800) { cts = trVer === 0 ? dv.getUint32(rp, false) : dv.getInt32(rp, false); rp += 4; }
+
+                    if (sz > 0 && curOff >= 0 && curOff + sz <= u8.length) {
+
+                      trk.samples.push({ off: curOff, size: sz, dur: Math.max(1, dur), key: ((sf >> 16) & 1) === 0, cts });
+
+                    }
+
+                    curOff += sz;
+
+                  }
+
+                  prevTrafEnd = curOff;
+
+                }
+
+                q = tb.end;
+
+              }
+
+            }
+
+          }
+
+          p = traf.end;
+
+        }
+
+      }
+
+      const activeTracks = Array.from(tracks.values()).filter((t) => t.samples.length > 0);
+
+      if (!activeTracks.length) return fixMp4Duration(u8, durationMs);
+
+      const u32 = (v) => new Uint8Array([(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]);
+
+      const u16 = (v) => new Uint8Array([(v >>> 8) & 255, v & 255]);
+
+      const concat = (...parts) => {
+
+        let total = 0; for (const p of parts) total += p.length;
+
+        const out = new Uint8Array(total);
+
+        let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+
+        return out;
+
+      };
+
+      const box = (type, ...payloads) => { const body = concat(...payloads); return concat(u32(8 + body.length), te.encode(type), body); };
+
+      const fullBox = (type, ver, flags, ...payloads) => box(type, new Uint8Array([ver & 255, (flags >>> 16) & 255, (flags >>> 8) & 255, flags & 255]), ...payloads);
+
+      const ftyp = ftypBox ? u8.subarray(ftypBox.start, ftypBox.end) : box('ftyp', te.encode('isom'), u32(512), te.encode('isom'), te.encode('iso2'), te.encode('avc1'), te.encode('mp41'));
+
+      const unityMatrix = concat(u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000));
+
+      let mdatLen = 0;
+
+      for (const trk of activeTracks) for (const s of trk.samples) mdatLen += s.size;
+
+      const buildStts = (samples) => {
+
+        const entries = [];
+
+        for (const s of samples) {
+
+          if (entries.length && entries[entries.length - 1][1] === s.dur) entries[entries.length - 1][0]++;
+
+          else entries.push([1, s.dur]);
+
+        }
+
+        const parts = [u32(entries.length)];
+
+        for (const [cnt, dd] of entries) parts.push(u32(cnt), u32(dd));
+
+        return fullBox('stts', 0, 0, ...parts);
+
+      };
+
+      const buildStsz = (samples) => {
+
+        const buf = new Uint8Array(8 + samples.length * 4);
+
+        const bdv = new DataView(buf.buffer);
+
+        bdv.setUint32(0, 0, false); bdv.setUint32(4, samples.length, false);
+
+        for (let i = 0; i < samples.length; i++) bdv.setUint32(8 + i * 4, samples[i].size, false);
+
+        return fullBox('stsz', 0, 0, buf);
+
+      };
+
+      const buildStco = (offsets) => {
+
+        const buf = new Uint8Array(4 + offsets.length * 4);
+
+        const bdv = new DataView(buf.buffer);
+
+        bdv.setUint32(0, offsets.length, false);
+
+        for (let i = 0; i < offsets.length; i++) bdv.setUint32(4 + i * 4, offsets[i], false);
+
+        return fullBox('stco', 0, 0, buf);
+
+      };
+
+      const dinf = box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1)));
+
+      const buildMoovForOffsets = (offsetsMap) => {
+
+        let maxMs = Math.max(1, Math.round(durationMs));
+
+        for (const trk of activeTracks) {
+
+          const sumT = trk.samples.reduce((a, s) => a + s.dur, 0);
+
+          const ms = Math.round((sumT / trk.timescale) * 1000);
+
+          if (ms > maxMs) maxMs = ms;
+
+        }
+
+        const maxTid = activeTracks.reduce((m, t) => Math.max(m, t.id), 1);
+
+        const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(maxMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(maxTid + 1));
+
+        const traks = activeTracks.map((trk) => {
+
+          const sumT = trk.samples.reduce((a, s) => a + s.dur, 0) || Math.max(1, Math.round((durationMs / 1000) * trk.timescale));
+
+          const trkMs = Math.max(1, Math.round((sumT / trk.timescale) * 1000));
+
+          const isVid = trk.hType === 'vide';
+
+          const tkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(trk.id), u32(0), u32(trkMs), new Uint8Array(8), u16(0), u16(0), u16(isVid ? 0 : 0x0100), u16(0), unityMatrix, u32(isVid ? trk.wFix : 0), u32(isVid ? trk.hFix : 0));
+
+          const edts = box('edts', fullBox('elst', 0, 0, u32(1), u32(trkMs), u32(0), u32(0x00010000)));
+
+          const mdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(trk.timescale), u32(sumT), u16(0x55c4), u16(0));
+
+          const hdlr = fullBox('hdlr', 0, 0, u32(0), te.encode(trk.hType), new Uint8Array(12), te.encode((isVid ? 'VideoHandler' : 'SoundHandler') + '\0'));
+
+          const vmOrSm = isVid ? fullBox('vmhd', 0, 1, new Uint8Array(8)) : fullBox('smhd', 0, 0, new Uint8Array(4));
+
+          const stblParts = [trk.stsdRaw, buildStts(trk.samples)];
+
+          if (isVid) {
+
+            const syncs = [];
+
+            for (let i = 0; i < trk.samples.length; i++) if (trk.samples[i].key) syncs.push(i + 1);
+
+            if (!syncs.length) syncs.push(1);
+
+            const sbuf = new Uint8Array(4 + syncs.length * 4);
+
+            const sdv = new DataView(sbuf.buffer);
+
+            sdv.setUint32(0, syncs.length, false);
+
+            for (let i = 0; i < syncs.length; i++) sdv.setUint32(4 + i * 4, syncs[i], false);
+
+            stblParts.push(fullBox('stss', 0, 0, sbuf));
+
+          }
+
+          if (trk.samples.some((s) => s.cts !== 0)) {
+
+            const hasNeg = trk.samples.some((s) => s.cts < 0);
+
+            const entries = [];
+
+            for (const s of trk.samples) {
+
+              if (entries.length && entries[entries.length - 1][1] === s.cts) entries[entries.length - 1][0]++;
+
+              else entries.push([1, s.cts]);
+
+            }
+
+            const cbuf = new Uint8Array(4 + entries.length * 8);
+
+            const cdv = new DataView(cbuf.buffer);
+
+            cdv.setUint32(0, entries.length, false);
+
+            for (let i = 0; i < entries.length; i++) {
+
+              cdv.setUint32(4 + i * 8, entries[i][0], false);
+
+              if (hasNeg) cdv.setInt32(8 + i * 8, entries[i][1], false);
+
+              else cdv.setUint32(8 + i * 8, entries[i][1], false);
+
+            }
+
+            stblParts.push(fullBox('ctts', hasNeg ? 1 : 0, 0, cbuf));
+
+          }
+
+          stblParts.push(fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(trk.samples), buildStco(offsetsMap.get(trk.id)));
+
+          return box('trak', tkhd, edts, box('mdia', mdhd, hdlr, box('minf', vmOrSm, dinf, box('stbl', ...stblParts))));
+
+        });
+
+        return box('moov', mvhd, ...traks);
+
+      };
+
+      const dummyMap = new Map();
+
+      for (const trk of activeTracks) dummyMap.set(trk.id, new Array(trk.samples.length).fill(0));
+
+      const moovDummy = buildMoovForOffsets(dummyMap);
+
+      let cursor = ftyp.length + moovDummy.length + 8;
+
+      const realMap = new Map();
+
+      for (const trk of activeTracks) {
+
+        const offs = new Array(trk.samples.length);
+
+        for (let i = 0; i < trk.samples.length; i++) { offs[i] = cursor; cursor += trk.samples[i].size; }
+
+        realMap.set(trk.id, offs);
+
+      }
+
+      const moov = buildMoovForOffsets(realMap);
+
+      const mdatHdr = concat(u32(8 + mdatLen), te.encode('mdat'));
+
+      const out = new Uint8Array(ftyp.length + moov.length + mdatHdr.length + mdatLen);
+
+      let wp = 0;
+
+      out.set(ftyp, wp); wp += ftyp.length;
+
+      out.set(moov, wp); wp += moov.length;
+
+      out.set(mdatHdr, wp); wp += mdatHdr.length;
+
+      for (const trk of activeTracks) {
+
+        for (const s of trk.samples) {
+
+          out.set(u8.subarray(s.off, s.off + s.size), wp);
+
+          wp += s.size;
+
+        }
+
+      }
+
+      return out;
+
+    } catch (e) { return fixMp4Duration(u8, durationMs); }
+
+  }
+
   async function fixVideoContainerDuration(blob, mime, durationMs) {
 
     try {
@@ -32190,7 +32833,7 @@ self.onmessage = function (e) {
 
       const isMp4 = (mime && mime.includes('mp4')) || (u8.length > 8 && u8[4] === 0x66 && u8[5] === 0x74 && u8[6] === 0x79 && u8[7] === 0x70);
 
-      const patched = isMp4 ? fixMp4Duration(u8, durationMs) : fixWebmDuration(u8, durationMs);
+      const patched = isMp4 ? defragmentMp4(u8, durationMs) : fixWebmDuration(u8, durationMs);
 
       return new Blob([patched], { type: mime || blob.type || (isMp4 ? 'video/mp4' : 'video/webm') });
 
@@ -32202,7 +32845,11 @@ self.onmessage = function (e) {
 
   function createAudiogramWorker() {
 
+    const lameWorkerSrc = typeof lamejs === 'function' ? `${lamejs.toString()}\nlamejs();` : '';
+
     const src = `'use strict';
+
+    ${lameWorkerSrc}
 
     const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
@@ -32374,13 +33021,11 @@ self.onmessage = function (e) {
 
       const hasDesc = vDesc && vDesc.length >= 7 && vDesc[0] === 1;
 
-      const isAnnexB = (d) => d.length >= 4 && ((d[0] === 0 && d[1] === 0 && d[2] === 0 && d[3] === 1) || (d[0] === 0 && d[1] === 0 && d[2] === 1));
+      const isAnnexB = (d) => d && d.length >= 4 && ((d[0] === 0 && d[1] === 0 && d[2] === 0 && d[3] === 1) || (d[0] === 0 && d[1] === 0 && d[2] === 1));
 
       const splitAnnexB = (d) => {
 
         const nalus = [];
-
-        let i = 0;
 
         const findStart = (from) => {
 
@@ -32422,51 +33067,59 @@ self.onmessage = function (e) {
 
       let sps = null, pps = null;
 
-      let needConvert = !hasDesc || (vChunks.length && isAnnexB(vChunks[0].data));
+      if (!hasDesc && vDesc && isAnnexB(vDesc)) {
 
-      if (needConvert) {
+        for (const n of splitAnnexB(vDesc)) {
 
-        for (const c of vChunks) {
+          const nt = n[0] & 0x1f;
 
-          if (isAnnexB(c.data)) {
+          if (nt === 7 && !sps) sps = n.slice();
 
-            const nalus = splitAnnexB(c.data);
+          else if (nt === 8 && !pps) pps = n.slice();
 
-            const outNalus = [];
+        }
 
-            for (const n of nalus) {
+      }
 
-              const nt = n[0] & 0x1f;
+      for (const c of vChunks) {
 
-              if (nt === 7 && !sps) sps = n.slice();
+        if (isAnnexB(c.data)) {
 
-              else if (nt === 8 && !pps) pps = n.slice();
+          const nalus = splitAnnexB(c.data);
 
-              else if (nt !== 9) outNalus.push(n);
+          const outNalus = [];
 
-            }
+          for (const n of nalus) {
 
-            let tot = 0; for (const n of outNalus) tot += 4 + n.length;
+            const nt = n[0] & 0x1f;
 
-            const avcc = new Uint8Array(tot);
+            if (nt === 7 && !sps) sps = n.slice();
 
-            let off = 0;
+            else if (nt === 8 && !pps) pps = n.slice();
 
-            for (const n of outNalus) {
-
-              const l = n.length;
-
-              avcc[off] = (l >>> 24) & 255; avcc[off + 1] = (l >>> 16) & 255;
-
-              avcc[off + 2] = (l >>> 8) & 255; avcc[off + 3] = l & 255;
-
-              avcc.set(n, off + 4); off += 4 + l;
-
-            }
-
-            c.data = avcc;
+            else if (nt !== 9) outNalus.push(n);
 
           }
+
+          let tot = 0; for (const n of outNalus) tot += 4 + n.length;
+
+          const avcc = new Uint8Array(tot);
+
+          let off = 0;
+
+          for (const n of outNalus) {
+
+            const l = n.length;
+
+            avcc[off] = (l >>> 24) & 255; avcc[off + 1] = (l >>> 16) & 255;
+
+            avcc[off + 2] = (l >>> 8) & 255; avcc[off + 3] = l & 255;
+
+            avcc.set(n, off + 4); off += 4 + l;
+
+          }
+
+          c.data = avcc;
 
         }
 
@@ -32500,7 +33153,9 @@ self.onmessage = function (e) {
 
 
 
-    function buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate, audioCh }) {
+    function buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, aCodec, audioRate, audioCh }) {
+
+      if (!vChunks || !vChunks.length) throw new Error('No video frames encoded');
 
       const te = new TextEncoder();
 
@@ -32552,27 +33207,11 @@ self.onmessage = function (e) {
 
       const mdatHdr = concat(u32(8 + mdatPayloadLen), te.encode('mdat'));
 
-      const mdatDataStart = ftyp.length + 8;
 
-
-
-      const vOffsets = [], aOffsets = [];
-
-      let cursor = mdatDataStart;
-
-      for (const c of vChunks) { vOffsets.push(cursor); cursor += c.data.length; }
-
-      for (const c of aChunks) { aOffsets.push(cursor); cursor += c.data.length; }
-
-
-
-      const durMs = Math.max(1, Math.round(totalSec * 1000));
 
       const unityMatrix = concat(u32(0x00010000), u32(0), u32(0), u32(0), u32(0x00010000), u32(0), u32(0), u32(0), u32(0x40000000));
 
       const hasAudio = aChunks.length > 0;
-
-      const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(durMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(hasAudio ? 3 : 2));
 
 
 
@@ -32630,107 +33269,239 @@ self.onmessage = function (e) {
 
 
 
+      // Video timing (handle monotonic PTS cleanly + emit ctts if B-frame reordering occurred)
+
       const vTimescale = 90000;
+
+      const sortedPts = vChunks.map((c) => c.timestamp).sort((a, b) => a - b);
+
+      let outOfOrder = false;
+
+      for (let i = 1; i < vChunks.length; i++) {
+
+        if (vChunks[i].timestamp < vChunks[i - 1].timestamp) { outOfOrder = true; break; }
+
+      }
+
+      const dtsList = outOfOrder ? sortedPts : vChunks.map((c) => c.timestamp);
+
+      const fallbackVDur = Math.max(1, Math.round(vTimescale / Math.max(1, fps)));
 
       const vDurs = vChunks.map((c, i) => {
 
-        if (i + 1 < vChunks.length) return Math.max(1, Math.round(((vChunks[i + 1].timestamp - c.timestamp) / 1e6) * vTimescale));
+        if (i + 1 < vChunks.length) {
+
+          const dt = Math.round(((dtsList[i + 1] - dtsList[i]) / 1e6) * vTimescale);
+
+          return dt > 0 ? dt : fallbackVDur;
+
+        }
 
         return Math.max(1, Math.round(((c.duration || (1e6 / fps)) / 1e6) * vTimescale));
 
       });
 
-      const vTotalDur = vDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * vTimescale);
+      const vTotalDur = vDurs.reduce((s, x) => s + x, 0) || Math.max(1, Math.round(totalSec * vTimescale));
 
-      const vTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), unityMatrix, u32((width & 0xffff) << 16), u32((height & 0xffff) << 16));
-
-      const vMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(vTimescale), u32(vTotalDur), u16(0x55c4), u16(0));
-
-      const vHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('vide'), new Uint8Array(12), te.encode('VideoHandler\\0'));
-
-      const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), new Uint8Array(32), u16(0x0018), new Uint8Array([0xff, 0xff]), box('avcC', avcDesc));
-
-      const vStsd = fullBox('stsd', 0, 0, u32(1), avc1);
-
-      const syncIdx = [];
-
-      for (let i = 0; i < vChunks.length; i++) if (vChunks[i].key) syncIdx.push(i + 1);
-
-      if (!syncIdx.length && vChunks.length) syncIdx.push(1);
-
-      const stssBuf = new Uint8Array(4 + syncIdx.length * 4);
-
-      const stssDv = new DataView(stssBuf.buffer);
-
-      stssDv.setUint32(0, syncIdx.length, false);
-
-      for (let i = 0; i < syncIdx.length; i++) stssDv.setUint32(4 + i * 4, syncIdx[i], false);
-
-      const vStbl = box('stbl', vStsd, buildStts(vDurs), fullBox('stss', 0, 0, stssBuf), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(vChunks), buildStco(vOffsets));
-
-      const vTrak = box('trak', vTkhd, box('mdia', vMdhd, vHdlr, box('minf', fullBox('vmhd', 0, 1, new Uint8Array(8)), dinf, vStbl)));
+      const vDurMs = Math.max(1, Math.round((vTotalDur / vTimescale) * 1000));
 
 
 
-      const traks = [vTrak];
+      let aDurs = [], aTotalDur = 0, aDurMs = 0;
 
       if (hasAudio) {
 
-        const aDurs = aChunks.map((c, i) => {
+        const defFrameSamples = aCodec === 'mp3' ? 1152 : 1024;
 
-          if (i + 1 < aChunks.length) return Math.max(1, Math.round(((aChunks[i + 1].timestamp - c.timestamp) / 1e6) * audioRate));
+        aDurs = aChunks.map((c, i) => {
 
-          return Math.max(1, Math.round(((c.duration || (1024e6 / audioRate)) / 1e6) * audioRate));
+          if (i + 1 < aChunks.length) {
+
+            const dt = Math.round(((aChunks[i + 1].timestamp - c.timestamp) / 1e6) * audioRate);
+
+            return dt > 0 ? dt : defFrameSamples;
+
+          }
+
+          return Math.max(1, Math.round(((c.duration || ((defFrameSamples * 1e6) / audioRate)) / 1e6) * audioRate));
 
         });
 
-        const aTotalDur = aDurs.reduce((s, x) => s + x, 0) || Math.round(totalSec * audioRate);
+        aTotalDur = aDurs.reduce((s, x) => s + x, 0) || Math.max(1, Math.round(totalSec * audioRate));
 
-        const aTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(2), u32(0), u32(durMs), new Uint8Array(8), u16(0), u16(0), u16(0x0100), u16(0), unityMatrix, u32(0), u32(0));
-
-        const aMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(audioRate), u32(aTotalDur), u16(0x55c4), u16(0));
-
-        const aHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('soun'), new Uint8Array(12), te.encode('SoundHandler\\0'));
-
-        const srTable = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
-
-        const srIdx = Math.max(0, srTable.indexOf(audioRate));
-
-        const asc = (aDesc && aDesc.length >= 2) ? aDesc : new Uint8Array([(2 << 3) | (srIdx >> 1), ((srIdx & 1) << 7) | (audioCh << 3)]);
-
-        const tag05 = concat(new Uint8Array([0x05, asc.length]), asc);
-
-        const tag04 = concat(new Uint8Array([0x04, 13 + tag05.length, 0x40, 0x15, 0, 0, 0]), u32(192000), u32(192000), tag05);
-
-        const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
-
-        const tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
-
-        const mp4a = box('mp4a', new Uint8Array(6), u16(1), new Uint8Array(8), u16(audioCh), u16(16), u16(0), u16(0), u32((audioRate & 0xffff) << 16), fullBox('esds', 0, 0, tag03));
-
-        const aStbl = box('stbl', fullBox('stsd', 0, 0, u32(1), mp4a), buildStts(aDurs), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(aChunks), buildStco(aOffsets));
-
-        traks.push(box('trak', aTkhd, box('mdia', aMdhd, aHdlr, box('minf', fullBox('smhd', 0, 0, new Uint8Array(4)), dinf, aStbl))));
+        aDurMs = Math.max(1, Math.round((aTotalDur / audioRate) * 1000));
 
       }
 
+      const durMs = Math.max(1, vDurMs, aDurMs, Math.round(totalSec * 1000));
 
 
-      const moov = box('moov', mvhd, ...traks);
 
-      const out = new Uint8Array(ftyp.length + mdatHdr.length + mdatPayloadLen + moov.length);
+      const buildMoov = (vOffsets, aOffsets) => {
+
+        const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(1000), u32(durMs), u32(0x00010000), u16(0x0100), new Uint8Array(10), unityMatrix, new Uint8Array(24), u32(hasAudio ? 3 : 2));
+
+        const vTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(vDurMs), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), unityMatrix, u32((width & 0xffff) << 16), u32((height & 0xffff) << 16));
+
+        const vEdts = box('edts', fullBox('elst', 0, 0, u32(1), u32(vDurMs), u32(0), u32(0x00010000)));
+
+        const vMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(vTimescale), u32(vTotalDur), u16(0x55c4), u16(0));
+
+        const vHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('vide'), new Uint8Array(12), te.encode('VideoHandler\\0'));
+
+        const avc1 = box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height), u32(0x00480000), u32(0x00480000), u32(0), u16(1), new Uint8Array(32), u16(0x0018), new Uint8Array([0xff, 0xff]), box('avcC', avcDesc), box('pasp', u32(1), u32(1)));
+
+        const vStsd = fullBox('stsd', 0, 0, u32(1), avc1);
+
+        const syncIdx = [];
+
+        for (let i = 0; i < vChunks.length; i++) if (vChunks[i].key) syncIdx.push(i + 1);
+
+        if (!syncIdx.length && vChunks.length) syncIdx.push(1);
+
+        const stssBuf = new Uint8Array(4 + syncIdx.length * 4);
+
+        const stssDv = new DataView(stssBuf.buffer);
+
+        stssDv.setUint32(0, syncIdx.length, false);
+
+        for (let i = 0; i < syncIdx.length; i++) stssDv.setUint32(4 + i * 4, syncIdx[i], false);
+
+        const vStblParts = [vStsd, buildStts(vDurs), fullBox('stss', 0, 0, stssBuf)];
+
+        if (outOfOrder) {
+
+          const cttsEntries = [];
+
+          let hasNeg = false;
+
+          for (let i = 0; i < vChunks.length; i++) {
+
+            const offTicks = Math.round(((vChunks[i].timestamp - dtsList[i]) / 1e6) * vTimescale);
+
+            if (offTicks < 0) hasNeg = true;
+
+            if (cttsEntries.length && cttsEntries[cttsEntries.length - 1][1] === offTicks) cttsEntries[cttsEntries.length - 1][0]++;
+
+            else cttsEntries.push([1, offTicks]);
+
+          }
+
+          const cBuf = new Uint8Array(4 + cttsEntries.length * 8);
+
+          const cDv = new DataView(cBuf.buffer);
+
+          cDv.setUint32(0, cttsEntries.length, false);
+
+          for (let i = 0; i < cttsEntries.length; i++) {
+
+            cDv.setUint32(4 + i * 8, cttsEntries[i][0], false);
+
+            if (hasNeg) cDv.setInt32(8 + i * 8, cttsEntries[i][1], false);
+
+            else cDv.setUint32(8 + i * 8, cttsEntries[i][1], false);
+
+          }
+
+          vStblParts.push(fullBox('ctts', hasNeg ? 1 : 0, 0, cBuf));
+
+        }
+
+        vStblParts.push(fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(vChunks), buildStco(vOffsets));
+
+        const vStbl = box('stbl', ...vStblParts);
+
+        const vTrak = box('trak', vTkhd, vEdts, box('mdia', vMdhd, vHdlr, box('minf', fullBox('vmhd', 0, 1, new Uint8Array(8)), dinf, vStbl)));
+
+
+
+        const traks = [vTrak];
+
+        if (hasAudio) {
+
+          const aTkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(2), u32(0), u32(aDurMs), new Uint8Array(8), u16(0), u16(0), u16(0x0100), u16(0), unityMatrix, u32(0), u32(0));
+
+          const aEdts = box('edts', fullBox('elst', 0, 0, u32(1), u32(aDurMs), u32(0), u32(0x00010000)));
+
+          const aMdhd = fullBox('mdhd', 0, 0, u32(0), u32(0), u32(audioRate), u32(aTotalDur), u16(0x55c4), u16(0));
+
+          const aHdlr = fullBox('hdlr', 0, 0, u32(0), te.encode('soun'), new Uint8Array(12), te.encode('SoundHandler\\0'));
+
+          let tag03;
+
+          if (aCodec === 'mp3') {
+
+            const oti = audioRate >= 32000 ? 0x6B : 0x69;
+
+            const tag04 = concat(new Uint8Array([0x04, 13, oti, 0x15, 0, 0, 0]), u32(192000), u32(192000));
+
+            const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
+
+            tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
+
+          } else {
+
+            const srTable = [96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+
+            const srIdx = Math.max(0, srTable.indexOf(audioRate));
+
+            const asc = (aDesc && aDesc.length >= 2) ? aDesc : new Uint8Array([(2 << 3) | (srIdx >> 1), ((srIdx & 1) << 7) | (audioCh << 3)]);
+
+            const tag05 = concat(new Uint8Array([0x05, asc.length]), asc);
+
+            const tag04 = concat(new Uint8Array([0x04, 13 + tag05.length, 0x40, 0x15, 0, 0, 0]), u32(192000), u32(192000), tag05);
+
+            const tag06 = new Uint8Array([0x06, 0x01, 0x02]);
+
+            tag03 = concat(new Uint8Array([0x03, 3 + tag04.length + tag06.length, 0x00, 0x02, 0x00]), tag04, tag06);
+
+          }
+
+          const mp4a = box('mp4a', new Uint8Array(6), u16(1), new Uint8Array(8), u16(audioCh), u16(16), u16(0), u16(0), u32((audioRate & 0xffff) << 16), fullBox('esds', 0, 0, tag03));
+
+          const aStbl = box('stbl', fullBox('stsd', 0, 0, u32(1), mp4a), buildStts(aDurs), fullBox('stsc', 0, 0, u32(1), u32(1), u32(1), u32(1)), buildStsz(aChunks), buildStco(aOffsets));
+
+          traks.push(box('trak', aTkhd, aEdts, box('mdia', aMdhd, aHdlr, box('minf', fullBox('smhd', 0, 0, new Uint8Array(4)), dinf, aStbl))));
+
+        }
+
+        return box('moov', mvhd, ...traks);
+
+      };
+
+
+
+      // Two-pass faststart layout: ftyp -> moov -> mdat
+
+      const moovDummy = buildMoov(new Array(vChunks.length).fill(0), new Array(aChunks.length).fill(0));
+
+      const mdatDataStart = ftyp.length + moovDummy.length + 8;
+
+      const vOffsets = new Array(vChunks.length), aOffsets = new Array(aChunks.length);
+
+      let cursor = mdatDataStart;
+
+      for (let i = 0; i < vChunks.length; i++) { vOffsets[i] = cursor; cursor += vChunks[i].data.length; }
+
+      for (let i = 0; i < aChunks.length; i++) { aOffsets[i] = cursor; cursor += aChunks[i].data.length; }
+
+      const moov = buildMoov(vOffsets, aOffsets);
+
+
+
+      const out = new Uint8Array(ftyp.length + moov.length + mdatHdr.length + mdatPayloadLen);
 
       let p = 0;
 
       out.set(ftyp, p); p += ftyp.length;
+
+      out.set(moov, p); p += moov.length;
 
       out.set(mdatHdr, p); p += mdatHdr.length;
 
       for (const c of vChunks) { out.set(c.data, p); p += c.data.length; }
 
       for (const c of aChunks) { out.set(c.data, p); p += c.data.length; }
-
-      out.set(moov, p);
 
       return out;
 
@@ -32802,15 +33573,43 @@ self.onmessage = function (e) {
 
       };
 
+      const elUintFixed = (id, v, bytesLen) => {
+
+        const b = new Uint8Array(bytesLen); let n = Math.max(0, Math.floor(v));
+
+        for (let i = bytesLen - 1; i >= 0; i--) { b[i] = n & 0xff; n = Math.floor(n / 256); }
+
+        return el(id, b);
+
+      };
+
       const elFloat64 = (id, v) => { const b = new Uint8Array(8); new DataView(b.buffer).setFloat64(0, v, false); return el(id, b); };
 
       const elStr = (id, s) => el(id, te.encode(s));
 
 
 
+      const all = [];
+
+      for (const c of vChunks) all.push({ tr: 1, tMs: Math.round(c.timestamp / 1000), key: !!c.key, data: c.data });
+
+      for (const c of aChunks) all.push({ tr: 2, tMs: Math.round(c.timestamp / 1000), key: true, data: c.data });
+
+      all.sort((a, b) => a.tMs - b.tMs || a.tr - b.tr);
+
+      const minT = all.length && all[0].tMs < 0 ? all[0].tMs : 0;
+
+      if (minT < 0) for (const item of all) item.tMs -= minT;
+
+      const maxT = all.length ? all[all.length - 1].tMs : 0;
+
+      const durMs = Math.max(1, Math.round(totalSec * 1000), maxT);
+
+
+
       const ebml = el(0x1A45DFA3, elUint(0x4286, 1), elUint(0x42F7, 1), elUint(0x42F2, 4), elUint(0x42F3, 8), elStr(0x4282, 'webm'), elUint(0x4287, 2), elUint(0x4285, 2));
 
-      const info = el(0x1549A966, elUint(0x2AD7B1, 1000000), elStr(0x4D80, 'Sonora'), elStr(0x5741, 'Sonora'), elFloat64(0x4489, Math.max(1, totalSec * 1000)));
+      const info = el(0x1549A966, elUint(0x2AD7B1, 1000000), elStr(0x4D80, 'Sonora'), elStr(0x5741, 'Sonora'), elFloat64(0x4489, durMs));
 
       const trackEntries = [el(0xAE, elUint(0xD7, 1), elUint(0x73C5, 1), elUint(0x83, 1), elStr(0x86, vCodecId || 'V_VP8'), el(0xE0, elUint(0xB0, width), elUint(0xBA, height)))];
 
@@ -32824,7 +33623,7 @@ self.onmessage = function (e) {
 
         new DataView(opusHead.buffer).setUint32(12, audioRate, true);
 
-        trackEntries.push(el(0xAE, elUint(0xD7, 2), elUint(0x73C5, 2), elUint(0x83, 2), elStr(0x86, 'A_OPUS'), el(0x63A2, opusHead), el(0xE1, elFloat64(0xB5, audioRate), elUint(0x9F, audioCh))));
+        trackEntries.push(el(0xAE, elUint(0xD7, 2), elUint(0x73C5, 2), elUint(0x83, 2), elStr(0x86, 'A_OPUS'), elUint(0x56AA, 6500000), elUint(0x56BB, 80000000), el(0x63A2, opusHead), el(0xE1, elFloat64(0xB5, audioRate), elUint(0x9F, audioCh))));
 
       }
 
@@ -32832,21 +33631,13 @@ self.onmessage = function (e) {
 
 
 
-      const all = [];
-
-      for (const c of vChunks) all.push({ tr: 1, tMs: Math.round(c.timestamp / 1000), key: !!c.key, data: c.data });
-
-      for (const c of aChunks) all.push({ tr: 2, tMs: Math.round(c.timestamp / 1000), key: true, data: c.data });
-
-      all.sort((a, b) => a.tMs - b.tMs || a.tr - b.tr);
-
-
-
-      const clusters = []; let curItems = [], curT0 = 0;
+      const clusterItems = []; let curItems = [], curT0 = 0;
 
       const flushCluster = () => {
 
         if (!curItems.length) return;
+
+        const hasKeyV = curItems.some((it) => it.tr === 1 && it.key);
 
         const blocks = [elUint(0xE7, curT0)];
 
@@ -32860,7 +33651,7 @@ self.onmessage = function (e) {
 
         }
 
-        clusters.push(el(0x1F43B675, ...blocks));
+        clusterItems.push({ tMs: curT0, hasKeyV, bytes: el(0x1F43B675, ...blocks) });
 
         curItems = [];
 
@@ -32878,7 +33669,167 @@ self.onmessage = function (e) {
 
       flushCluster();
 
-      return concat(ebml, el(0x18538067, info, tracks, ...clusters));
+
+
+      // Two-pass Cues & SeekHead so Android / desktop WebM demuxers know duration & seek positions immediately
+
+      const buildCues = (cPosList) => {
+
+        const pts = [];
+
+        for (let i = 0; i < clusterItems.length; i++) {
+
+          if (i === 0 || clusterItems[i].hasKeyV) {
+
+            pts.push(el(0xBB, elUint(0xB3, clusterItems[i].tMs), el(0xB7, elUint(0xF7, 1), elUintFixed(0xF1, cPosList[i], 6))));
+
+          }
+
+        }
+
+        return el(0x1C53BB6B, ...pts);
+
+      };
+
+      const buildSeekHead = (infoPos, tracksPos, cuesPos) => el(0x114D9B74,
+
+        el(0x4DBB, el(0x53AB, idBytes(0x1549A966)), elUintFixed(0x53AC, infoPos, 6)),
+
+        el(0x4DBB, el(0x53AB, idBytes(0x1654AE6B)), elUintFixed(0x53AC, tracksPos, 6)),
+
+        el(0x4DBB, el(0x53AB, idBytes(0x1C53BB6B)), elUintFixed(0x53AC, cuesPos, 6))
+
+      );
+
+      const dummySh = buildSeekHead(0, 0, 0);
+
+      const dummyCues = buildCues(new Array(clusterItems.length).fill(0));
+
+      const infoPos = dummySh.length;
+
+      const tracksPos = infoPos + info.length;
+
+      const cuesPos = tracksPos + tracks.length;
+
+      const clustersStart = cuesPos + dummyCues.length;
+
+      const realPosList = new Array(clusterItems.length);
+
+      let cCur = clustersStart;
+
+      for (let i = 0; i < clusterItems.length; i++) { realPosList[i] = cCur; cCur += clusterItems[i].bytes.length; }
+
+      const seekHead = buildSeekHead(infoPos, tracksPos, cuesPos);
+
+      const cues = buildCues(realPosList);
+
+      return concat(ebml, el(0x18538067, seekHead, info, tracks, cues, ...clusterItems.map((c) => c.bytes)));
+
+    }
+
+
+
+    function encodeMp3InWorker(channels, rate, outRate, bitrateKbps) {
+
+      if (typeof lamejs === 'undefined' || !lamejs.Mp3Encoder) throw new Error('MP3 encoder unavailable');
+
+      const pcm = resampleChannels(channels, rate, outRate);
+
+      const nch = Math.min(2, pcm.length);
+
+      const enc = new lamejs.Mp3Encoder(nch, outRate, bitrateKbps || 192);
+
+      const L = pcm[0], R = pcm[Math.min(1, pcm.length - 1)];
+
+      const total = L.length, block = 1152;
+
+      const l = new Int16Array(block), r = new Int16Array(block);
+
+      const parts = []; let totalBytes = 0;
+
+      for (let i = 0; i < total; i += block) {
+
+        const n = Math.min(block, total - i);
+
+        for (let j = 0; j < n; j++) {
+
+          const vl = L[i + j] < -1 ? -1 : L[i + j] > 1 ? 1 : L[i + j];
+
+          l[j] = vl < 0 ? Math.max(-32768, Math.round(vl * 32768)) : Math.min(32767, Math.round(vl * 32767));
+
+          if (nch > 1) {
+
+            const vr = R[i + j] < -1 ? -1 : R[i + j] > 1 ? 1 : R[i + j];
+
+            r[j] = vr < 0 ? Math.max(-32768, Math.round(vr * 32768)) : Math.min(32767, Math.round(vr * 32767));
+
+          }
+
+        }
+
+        const out = nch > 1 ? enc.encodeBuffer(l.subarray(0, n), r.subarray(0, n)) : enc.encodeBuffer(l.subarray(0, n));
+
+        if (out && out.length) { const u = new Uint8Array(out); parts.push(u); totalBytes += u.length; }
+
+      }
+
+      const fl = enc.flush();
+
+      if (fl && fl.length) { const u = new Uint8Array(fl); parts.push(u); totalBytes += u.length; }
+
+      const mp3 = new Uint8Array(totalBytes);
+
+      let p = 0; for (const u of parts) { mp3.set(u, p); p += u.length; }
+
+      const bitrates = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+
+      const srates = [44100, 48000, 32000, 0];
+
+      const frames = [];
+
+      const frameUs = Math.round((1152 * 1e6) / outRate);
+
+      let pos = 0, idx = 0;
+
+      while (pos + 4 <= mp3.length) {
+
+        if (mp3[pos] === 0xff && (mp3[pos + 1] & 0xe0) === 0xe0) {
+
+          const ver = (mp3[pos + 1] >> 3) & 3;
+
+          const layer = (mp3[pos + 1] >> 1) & 3;
+
+          const brIdx = (mp3[pos + 2] >> 4) & 15;
+
+          const srIdx = (mp3[pos + 2] >> 2) & 3;
+
+          const pad = (mp3[pos + 2] >> 1) & 1;
+
+          const br = bitrates[brIdx] * 1000;
+
+          const sr = srates[srIdx];
+
+          if (ver === 3 && layer === 1 && br > 0 && sr > 0) {
+
+            const flen = Math.floor((144 * br) / sr) + pad;
+
+            if (pos + flen <= mp3.length) {
+
+              frames.push({ data: mp3.slice(pos, pos + flen), timestamp: Math.round((idx * 1152 * 1e6) / outRate), duration: frameUs });
+
+              idx++; pos += flen; continue;
+
+            }
+
+          }
+
+        }
+
+        pos++;
+
+      }
+
+      return frames;
 
     }
 
@@ -32888,23 +33839,57 @@ self.onmessage = function (e) {
 
       const mp4Order = async () => {
 
-        for (const vc of ['avc1.4D4028', 'avc1.4D401F', 'avc1.42E01E', 'avc1.640028']) {
+        let bestH264 = null;
 
-          try {
+        for (const vc of ['avc1.42E028', 'avc1.42E01F', 'avc1.42E01E', 'avc1.42001F', 'avc1.4D4028', 'avc1.4D401F', 'avc1.640028']) {
 
-            const vSup = await VideoEncoder.isConfigSupported({ codec: vc, width, height, bitrate: vBps, framerate: fps, avc: { format: 'avc' } });
+          for (const optsTry of [
 
-            if (!vSup || !vSup.supported) continue;
+            { latencyMode: 'realtime', avc: { format: 'avc' } },
 
-            for (const sr of [48000, 44100]) {
+            { avc: { format: 'avc' } },
 
-              const aSup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: chCount, bitrate: 192000 });
+            { latencyMode: 'realtime' },
 
-              if (aSup && aSup.supported) return { container: 'mp4', vCodec: vc, aCodec: 'mp4a.40.2', audioRate: sr };
+            {},
 
-            }
+          ]) {
 
-          } catch (e) {}
+            try {
+
+              const cfg = Object.assign({ codec: vc, width, height, bitrate: vBps, framerate: fps }, optsTry);
+
+              const vSup = await VideoEncoder.isConfigSupported(cfg);
+
+              if (!vSup || !vSup.supported) continue;
+
+              const vProfile = { vCodec: vc, useAvc: !!optsTry.avc, useRealtime: !!optsTry.latencyMode };
+
+              if (!bestH264) bestH264 = vProfile;
+
+              if (typeof AudioEncoder !== 'undefined') {
+
+                for (const sr of [48000, 44100]) {
+
+                  const aSup = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: chCount, bitrate: 192000 });
+
+                  if (aSup && aSup.supported) return { container: 'mp4', ...vProfile, aCodec: 'mp4a.40.2', audioRate: sr };
+
+                }
+
+              }
+
+              break;
+
+            } catch (e) {}
+
+          }
+
+        }
+
+        if (bestH264 && typeof lamejs === 'function' && lamejs.Mp3Encoder) {
+
+          return { container: 'mp4', ...bestH264, aCodec: 'mp3', audioRate: 48000 };
 
         }
 
@@ -32914,7 +33899,9 @@ self.onmessage = function (e) {
 
       const webmOrder = async () => {
 
-        for (const [vc, cid] of [['vp09.00.10.08', 'V_VP9'], ['vp8', 'V_VP8']]) {
+        if (typeof AudioEncoder === 'undefined') return null;
+
+        for (const [vc, cid] of [['vp09.00.41.08', 'V_VP9'], ['vp09.00.31.08', 'V_VP9'], ['vp8', 'V_VP8']]) {
 
           try {
 
@@ -32944,7 +33931,7 @@ self.onmessage = function (e) {
 
     async function runJob(job) {
 
-      if (typeof OffscreenCanvas === 'undefined' || typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined') {
+      if (typeof OffscreenCanvas === 'undefined' || typeof VideoEncoder === 'undefined') {
 
         self.postMessage({ type: 'unsupported' }); return;
 
@@ -33002,6 +33989,8 @@ self.onmessage = function (e) {
 
 
 
+      const copyDesc = (d) => ArrayBuffer.isView(d) ? new Uint8Array(d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength)) : new Uint8Array(d);
+
       const vEnc = new VideoEncoder({
 
         output: (chunk, meta) => {
@@ -33010,7 +33999,7 @@ self.onmessage = function (e) {
 
           vChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration, key: chunk.type === 'key' });
 
-          if (!vDesc && meta && meta.decoderConfig && meta.decoderConfig.description) vDesc = new Uint8Array(meta.decoderConfig.description);
+          if (!vDesc && meta && meta.decoderConfig && meta.decoderConfig.description) vDesc = copyDesc(meta.decoderConfig.description);
 
         },
 
@@ -33020,7 +34009,9 @@ self.onmessage = function (e) {
 
       const vCfg = { codec: pipe.vCodec, width, height, bitrate: vBps, framerate: fps };
 
-      if (pipe.container === 'mp4') vCfg.avc = { format: 'avc' };
+      if (pipe.useRealtime !== false) vCfg.latencyMode = 'realtime';
+
+      if (pipe.container === 'mp4' && pipe.useAvc !== false) vCfg.avc = { format: 'avc' };
 
       vEnc.configure(vCfg);
 
@@ -33028,7 +34019,13 @@ self.onmessage = function (e) {
 
       let aEnc = null;
 
-      if (!sentAudio) {
+      if (!sentAudio && pipe.aCodec === 'mp3') {
+
+        const mp3Frames = encodeMp3InWorker(channels, rate, pipe.audioRate, 192);
+
+        for (const f of mp3Frames) aChunks.push(f);
+
+      } else if (!sentAudio) {
 
         aEnc = new AudioEncoder({
 
@@ -33038,7 +34035,7 @@ self.onmessage = function (e) {
 
             aChunks.push({ data: buf, timestamp: chunk.timestamp, duration: chunk.duration });
 
-            if (!aDesc && meta && meta.decoderConfig && meta.decoderConfig.description) aDesc = new Uint8Array(meta.decoderConfig.description);
+            if (!aDesc && meta && meta.decoderConfig && meta.decoderConfig.description) aDesc = copyDesc(meta.decoderConfig.description);
 
           },
 
@@ -33210,13 +34207,15 @@ self.onmessage = function (e) {
 
       if (coverBitmap && typeof coverBitmap.close === 'function') coverBitmap.close();
 
+      if (wmLogoBitmap && typeof wmLogoBitmap.close === 'function') wmLogoBitmap.close();
+
 
 
       self.postMessage({ type: 'progress', pct: 99, el: totalSec, totalSec, finalizing: true });
 
       const outBytes = pipe.container === 'mp4'
 
-        ? buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, audioRate: pipe.audioRate, audioCh: chCount })
+        ? buildMp4({ width, height, fps, totalSec, vChunks, vDesc, aChunks, aDesc, aCodec: pipe.aCodec, audioRate: pipe.audioRate, audioCh: pipe.aCodec === 'mp3' ? Math.min(2, chCount) : chCount })
 
         : buildWebm({ width, height, totalSec, vCodecId: pipe.vCodecId, vChunks, aChunks, audioRate: pipe.audioRate, audioCh: chCount });
 
@@ -35764,5 +36763,5 @@ self.onmessage = function (e) {
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60df23f8cd1a901',t:'MTc5NTc0OTA5NA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60df23f8cd1a901',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
