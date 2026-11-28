@@ -1249,23 +1249,87 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .side-tabs button[aria-selected="true"] { background: rgba(255, 255, 255, .18); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24); }
 
 /* ------------------------------------------- Record & Merge Studio Modals */
-.rec-panel { display: flex; flex-direction: column; gap: 13px; }
-.rec-stage {
-  position: relative; height: 126px; border-radius: 22px; overflow: hidden;
-  background: radial-gradient(95% 90% at 50% 50%, rgba(100, 210, 255, .07), rgba(6, 7, 11, .96) 72%);
+.rec-panel { display: flex; flex-direction: column; gap: 12px; }
+.rec-route-deck {
+  display: flex; flex-direction: column; gap: 9px; padding: 11px 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .025));
   border: 1px solid var(--rim-2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 14px 30px -16px rgba(0, 0, 0, .85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+.rec-route-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .6px; color: var(--txt-3);
+}
+.rec-route-head b { color: var(--acc); font-family: ui-monospace, monospace; text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+.rec-dest-pills {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 3px;
+  border-radius: 13px; background: rgba(0, 0, 0, .38); border: 1px solid rgba(255, 255, 255, .08);
+}
+.rec-dest-pills button {
+  height: 32px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: 620;
+  color: var(--txt-2); border: 1px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: background var(--fast), color var(--fast), border-color var(--fast), transform var(--fast);
+}
+.rec-dest-pills button:hover:not(:disabled) { color: var(--txt); background: rgba(255, 255, 255, .05); }
+.rec-dest-pills button:disabled { opacity: .35; cursor: not-allowed; }
+.rec-dest-pills button[aria-pressed="true"] {
+  background: linear-gradient(180deg, rgba(100, 210, 255, .26), rgba(100, 210, 255, .14));
+  border-color: rgba(100, 210, 255, .52); color: #ecfbff;
+  box-shadow: 0 4px 12px -4px rgba(100, 210, 255, .45);
+}
+.rec-anchor-wrap { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; border-top: 1px solid rgba(255, 255, 255, .07); }
+.rec-anchor-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.rec-anchor-row::-webkit-scrollbar { display: none; }
+.rec-anchor-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px; border-radius: var(--r-pill);
+  font-size: 11px; font-weight: 600; color: var(--txt-2);
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--rim);
+  transition: background var(--fast), border-color var(--fast), color var(--fast);
+}
+.rec-anchor-chip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+.rec-anchor-chip[aria-pressed="true"] {
+  background: rgba(48, 209, 88, .18); border-color: rgba(48, 209, 88, .55); color: #dcffe6;
+}
+.rec-stage {
+  position: relative; height: 138px; border-radius: 22px; overflow: hidden;
+  background:
+    radial-gradient(60% 90% at 50% 50%, rgba(100, 210, 255, .09), transparent 70%),
+    linear-gradient(180deg, rgba(12, 15, 24, .98), rgba(6, 7, 11, .98));
+  border: 1px solid var(--rim-2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 16px 34px -18px rgba(0, 0, 0, .9);
 }
 .rec-stage.is-live {
-  border-color: rgba(255, 69, 58, .55);
-  background: radial-gradient(95% 90% at 50% 50%, rgba(255, 69, 58, .12), rgba(7, 7, 11, .96) 72%);
+  border-color: rgba(255, 69, 58, .62);
+  background:
+    radial-gradient(65% 95% at 50% 50%, rgba(255, 69, 58, .16), transparent 72%),
+    linear-gradient(180deg, rgba(24, 10, 14, .98), rgba(7, 7, 11, .98));
+  box-shadow: inset 0 1px 0 rgba(255, 140, 130, .2), 0 0 0 1px rgba(255, 69, 58, .22), 0 16px 34px -14px rgba(255, 69, 58, .45);
 }
 #recCanvas { display: block; width: 100%; height: 100%; }
 .rec-hud {
   position: absolute; inset: 10px 10px auto 10px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none;
 }
-.rec-hud-right { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.rec-hud-left, .rec-hud-right { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.rec-hud-btm {
+  position: absolute; inset: auto 10px 8px 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none;
+}
+.rec-hud-btm > * { pointer-events: auto; }
+.rec-preset-pill {
+  padding: 4px 10px; border-radius: var(--r-pill); font-size: 10.5px; font-weight: 620;
+  background: rgba(14, 16, 24, .78); border: 1px solid rgba(100, 210, 255, .3); color: #cdefff;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.rec-anchor-hud {
+  padding: 4px 9px; border-radius: var(--r-pill); font: 600 10.5px/1.1 ui-monospace, monospace;
+  background: rgba(14, 16, 24, .78); border: 1px solid rgba(48, 209, 88, .34); color: #c7ffd7;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.rec-prog-rail { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .06); }
+.rec-prog-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--acc), var(--green)); transition: width 90ms linear; }
 .rec-badge {
   display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: var(--r-pill);
   font-size: 11px; font-weight: 620; letter-spacing: .1px;
@@ -1287,7 +1351,7 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 }
 .rec-err {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; padding: 14px; text-align: center;
+  gap: 8px; padding: 14px; text-align: center; z-index: 4;
   background: rgba(10, 11, 16, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 .rec-err p { margin: 0; font-size: 12.5px; color: #ffb8b2; max-width: 280px; }
@@ -1299,20 +1363,21 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .rec-timer.live { color: #ff6961; text-shadow: 0 0 22px rgba(255, 69, 58, .42); }
 .rec-sub { font-size: 11.5px; color: var(--txt-3); text-align: center; }
 .rec-countdown {
-  position: absolute; inset: 0; display: none; place-items: center;
+  position: absolute; inset: 0; display: none; place-items: center; z-index: 5;
   background: rgba(0, 0, 0, .78); backdrop-filter: blur(10px);
   font: 800 48px/1 ui-monospace, monospace; color: #fff;
 }
 .rec-countdown.on { display: grid; }
 .rec-controls {
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
-  padding: 4px 4px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
+  padding: 2px 4px;
 }
+.rec-ctrl-side { display: flex; align-items: center; gap: 6px; }
 .rec-controls > :first-child { justify-self: end; }
 .rec-controls > :last-child { justify-self: start; }
 .rec-main-btn {
-  position: relative; width: 68px; height: 68px; border-radius: 50%;
-  padding: 5px;
+  position: relative; width: 72px; height: 72px; border-radius: 50%;
+  padding: 6px;
   border: 2.5px solid rgba(255, 255, 255, .36);
   background: rgba(255, 255, 255, .06);
   display: grid; place-items: center;
@@ -1327,25 +1392,48 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 }
 .rec-main-btn:active { transform: scale(.93); }
 .rec-main-btn.recording {
-  border-color: rgba(255, 69, 58, .72);
-  box-shadow: 0 0 0 6px rgba(255, 69, 58, .15), 0 10px 26px -8px rgba(255, 69, 58, .65);
+  border-color: rgba(255, 69, 58, .78);
+  box-shadow: 0 0 0 7px rgba(255, 69, 58, .16), 0 10px 26px -8px rgba(255, 69, 58, .65);
 }
 .rec-main-btn.recording .rec-main-core {
-  border-radius: 10px;
+  border-radius: 11px;
   transform: scale(.52);
 }
+.rec-cue-deck {
+  display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;
+  border-radius: 16px; background: rgba(255, 255, 255, .035); border: 1px solid var(--rim);
+}
+.rec-cue-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rec-cue-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 8px 10px; border-radius: 11px; font-size: 11.5px; font-weight: 600;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--rim); color: var(--txt-2);
+  text-align: left; transition: background var(--fast), border-color var(--fast), color var(--fast);
+}
+.rec-cue-btn[aria-pressed="true"] {
+  background: rgba(100, 210, 255, .15); border-color: rgba(100, 210, 255, .44); color: #e8f9ff;
+}
+.rec-cue-btn b { font-size: 11.5px; display: block; }
+.rec-cue-btn span { font-size: 10px; color: var(--txt-3); font-weight: 500; }
+.rec-cue-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--txt-3); flex: none; }
+.rec-cue-btn[aria-pressed="true"] .rec-cue-dot { background: var(--green); box-shadow: 0 0 8px rgba(48, 209, 88, .75); }
 .rec-review {
-  display: flex; flex-direction: column; gap: 11px; padding: 13px 14px;
+  display: flex; flex-direction: column; gap: 10px; padding: 13px 14px;
   border-radius: 20px;
   background:
-    radial-gradient(110% 80% at 10% 0%, rgba(100, 210, 255, .12), transparent 60%),
+    radial-gradient(110% 80% at 10% 0%, rgba(48, 209, 88, .12), transparent 60%),
+    radial-gradient(100% 80% at 95% 100%, rgba(100, 210, 255, .10), transparent 60%),
     rgba(255, 255, 255, .055);
-  border: 1px solid rgba(100, 210, 255, .36);
+  border: 1px solid rgba(48, 209, 88, .4);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 12px 28px -14px rgba(0, 0, 0, .8);
 }
 .rec-review-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.rec-review-h b { font-size: 13px; font-weight: 650; color: #e2f8ff; display: inline-flex; align-items: center; gap: 6px; }
-.rec-review-h b i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; }
+.rec-review-h b { font-size: 13px; font-weight: 650; color: #e4ffec; display: inline-flex; align-items: center; gap: 6px; }
+.rec-review-h b i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; box-shadow: 0 0 8px rgba(48, 209, 88, .75); }
+#recTakeWave {
+  display: block; width: 100%; height: 48px; border-radius: 12px;
+  background: rgba(6, 8, 12, .75); border: 1px solid rgba(255, 255, 255, .08);
+}
 .rec-takes { display: flex; gap: 6px; flex-wrap: wrap; }
 .rec-takes button {
   padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 560;
@@ -1354,9 +1442,10 @@ input:focus, select:focus { outline: none; border-color: var(--acc); box-shadow:
 .rec-takes button[aria-pressed="true"] {
   background: rgba(100, 210, 255, .2); border-color: rgba(100, 210, 255, .5); color: #e6f9ff;
 }
-.rec-review audio { width: 100%; height: 38px; border-radius: 10px; }
+.rec-review-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rec-review audio { width: 100%; height: 36px; border-radius: 10px; }
 .rec-review-act { display: flex; gap: 8px; align-items: center; }
-.rec-review-act .btn.primary { flex: 1 1 auto; min-height: 42px; font-size: 13.5px; }
+.rec-review-act .btn.primary { flex: 1 1 auto; min-height: 44px; font-size: 13.5px; font-weight: 650; }
 .rec-pro-box { display: flex; flex-direction: column; gap: 10px; }
 .rec-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
@@ -2051,6 +2140,7 @@ body.overlay-open { overflow: hidden; }
             <button type="button" class="btn sm" id="mPopJump">Jump</button>
             <button type="button" class="btn sm" id="mPopSetSel">Sel to Next</button>
             <button type="button" class="btn sm" id="mPopSplit" title="Split active clip at this marker">Split @ Cue</button>
+            <button type="button" class="btn sm primary" id="mPopRec" title="Record voiceover layer anchored at this marker">🎙 Rec Layer</button>
             <div class="spacer"></div>
             <button type="button" class="btn sm warn" id="mPopDel">Delete</button>
           </div>
@@ -2457,15 +2547,49 @@ body.overlay-open { overflow: hidden; }
 
 <div id="recordHost" hidden>
   <div class="rec-panel" id="recordPanel">
+    <div class="rec-route-deck" id="recRouteDeck">
+      <div class="rec-route-head">
+        <span>Target Track</span>
+        <b id="recRouteSummary">New Project</b>
+      </div>
+      <div class="rec-dest-pills" id="recDestPills" role="group" aria-label="Recording destination">
+        <button type="button" data-rdest="layer" aria-pressed="false">Layer T2</button>
+        <button type="button" data-rdest="stem" aria-pressed="false">Stem T3</button>
+        <button type="button" data-rdest="insert" aria-pressed="false">Insert T1</button>
+        <button type="button" data-rdest="new" aria-pressed="true">New Track</button>
+      </div>
+      <select id="recDest" hidden aria-hidden="true">
+        <option value="new">New project</option>
+        <option value="layer">Track 2 (Overdub layer)</option>
+        <option value="stem">Track 3 (Stem clip)</option>
+        <option value="insert">Insert at playhead</option>
+        <option value="append">Append to end</option>
+      </select>
+      <div class="rec-anchor-wrap" id="recAnchorWrap" hidden>
+        <div class="rec-route-head">
+          <span>Drop Section / Marker Anchor</span>
+          <b id="recAnchorOut">@ 0:00.00</b>
+        </div>
+        <div class="rec-anchor-row" id="recAnchorRow" role="group" aria-label="Recording section anchor"></div>
+      </div>
+    </div>
+
     <div class="rec-stage" id="recStage">
       <canvas id="recCanvas" aria-label="Live microphone input waveform"></canvas>
       <div class="rec-hud">
-        <span class="rec-badge" id="recBadge"><i></i><span id="recBadgeTxt">Connecting mic…</span></span>
+        <div class="rec-hud-left">
+          <span class="rec-badge" id="recBadge"><i></i><span id="recBadgeTxt">Connecting mic…</span></span>
+        </div>
         <div class="rec-hud-right">
           <button type="button" class="rec-clip" id="recClipBadge" hidden title="Clipping detected — tap to reset">CLIP</button>
           <span class="chip mono" id="recLevelDb">-∞ dB</span>
         </div>
       </div>
+      <div class="rec-hud-btm">
+        <button type="button" class="rec-preset-pill" id="recHudPresetBtn" title="Cycle mic voice preset">Preset: Podcast</button>
+        <span class="rec-anchor-hud" id="recHudAnchor" hidden>@ 0:00.00</span>
+      </div>
+      <div class="rec-prog-rail"><div class="rec-prog-fill" id="recProgFill"></div></div>
       <div class="rec-err" id="recErrBox" hidden>
         <p id="recErrMsg">Microphone access is needed to record audio.</p>
         <button type="button" class="btn sm accent" id="recRetryBtn">Enable Microphone</button>
@@ -2479,26 +2603,60 @@ body.overlay-open { overflow: hidden; }
     </div>
 
     <div class="rec-controls">
-      <button type="button" class="btn sm" id="recCountBtn" aria-pressed="false">3s timer</button>
+      <div class="rec-ctrl-side">
+        <button type="button" class="btn sm" id="recCountBtn" aria-pressed="false" title="3-second countdown before recording">3s</button>
+        <button type="button" class="btn sm" id="recPreRollBtn" aria-pressed="false" hidden title="Play 2s before anchor so you catch the cue">Pre-roll</button>
+      </div>
       <button type="button" class="rec-main-btn" id="recMainBtn" aria-label="Start recording">
         <span class="rec-main-core"></span>
       </button>
-      <button type="button" class="btn sm" id="recPauseBtn" disabled>Pause</button>
+      <div class="rec-ctrl-side">
+        <button type="button" class="btn sm" id="recPauseBtn" disabled>Pause</button>
+      </div>
     </div>
 
-    <div class="rec-metro-row">
-      <span class="metro-led" id="recMetroLed"></span>
-      <span style="font-size:12px;font-weight:600">Click Track</span>
-      <button type="button" class="btn sm" id="btnRecTapTempo">Tap</button>
-      <input type="number" class="bpm-in" id="recMetroBpm" min="40" max="240" step="1" value="120" aria-label="Recording click BPM">
-      <label class="checkrow" style="margin-left:auto"><input type="checkbox" id="chkRecMetro"><span>On in rec</span></label>
-      <button type="button" class="btn sm" id="btnRecMetroAudition">▶</button>
+    <div class="rec-review" id="recReview" hidden>
+      <div class="rec-review-h">
+        <b><i></i>Take ready</b>
+        <span class="chip mono" id="recTakeDur">0:00</span>
+      </div>
+      <div class="rec-takes" id="recTakesList"></div>
+      <canvas id="recTakeWave" aria-label="Recorded take waveform preview"></canvas>
+      <audio id="recPreview" controls></audio>
+      <div class="rec-review-tools">
+        <button type="button" class="btn sm" id="btnRecTrimSil" title="Trim quiet lead-in and tail silence from this take">✂ Trim Silence</button>
+        <button type="button" class="btn sm" id="recSendComp" hidden>To Comp</button>
+        <div class="spacer"></div>
+        <button type="button" class="btn sm ghost" id="recDiscardBtn">Discard</button>
+      </div>
+      <div class="rec-review-act">
+        <button type="button" class="btn primary" id="recApplyBtn">Open in Editor</button>
+      </div>
     </div>
 
-    <div class="rec-overdub-box" id="recOverdubBox" hidden>
-      <label class="checkrow"><input type="checkbox" id="recOverdub"><span><b>Punch-In / Overdub</b> — play Track 1 while recording (use headphones)</span></label>
+    <div class="rec-cue-deck">
+      <div class="rec-cue-toggles">
+        <button type="button" class="rec-cue-btn" id="recBackingBtn" aria-pressed="false" hidden>
+          <div><b>Hear Track 1</b><span>Backing overdub</span></div>
+          <span class="rec-cue-dot"></span>
+        </button>
+        <button type="button" class="rec-cue-btn" id="recMonBtn" aria-pressed="false">
+          <div><b>Mic Monitor</b><span>Headphones only</span></div>
+          <span class="rec-cue-dot"></span>
+        </button>
+      </div>
+      <input type="checkbox" id="recOverdub" hidden aria-hidden="true">
+      <input type="checkbox" id="recMonitor" hidden aria-hidden="true">
+      <div class="rec-metro-row">
+        <span class="metro-led" id="recMetroLed"></span>
+        <span style="font-size:12px;font-weight:600">Click Track</span>
+        <button type="button" class="btn sm" id="btnRecTapTempo">Tap</button>
+        <input type="number" class="bpm-in" id="recMetroBpm" min="40" max="240" step="1" value="120" aria-label="Recording click BPM">
+        <label class="checkrow" style="margin-left:auto"><input type="checkbox" id="chkRecMetro"><span>On in rec</span></label>
+        <button type="button" class="btn sm" id="btnRecMetroAudition">▶</button>
+      </div>
       <div id="recLatWrap" hidden>
-        <div class="range-row"><label for="recLatMs">Latency sync trim</label><output id="recLatMsOut">45 ms</output></div>
+        <div class="range-row"><label for="recLatMs">Overdub latency sync trim</label><output id="recLatMsOut">45 ms</output></div>
         <input type="range" id="recLatMs" min="0" max="220" step="5" value="45">
       </div>
     </div>
@@ -2521,25 +2679,11 @@ body.overlay-open { overflow: hidden; }
       </div></div></div>
     </div>
 
-    <div class="rec-review" id="recReview" hidden>
-      <div class="rec-review-h">
-        <b><i></i>Take ready</b>
-        <span class="chip mono" id="recTakeDur">0:00</span>
-      </div>
-      <div class="rec-takes" id="recTakesList"></div>
-      <audio id="recPreview" controls></audio>
-      <div class="rec-review-act">
-        <button type="button" class="btn primary" id="recApplyBtn">Open in Editor</button>
-        <button type="button" class="btn sm" id="recSendComp" hidden>To Comp</button>
-        <button type="button" class="btn sm ghost" id="recDiscardBtn">Discard</button>
-      </div>
-    </div>
-
     <div class="acc" data-acc id="recSettingsAcc">
-      <button class="acc-h" type="button"><span class="dot"></span>Mic &amp; Preset Settings<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+      <button class="acc-h" type="button"><span class="dot"></span>Mic Hardware &amp; Voice Preset<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
       <div class="acc-b"><div><div class="inner">
-        <div class="rec-opts">
-          <div class="field"><label for="recProfile">Mic preset</label>
+        <div class="rec-pro-box">
+          <div class="field"><label for="recProfile">Mic voice preset</label>
             <select id="recProfile">
               <option value="podcast" selected>Podcast voice (auto-master)</option>
               <option value="clean">Voice clean (denoise)</option>
@@ -2547,11 +2691,6 @@ body.overlay-open { overflow: hidden; }
               <option value="raw">Raw studio (unprocessed)</option>
             </select>
           </div>
-          <div class="field"><label for="recDest">Save as</label>
-            <select id="recDest"><option value="new">New project</option><option value="layer">Track 2 (Overdub layer)</option><option value="append">Append to end</option><option value="insert">Insert at playhead</option></select>
-          </div>
-        </div>
-        <div class="rec-pro-box">
           <div class="field"><label for="recDevice">Microphone input</label>
             <select id="recDevice"><option value="">Default microphone</option></select>
           </div>
@@ -2559,7 +2698,6 @@ body.overlay-open { overflow: hidden; }
             <div class="range-row"><label for="recGain">Input gain trim</label><output id="recGainOut">0.0 dB</output></div>
             <input type="range" id="recGain" min="-6" max="12" step="0.5" value="0">
           </div>
-          <label class="checkrow"><input type="checkbox" id="recMonitor"><span>Monitor mic live (use headphones to avoid feedback)</span></label>
         </div>
       </div></div></div>
     </div>
@@ -29022,6 +29160,38 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     toast('Loaded Track 2: ' + Layer.name + ' — drag on timeline to reposition', 'ok', 2800);
   }
 
+  async function addLayerClip(data, rate, name, offsetSec) {
+    if (!hasAudio) return toast('Open a main track first', 'info');
+    const d = cloneData(data);
+    const trackRate = rate || S.rate;
+    const off = Math.max(0, offsetSec == null ? P.t : offsetSec);
+    if (!Layer.active) {
+      const c = AC();
+      const b = c.createBuffer(d.length, d[0].length, trackRate);
+      for (let i = 0; i < d.length; i++) b.copyToChannel(d[i], i);
+      Layer.active = true; Layer.data = d; Layer.buffer = b; Layer.rate = trackRate;
+      Layer.peaksCache = null; Layer.offset = off;
+      Layer.name = name || 'Layer Track 2'; Layer.mute = false; Layer.solo = false;
+      const cl = makeLayerClipObj(Layer.name, cloneData(d), trackRate, off);
+      Layer.clips = [cl];
+      Layer.selectedId = cl.id;
+    } else {
+      ensureLayerClips();
+      const cl = makeLayerClipObj(name || ('Layer ' + (Layer.clips.length + 1)), d, trackRate, off);
+      Layer.clips.push(cl);
+      Layer.clips.sort((a, b) => a.offsetSec - b.offsetSec);
+      Layer.selectedId = cl.id;
+      Layer.loopBed = false;
+    }
+    ClipSel.track = 't2';
+    computeDuckCurve();
+    syncMixNodes();
+    renderLayersUI();
+    baseDirty = fxDirty = true;
+    ensureVisible(Math.max(0, off - 0.5), Math.min(totalDur(), off + d[0].length / trackRate + 1));
+    scheduleSave();
+  }
+
   function clearLayer() {
     killLayerSource();
     Layer.active = false; Layer.data = null; Layer.buffer = null; Layer.duckCurve = null;
@@ -30500,9 +30670,13 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       });
     }
     $('#btnLayerPick').addEventListener('click', () => $('#layerInput').click());
-    $('#btnLayerFromRec').addEventListener('click', () => {
+    $('#btnLayerFromRec').addEventListener('click', async () => {
       const tk = recTakes[recActiveTake >= 0 ? recActiveTake : recTakes.length - 1];
-      if (tk) loadLayerData(tk.data, tk.rate, 'Mic Take ' + (recTakes.indexOf(tk) + 1));
+      if (!tk) return;
+      const offSec = typeof tk.overdubAt === 'number' ? tk.overdubAt : clamp(P.t, 0, dur());
+      await addLayerClip(tk.data, tk.rate, 'Mic Take ' + (recTakes.indexOf(tk) + 1), offSec);
+      if ($('#sheet') && $('#sheet').classList.contains('on')) closeOverlays();
+      toast('Placed mic take on Track 2 @ ' + fmtTime(offSec, true), 'ok', 2400);
     });
     $('#btnLayerClear').addEventListener('click', clearLayer);
     $('#t2Mute').addEventListener('click', () => { Layer.mute = !Layer.mute; syncMixNodes(); renderLayersUI(); });
@@ -33223,15 +33397,185 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     if (ctx && recGainNode) recGainNode.gain.setTargetAtTime(Math.pow(10, db / 20), ctx.currentTime, 0.015);
     if (ctx && recMonNode) recMonNode.gain.setTargetAtTime($('#recMonitor') && $('#recMonitor').checked ? 1 : 0, ctx.currentTime, 0.015);
   }
+  const RecAnchor = { mode: 'playhead', markerIdx: -1, sec: 0, endSec: null, label: 'Playhead', usePreRoll: false, backingUserOff: false };
+  const REC_PRESETS = ['podcast', 'clean', 'singing', 'raw'];
+  const REC_PRESET_LABELS = { podcast: 'Podcast', clean: 'Clean', singing: 'Vocal Hi-Fi', raw: 'Raw Studio' };
+  function syncRecPresetHud() {
+    const p = ($('#recProfile') && $('#recProfile').value) || 'podcast';
+    if ($('#recHudPresetBtn')) $('#recHudPresetBtn').textContent = 'Preset: ' + (REC_PRESET_LABELS[p] || p);
+  }
+  function resolveRecAnchor() {
+    if (!hasAudio) {
+      RecAnchor.mode = 'playhead'; RecAnchor.markerIdx = -1; RecAnchor.sec = 0; RecAnchor.endSec = null; RecAnchor.label = 'Start';
+      return;
+    }
+    if (RecAnchor.mode === 'marker') {
+      const m = Markers.list[RecAnchor.markerIdx];
+      if (m) {
+        RecAnchor.sec = clamp(m.t, 0, dur());
+        RecAnchor.endSec = null;
+        RecAnchor.label = m.name || ('Marker ' + (RecAnchor.markerIdx + 1));
+        return;
+      }
+      RecAnchor.mode = 'playhead';
+    }
+    if (RecAnchor.mode === 'selection') {
+      const [a, b] = selRange();
+      if (b - a > 32 && !(a <= 0 && b >= S.data[0].length - 1)) {
+        RecAnchor.sec = a / S.rate;
+        RecAnchor.endSec = b / S.rate;
+        RecAnchor.label = 'IN → OUT';
+        return;
+      }
+      RecAnchor.mode = 'playhead';
+    }
+    RecAnchor.markerIdx = -1;
+    RecAnchor.sec = clamp(P.t, 0, dur());
+    RecAnchor.endSec = null;
+    RecAnchor.label = 'Playhead';
+  }
+  function renderRecAnchorBar() {
+    resolveRecAnchor();
+    const dest = ($('#recDest') && $('#recDest').value) || (hasAudio ? 'layer' : 'new');
+    const showAnchor = hasAudio && dest !== 'new' && dest !== 'append';
+    if ($('#recAnchorWrap')) $('#recAnchorWrap').hidden = !showAnchor;
+    if ($('#recHudAnchor')) {
+      $('#recHudAnchor').hidden = !showAnchor;
+      if (showAnchor) {
+        $('#recHudAnchor').textContent = RecAnchor.mode === 'selection'
+          ? `Punch ${fmtTime(RecAnchor.sec, true)}→${fmtTime(RecAnchor.endSec, true)}`
+          : `@ ${RecAnchor.label} · ${fmtTime(RecAnchor.sec, true)}`;
+      }
+    }
+    if ($('#recAnchorOut')) {
+      $('#recAnchorOut').textContent = RecAnchor.mode === 'selection'
+        ? `${fmtTime(RecAnchor.sec, true)} → ${fmtTime(RecAnchor.endSec, true)}`
+        : `@ ${fmtTime(RecAnchor.sec, true)}`;
+    }
+    const destNames = { layer: 'Track 2 Layer', stem: 'Track 3 Stem', insert: 'Track 1 Insert', append: 'Track 1 End', new: 'New Project' };
+    if ($('#recRouteSummary')) {
+      $('#recRouteSummary').textContent = showAnchor
+        ? `${destNames[dest] || dest} · ${RecAnchor.label}`
+        : (destNames[dest] || 'New Project');
+    }
+    const row = $('#recAnchorRow');
+    if (!row || !showAnchor) return;
+    row.innerHTML = '';
+    const mkBtn = (label, pressed, color, onClick) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rec-anchor-chip';
+      b.setAttribute('aria-pressed', String(pressed));
+      if (color) {
+        const dot = document.createElement('i');
+        dot.style.background = color;
+        b.append(dot);
+      }
+      b.append(document.createTextNode(label));
+      b.onclick = onClick;
+      row.append(b);
+    };
+    mkBtn(`Playhead (${fmtTime(P.t, true)})`, RecAnchor.mode === 'playhead', '#64d2ff', () => {
+      RecAnchor.mode = 'playhead'; RecAnchor.markerIdx = -1;
+      renderRecAnchorBar(); syncRecUI(); haptic(6);
+    });
+    const [a, b] = selRange();
+    if (b - a > 32 && !(a <= 0 && b >= S.data[0].length - 1)) {
+      mkBtn(`IN→OUT (${fmtTime(a / S.rate, true)})`, RecAnchor.mode === 'selection', '#ffd60a', () => {
+        RecAnchor.mode = 'selection';
+        seek(a / S.rate, false);
+        renderRecAnchorBar(); syncRecUI(); haptic(6);
+      });
+    }
+    Markers.list.forEach((m, i) => {
+      const col = markerColor(m.tag);
+      const lbl = `${m.name || ('M' + (i + 1))} · ${fmtTime(m.t, true)}`;
+      mkBtn(lbl, RecAnchor.mode === 'marker' && RecAnchor.markerIdx === i, col, () => {
+        RecAnchor.mode = 'marker'; RecAnchor.markerIdx = i;
+        seek(m.t, false);
+        ensureVisible(Math.max(0, m.t - 1), Math.min(dur(), m.t + 3));
+        renderRecAnchorBar(); syncRecUI(); haptic(6);
+      });
+    });
+  }
+  function drawRecTakeWave(tk, playFrac) {
+    const cv = $('#recTakeWave');
+    if (!cv || !tk || !tk.data || !tk.data[0]) return;
+    const w = Math.max(1, Math.floor(cv.clientWidth || 300));
+    const h = Math.max(1, Math.floor(cv.clientHeight || 48));
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) {
+      cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    }
+    const c = cv.getContext('2d');
+    c.setTransform(d, 0, 0, d, 0, 0);
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#07090e'; c.fillRect(0, 0, w, h);
+    const ch = tk.data[0];
+    const bars = Math.max(24, Math.floor(w / 3));
+    const step = Math.max(1, Math.floor(ch.length / bars));
+    const mid = h / 2;
+    const pf = clamp(playFrac || 0, 0, 1);
+    for (let i = 0; i < bars; i++) {
+      const s0 = Math.floor((i / bars) * ch.length);
+      const s1 = Math.min(ch.length, s0 + step);
+      let pk = 0;
+      for (let j = s0; j < s1; j += Math.max(1, (step >> 3))) {
+        const v = Math.abs(ch[j]);
+        if (v > pk) pk = v;
+      }
+      const bh = Math.max(2, Math.min(1, pk * 1.15) * (h - 10));
+      const x = (i / bars) * w;
+      const played = (i / bars) <= pf && pf > 0;
+      c.fillStyle = played ? '#30d158' : (pk > 0.9 ? '#ffd60a' : 'rgba(100, 210, 255, .82)');
+      c.fillRect(x, mid - bh / 2, 2, bh);
+    }
+    if (pf > 0 && pf < 1) {
+      const px = pf * w;
+      c.strokeStyle = '#ffffff'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(px, 2); c.lineTo(px, h - 2); c.stroke();
+    }
+  }
+  function trimSelectedTakeSilence() {
+    const tk = recTakes[recActiveTake];
+    if (!tk || !tk.data || !tk.data[0]) return;
+    const ch = tk.data[0];
+    const thr = 0.008; // ~-42 dB
+    const pad = Math.round(0.04 * tk.rate);
+    let a = 0, b = ch.length - 1;
+    while (a < b && Math.abs(ch[a]) < thr) a++;
+    while (b > a && Math.abs(ch[b]) < thr) b--;
+    a = Math.max(0, a - pad);
+    b = Math.min(ch.length, b + pad);
+    if (b - a < Math.round(0.12 * tk.rate)) return toast('Take is mostly silence or already tight', 'info', 2000);
+    if (a === 0 && b === ch.length) return toast('No silence to trim on edges', 'info', 1800);
+    tk.data = tk.data.map((c) => c.slice(a, b));
+    tk.dur = tk.data[0].length / tk.rate;
+    if (tk.url) URL.revokeObjectURL(tk.url);
+    const wb = D.encodeWav(tk.data, tk.rate, 16, null);
+    tk.url = URL.createObjectURL(new Blob([wb], { type: 'audio/wav' }));
+    selectRecTake(recActiveTake);
+    toast(`Trimmed edges → ${fmtTime(tk.dur, true)}`, 'ok', 2000);
+  }
   function selectRecTake(idx) {
     const tk = recTakes[idx];
     if (!tk) return;
     recActiveTake = idx;
     recDecoded = { data: tk.data, rate: tk.rate };
-    $('#recPreview').src = tk.url;
+    const prv = $('#recPreview');
+    if (prv) {
+      prv.src = tk.url;
+      prv.ontimeupdate = () => {
+        const d = prv.duration || tk.dur || 1;
+        drawRecTakeWave(tk, prv.currentTime / d);
+      };
+      prv.onended = () => drawRecTakeWave(tk, 0);
+    }
     $('#recTakeDur').textContent = fmtTime(tk.dur, true);
     $('#recReview').hidden = false;
     renderRecTakes();
+    requestAnimationFrame(() => drawRecTakeWave(tk, 0));
+    syncRecUI();
   }
   function renderRecTakes() {
     const box = $('#recTakesList');
@@ -33240,7 +33584,8 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     recTakes.forEach((tk, idx) => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = `Take ${idx + 1} (${fmtTime(tk.dur, true)})`;
+      const atTxt = (typeof tk.overdubAt === 'number') ? ` @ ${fmtTime(tk.overdubAt, true)}` : '';
+      b.textContent = `Take ${idx + 1} (${fmtTime(tk.dur, true)})${atTxt}`;
       b.setAttribute('aria-pressed', idx === recActiveTake);
       b.onclick = () => selectRecTake(idx);
       box.appendChild(b);
@@ -33250,13 +33595,12 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const cv = $('#recCanvas');
     if (!cv || !panelNode || panelNode.id !== 'recordPanel') { recRaf = 0; return; }
     recRaf = requestAnimationFrame(drawRecMeter);
-    const w = Math.max(1, Math.floor(cv.clientWidth)), h = Math.max(1, Math.floor(cv.clientHeight || 116));
+    const w = Math.max(1, Math.floor(cv.clientWidth)), h = Math.max(1, Math.floor(cv.clientHeight || 138));
     const d = Math.min(window.devicePixelRatio || 1, 2);
     if (cv.width !== Math.round(w * d) || cv.height !== Math.round(h * d)) { cv.width = Math.round(w * d); cv.height = Math.round(h * d); }
     const c = cv.getContext('2d');
     c.setTransform(d, 0, 0, d, 0, 0);
     c.clearRect(0, 0, w, h);
-    c.fillStyle = '#07080c'; c.fillRect(0, 0, w, h);
 
     let peak = 0;
     if (recAnalyser && recBuf) {
@@ -33269,20 +33613,37 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     }
     const db = peak > 1e-5 ? 20 * Math.log10(peak) : -60;
     $('#recLevelDb').textContent = db <= -59 ? '-∞ dB' : db.toFixed(1) + ' dB';
-    recHistory.push(Math.min(1, peak * 1.35));
+    recHistory.push(Math.min(1, peak * 1.45));
     const maxBars = Math.floor(w / 4);
     if (recHistory.length > maxBars) recHistory.splice(0, recHistory.length - maxBars);
 
     const mid = h / 2;
-    c.strokeStyle = 'rgba(255,255,255,.08)';
+    c.strokeStyle = 'rgba(255,255,255,.07)';
     c.lineWidth = 1;
     c.beginPath(); c.moveTo(0, mid); c.lineTo(w, mid); c.stroke();
+    // Subtle -12dB guide lines
+    c.strokeStyle = 'rgba(100,210,255,.06)';
+    c.beginPath(); c.moveTo(0, mid - h * 0.25); c.lineTo(w, mid - h * 0.25); c.moveTo(0, mid + h * 0.25); c.lineTo(w, mid + h * 0.25); c.stroke();
+
     for (let i = 0; i < recHistory.length; i++) {
       const v = recHistory[i];
-      const bh = Math.max(3, v * (h - 36));
+      const bh = Math.max(3, v * (h - 46));
       const x = w - (recHistory.length - i) * 4;
-      c.fillStyle = (recActive && !recPaused) ? (v > 0.88 ? '#ffd60a' : '#ff453a') : (v > 0.85 ? '#ffd60a' : '#64d2ff');
+      const isHot = v > 0.88;
+      c.fillStyle = (recActive && !recPaused) ? (isHot ? '#ffd60a' : '#ff453a') : (isHot ? '#ffd60a' : '#64d2ff');
       c.fillRect(x, mid - bh / 2, 2.5, bh);
+    }
+    if ($('#recProgFill')) {
+      if (recActive && recOverdubActive && hasAudio && dur() > 0) {
+        const cur = curTime();
+        const pct = clamp((cur / dur()) * 100, 0, 100);
+        $('#recProgFill').style.width = pct.toFixed(1) + '%';
+        if (RecAnchor.mode === 'selection' && RecAnchor.endSec && cur >= RecAnchor.endSec) {
+          stopRecording();
+        }
+      } else if (!recActive) {
+        $('#recProgFill').style.width = '0%';
+      }
     }
   }
   async function armMicMonitor() {
@@ -33363,30 +33724,68 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     $('#recBadge').classList.toggle('paused', !!isPaused);
     $('#recBadge').classList.toggle('ready', !isRec && !isPaused && !!recStream);
     $('#recBadgeTxt').textContent = isRec ? 'Recording' : isPaused ? 'Paused' : (recStream ? 'Mic ready' : 'Mic idle');
-    if ($('#recHint')) {
-      $('#recHint').textContent = isRec
-        ? 'Recording live — tap the red square when finished'
-        : isPaused
-          ? 'Recording paused — tap Resume or Stop'
-          : (recDecoded ? 'Preview take below or open straight in Editor' : 'Tap record to start · stops straight into review');
-    }
-    if ($('#recOverdubBox')) $('#recOverdubBox').hidden = !hasAudio;
-    if ($('#recLatWrap')) $('#recLatWrap').hidden = !(hasAudio && $('#recOverdub') && $('#recOverdub').checked);
     const dest = $('#recDest');
     if (dest) {
       if (dest.querySelector('[value="layer"]')) dest.querySelector('[value="layer"]').disabled = !hasAudio;
+      if (dest.querySelector('[value="stem"]')) dest.querySelector('[value="stem"]').disabled = !hasAudio;
       dest.querySelector('[value="append"]').disabled = !hasAudio;
       dest.querySelector('[value="insert"]').disabled = !hasAudio;
       if (!hasAudio) dest.value = 'new';
     }
+    const curDest = (dest && dest.value) || 'new';
+    $$('#recDestPills [data-rdest]').forEach((b) => {
+      const k = b.dataset.rdest;
+      b.disabled = !hasAudio && k !== 'new';
+      b.setAttribute('aria-pressed', String(k === curDest));
+    });
+    resolveRecAnchor();
+    syncRecPresetHud();
+    const isOverdubOn = !!(hasAudio && $('#recOverdub') && $('#recOverdub').checked);
+    const isMonOn = !!($('#recMonitor') && $('#recMonitor').checked);
+    if ($('#recBackingBtn')) {
+      $('#recBackingBtn').hidden = !hasAudio || curDest === 'new';
+      $('#recBackingBtn').setAttribute('aria-pressed', String(isOverdubOn));
+    }
+    if ($('#recMonBtn')) $('#recMonBtn').setAttribute('aria-pressed', String(isMonOn));
+    if ($('#recPreRollBtn')) {
+      $('#recPreRollBtn').hidden = !(hasAudio && curDest !== 'new' && RecAnchor.sec > 0.35);
+      $('#recPreRollBtn').setAttribute('aria-pressed', String(!!RecAnchor.usePreRoll));
+      $('#recPreRollBtn').classList.toggle('on', !!RecAnchor.usePreRoll);
+    }
+    if ($('#recLatWrap')) $('#recLatWrap').hidden = !(hasAudio && isOverdubOn);
+    if ($('#recHint')) {
+      $('#recHint').textContent = isRec
+        ? (RecAnchor.mode === 'selection' && RecAnchor.endSec ? `Recording punch (${fmtTime(RecAnchor.sec, true)} → ${fmtTime(RecAnchor.endSec, true)})` : 'Recording live — tap the red square when finished')
+        : isPaused
+          ? 'Recording paused — tap Resume or Stop'
+          : (recDecoded
+              ? 'Preview take below — ready to place on timeline'
+              : (hasAudio && curDest !== 'new'
+                  ? `Ready to record ${curDest === 'stem' ? 'Stem T3' : curDest === 'insert' ? 'Insert T1' : 'Layer T2'} @ ${RecAnchor.label} (${fmtTime(RecAnchor.sec, true)})`
+                  : 'Tap record to start · stops straight into review'));
+    }
     if ($('#recApplyBtn')) {
-      $('#recApplyBtn').textContent = hasAudio ? 'Use Selected Take' : 'Open in Editor';
+      if (!hasAudio || curDest === 'new') {
+        $('#recApplyBtn').textContent = 'Open in Editor';
+      } else {
+        const tk = recTakes[recActiveTake];
+        const dropSec = (tk && typeof tk.overdubAt === 'number' && curDest === 'layer' && RecAnchor.mode === 'playhead')
+          ? tk.overdubAt
+          : RecAnchor.sec;
+        const atStr = RecAnchor.mode === 'marker'
+          ? `${RecAnchor.label} (${fmtTime(dropSec, true)})`
+          : fmtTime(dropSec, true);
+        if (curDest === 'layer') $('#recApplyBtn').textContent = `Add Layer @ ${atStr}`;
+        else if (curDest === 'stem') $('#recApplyBtn').textContent = `Add Stem T3 @ ${atStr}`;
+        else if (curDest === 'insert') $('#recApplyBtn').textContent = `Insert into T1 @ ${atStr}`;
+        else $('#recApplyBtn').textContent = 'Append to Track 1';
+      }
     }
     if ($('#recSendComp')) {
       $('#recSendComp').hidden = !(hasAudio && recTakes.length);
     }
   }
-  function openRecordStudio() {
+  function openRecordStudio(opts) {
     pausePlay();
     try {
       const c = AC();
@@ -33397,6 +33796,33 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         if ($('#recLatMsOut')) $('#recLatMsOut').textContent = autoLat + ' ms';
       }
     } catch (e) {}
+    if (hasAudio) {
+      if ($('#recDest') && $('#recDest').value === 'new') $('#recDest').value = 'layer';
+      if (opts && opts.dest && $('#recDest')) $('#recDest').value = opts.dest;
+      if (opts && typeof opts.markerIdx === 'number' && Markers.list[opts.markerIdx]) {
+        RecAnchor.mode = 'marker';
+        RecAnchor.markerIdx = opts.markerIdx;
+        seek(Markers.list[opts.markerIdx].t, false);
+      } else if (Markers.activeIdx >= 0 && Markers.list[Markers.activeIdx]) {
+        RecAnchor.mode = 'marker';
+        RecAnchor.markerIdx = Markers.activeIdx;
+        seek(Markers.list[Markers.activeIdx].t, false);
+      } else {
+        const nearIdx = Markers.list.findIndex((m) => Math.abs(m.t - P.t) < 0.25);
+        if (nearIdx >= 0) {
+          RecAnchor.mode = 'marker';
+          RecAnchor.markerIdx = nearIdx;
+          seek(Markers.list[nearIdx].t, false);
+        } else {
+          RecAnchor.mode = 'playhead';
+          RecAnchor.markerIdx = -1;
+        }
+      }
+      if ($('#recOverdub') && !RecAnchor.backingUserOff) $('#recOverdub').checked = true;
+    } else {
+      if ($('#recDest')) $('#recDest').value = 'new';
+      RecAnchor.mode = 'playhead'; RecAnchor.markerIdx = -1;
+    }
     $('#recReview').hidden = !recDecoded;
     if (window.innerWidth < 760) {
       openSheet('Record Studio', $('#recordPanel'), { allowEmpty: true, tab: 'record' });
@@ -33414,7 +33840,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       $('#modalClose').focus();
     }
     recHistory = [];
+    renderRecAnchorBar();
     syncRecUI();
+    if (recDecoded && recTakes[recActiveTake]) requestAnimationFrame(() => drawRecTakeWave(recTakes[recActiveTake], 0));
     armMicMonitor().then(() => syncRecUI());
   }
   async function finalizePcmRecording() {
@@ -33469,7 +33897,9 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     const wavBlob = new Blob([wavBytes], { type: 'audio/wav' });
     const url = URL.createObjectURL(wavBlob);
     const takeSec = decData[0].length / decRate;
-    recTakes.push({ data: decData, rate: decRate, dur: takeSec, url, overdubAt: wasOverdub ? recOverdubStartSec : null, padEvents: recPadEvents.slice(), speechMarkers: recSpeechMarkers.slice() });
+    resolveRecAnchor();
+    const anchorAt = hasAudio ? (wasOverdub ? recOverdubStartSec : RecAnchor.sec) : null;
+    recTakes.push({ data: decData, rate: decRate, dur: takeSec, url, overdubAt: anchorAt, padEvents: recPadEvents.slice(), speechMarkers: recSpeechMarkers.slice() });
     if (recTakes.length > 5) {
       const old = recTakes.shift();
       if (old && old.url) URL.revokeObjectURL(old.url);
@@ -33477,7 +33907,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
     selectRecTake(recTakes.length - 1);
     syncRecUI();
     if ($('#recReview')) $('#recReview').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    toast('Take ' + recTakes.length + ' ready — preview or tap ' + (hasAudio ? 'Use selected take' : 'Open in Editor'), 'ok', 2800);
+    toast('Take ' + recTakes.length + ' ready — preview or place on timeline', 'ok', 2600);
   }
   async function startRecording() {
     if (recActive) return stopRecording();
@@ -33491,6 +33921,26 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       }
       const c = AC();
       if (c.state === 'suspended') await c.resume().catch(() => {});
+      resolveRecAnchor();
+      const destNow = ($('#recDest') && $('#recDest').value) || 'new';
+      const wantOverdub = hasAudio && destNow !== 'new' && $('#recOverdub') && $('#recOverdub').checked;
+      const anchorSec = hasAudio ? RecAnchor.sec : 0;
+      if (wantOverdub && RecAnchor.usePreRoll && anchorSec > 0.35 && !recUseCountdown) {
+        const preStart = Math.max(0, anchorSec - 2.0);
+        const waitMs = Math.round((anchorSec - preStart) * 1000);
+        seek(preStart, false);
+        if ($('#recMonitor') && $('#recMonitor').checked) {
+          $('#recMonitor').checked = false; syncRecGainMonitor();
+        }
+        recCounting = true;
+        if ($('#recHint')) $('#recHint').textContent = `Pre-roll cue (${(waitMs / 1000).toFixed(1)}s) → punch-in @ ${fmtTime(anchorSec, true)}`;
+        play();
+        await new Promise((r) => setTimeout(r, waitMs));
+        recCounting = false;
+        if (!panelNode || panelNode.id !== 'recordPanel') { pausePlay(); return; }
+      } else {
+        if (hasAudio && destNow !== 'new') seek(anchorSec, false);
+      }
       if ($('#chkRecMetro') && $('#chkRecMetro').checked) startMetronome();
       if (recUseCountdown) {
         recCounting = true;
@@ -33519,15 +33969,14 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         rec.start(250);
       } catch (e) { rec = null; }
       haptic([10, 28, 12]);
-      const wantOverdub = hasAudio && $('#recOverdub') && $('#recOverdub').checked;
       if (wantOverdub) {
-        recOverdubStartSec = clamp(P.t, 0, dur());
+        recOverdubStartSec = clamp(anchorSec, 0, dur());
         recOverdubActive = true;
         if ($('#recMonitor') && $('#recMonitor').checked) {
           $('#recMonitor').checked = false;
           syncRecGainMonitor();
         }
-        play();
+        if (!P.playing) { seek(recOverdubStartSec, false); play(); }
       } else {
         recOverdubActive = false;
       }
@@ -33545,7 +33994,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   async function commitRecording(mode) {
     if (recActive) await finalizePcmRecording();
     if (!recDecoded || !recDecoded.data || !recDecoded.data[0] || !recDecoded.data[0].length) {
-      return toast('Record a take first before opening in the editor.', 'info', 3200);
+      return toast('Record a take first before placing it.', 'info', 3200);
     }
     const prv = $('#recPreview');
     if (prv) try { prv.pause(); } catch (e) {}
@@ -33570,6 +34019,10 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         D.normalize(data, selFull, { mode: 'peak', targetDb: -1.0 }, rate);
       }
       const tkMeta = recTakes[recActiveTake] || {};
+      resolveRecAnchor();
+      const chosenSec = (RecAnchor.mode === 'marker' || RecAnchor.mode === 'selection')
+        ? RecAnchor.sec
+        : ((typeof tkMeta.overdubAt === 'number') ? tkMeta.overdubAt : RecAnchor.sec);
       const applyTakeExtras = async (baseOffsetSec) => {
         if (tkMeta.speechMarkers && tkMeta.speechMarkers.length) {
           for (const sm of tkMeta.speechMarkers) {
@@ -33595,19 +34048,29 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         return;
       }
       if (mode === 'layer') {
-        const tk = recTakes[recActiveTake];
-        const offSec = (tk && typeof tk.overdubAt === 'number') ? tk.overdubAt : clamp(P.t, 0, dur());
+        const offSec = clamp(chosenSec, 0, Math.max(dur(), totalDur()));
+        const clipLabel = RecAnchor.mode === 'marker'
+          ? `${RecAnchor.label} · Take ${recActiveTake + 1}`
+          : `Vocal Take ${recActiveTake + 1}`;
         recDecoded = null;
         closeOverlays();
-        await loadLayerData(data, rate, 'Overdub Take ' + (recActiveTake + 1));
-        Layer.offset = offSec;
-        Layer.duck = false;
-        if ($('#t2Offset')) $('#t2Offset').value = offSec;
-        if ($('#t2OffsetOut')) $('#t2OffsetOut').textContent = (offSec > 0 ? '+' : '') + offSec.toFixed(1) + ' s';
-        if ($('#t2Duck')) $('#t2Duck').checked = false;
-        computeDuckCurve(); syncMixNodes(); renderLayersUI(); baseDirty = true;
+        await addLayerClip(data, rate, clipLabel, offSec);
+        seek(offSec, false);
         await applyTakeExtras(offSec);
-        toast('Overdub aligned on Track 2 at ' + fmtTime(offSec, true), 'ok', 2800);
+        toast(`Added "${clipLabel}" on Track 2 @ ${fmtTime(offSec, true)}`, 'ok', 2800);
+        return;
+      }
+      if (mode === 'stem') {
+        const offSec = clamp(chosenSec, 0, Math.max(dur(), totalDur()));
+        const clipLabel = RecAnchor.mode === 'marker'
+          ? `${RecAnchor.label} · Stem ${recActiveTake + 1}`
+          : `Mic Stem ${recActiveTake + 1}`;
+        recDecoded = null;
+        closeOverlays();
+        await addStemClip(data, rate, clipLabel, offSec);
+        seek(offSec, false);
+        await applyTakeExtras(offSec);
+        toast(`Added "${clipLabel}" on Track 3 @ ${fmtTime(offSec, true)}`, 'ok', 2800);
         return;
       }
       if (rate !== S.rate) data = await runTask({ act: 'resample', data, rate, to: S.rate });
@@ -33616,7 +34079,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         else if (S.data.length === 1 && data.length > 1) data = D.mixChannels(data);
       }
       const label = mode === 'append' ? 'Append recording' : 'Insert recording';
-      const at = mode === 'append' ? S.data[0].length : Math.round(P.t * S.rate);
+      const at = mode === 'append' ? S.data[0].length : Math.round(clamp(chosenSec, 0, dur()) * S.rate);
       closeOverlays();
       await edit(label, async () => {
         shiftMarkers(at, at, data[0].length);
@@ -33630,7 +34093,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       toast('Could not import recording: ' + ((e && e.message) || e), 'err', 4200);
       console.error(e);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = prevTxt || (hasAudio ? 'Use Selected Take' : 'Open in Editor'); }
+      if (btn) { btn.disabled = false; syncRecUI(); }
     }
   }
 
@@ -35042,14 +35505,73 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       recUseCountdown = !recUseCountdown;
       $('#recCountBtn').setAttribute('aria-pressed', recUseCountdown);
       $('#recCountBtn').classList.toggle('on', recUseCountdown);
+      haptic(5);
     });
-    $('#recProfile').addEventListener('change', () => { if (!recActive) armMicMonitor(); });
+    if ($('#recPreRollBtn')) {
+      $('#recPreRollBtn').addEventListener('click', () => {
+        RecAnchor.usePreRoll = !RecAnchor.usePreRoll;
+        syncRecUI();
+        haptic(5);
+      });
+    }
+    if ($('#recDestPills')) {
+      $('#recDestPills').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-rdest]');
+        if (!b || b.disabled) return;
+        const k = b.dataset.rdest;
+        if ($('#recDest')) $('#recDest').value = k;
+        if (k === 'layer' || k === 'stem') {
+          if ($('#recOverdub') && !RecAnchor.backingUserOff) $('#recOverdub').checked = true;
+        }
+        renderRecAnchorBar();
+        syncRecUI();
+        haptic(6);
+      });
+    }
+    if ($('#recDest')) {
+      $('#recDest').addEventListener('change', () => { renderRecAnchorBar(); syncRecUI(); });
+    }
+    if ($('#recHudPresetBtn')) {
+      $('#recHudPresetBtn').addEventListener('click', () => {
+        const cur = ($('#recProfile') && $('#recProfile').value) || 'podcast';
+        const next = REC_PRESETS[(REC_PRESETS.indexOf(cur) + 1) % REC_PRESETS.length];
+        if ($('#recProfile')) {
+          $('#recProfile').value = next;
+          if (!recActive) armMicMonitor();
+        }
+        syncRecPresetHud();
+        haptic(6);
+      });
+    }
+    if ($('#recBackingBtn')) {
+      $('#recBackingBtn').addEventListener('click', () => {
+        if (!$('#recOverdub')) return;
+        $('#recOverdub').checked = !$('#recOverdub').checked;
+        RecAnchor.backingUserOff = !$('#recOverdub').checked;
+        syncRecUI();
+        haptic(6);
+      });
+    }
+    if ($('#recMonBtn')) {
+      $('#recMonBtn').addEventListener('click', () => {
+        if (!$('#recMonitor')) return;
+        $('#recMonitor').checked = !$('#recMonitor').checked;
+        syncRecGainMonitor();
+        syncRecUI();
+        haptic(6);
+      });
+    }
+    if ($('#btnRecTrimSil')) {
+      $('#btnRecTrimSil').addEventListener('click', () => { trimSelectedTakeSilence(); haptic(6); });
+    }
+    $('#recProfile').addEventListener('change', () => { syncRecPresetHud(); if (!recActive) armMicMonitor(); });
     $('#recDevice').addEventListener('change', () => { if (!recActive) armMicMonitor(); });
     $('#recGain').addEventListener('input', syncRecGainMonitor);
-    $('#recMonitor').addEventListener('change', syncRecGainMonitor);
+    $('#recMonitor').addEventListener('change', () => { syncRecGainMonitor(); syncRecUI(); });
     if ($('#recOverdub')) {
       $('#recOverdub').addEventListener('change', (e) => {
-        if (e.target.checked && $('#recDest')) $('#recDest').value = 'layer';
+        RecAnchor.backingUserOff = !e.target.checked;
+        if (e.target.checked && $('#recDest') && $('#recDest').value === 'new') $('#recDest').value = 'layer';
         syncRecUI();
       });
     }
@@ -35090,7 +35612,7 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
         if (rm && rm.url) URL.revokeObjectURL(rm.url);
       }
       if (recTakes.length) selectRecTake(recTakes.length - 1);
-      else { recDecoded = null; recActiveTake = -1; $('#recReview').hidden = true; $('#recTimer').textContent = '0:00.0'; }
+      else { recDecoded = null; recActiveTake = -1; $('#recReview').hidden = true; $('#recTimer').textContent = '0:00.0'; syncRecUI(); }
     });
     $('#waveModeSeg').addEventListener('click', (e) => {
       const b = e.target.closest('[data-wmode]');
@@ -35404,6 +35926,11 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
       else if (trk === 't3' && Stems.clips.length) splitT3AtPlayhead();
       else splitAtPlayheadRegion();
       haptic(6);
+    });
+    if ($('#mPopRec')) $('#mPopRec').addEventListener('click', () => {
+      const m = Markers.list[Markers.activeIdx]; if (!m || !hasAudio) return;
+      haptic(10);
+      openRecordStudio({ dest: 'layer', markerIdx: Markers.activeIdx });
     });
     $('#mPopName').addEventListener('input', (e) => {
       const m = Markers.list[Markers.activeIdx]; if (!m) return;
@@ -36036,5 +36563,5 @@ registerProcessor('sonora-live-fx', SonoraLiveFxProcessor);
   else init();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a61223961e0b96a8',t:'MTc5NTc5MzA1OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a61223961e0b96a8',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
